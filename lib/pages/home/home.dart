@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 enum PostType { adopcion, perdido, denuncia, veterinaria, refugio, miMascota }
-
 enum PetType { perro, gato, ave, otros }
 
 class Post {
@@ -135,12 +134,8 @@ class _PageHomeState extends State<PageHome> {
   List<Post> get filteredPosts {
     return allPosts.where((post) {
       if (selectedType != null && post.type != selectedType) return false;
-      if (selectedPetType != null && post.petType != selectedPetType) {
-        return false;
-      }
-      if (selectedLocation != null && post.location != selectedLocation) {
-        return false;
-      }
+      if (selectedPetType != null && post.petType != selectedPetType) return false;
+      if (selectedLocation != null && post.location != selectedLocation) return false;
       if (selectedDateRange != null) {
         if (post.timestamp.isBefore(selectedDateRange!.start) ||
             post.timestamp.isAfter(selectedDateRange!.end)) {
@@ -185,10 +180,7 @@ class _PageHomeState extends State<PageHome> {
   @override
   Widget build(BuildContext context) {
     final hasFilters =
-        selectedType != null ||
-        selectedPetType != null ||
-        selectedLocation != null ||
-        selectedDateRange != null;
+        selectedType != null || selectedPetType != null || selectedLocation != null || selectedDateRange != null;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -208,19 +200,14 @@ class _PageHomeState extends State<PageHome> {
             SizedBox(width: 12),
             Text(
               'WebAnimal',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: Icon(Icons.notifications_outlined, color: Colors.black),
-            onPressed: () =>
-                GoRouter.of(context).push('/account/notifications'),
+            onPressed: () => GoRouter.of(context).push('/account/notifications'),
           ),
           IconButton(
             icon: Icon(Icons.person_2_rounded, color: Colors.black),
@@ -242,35 +229,13 @@ class _PageHomeState extends State<PageHome> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildQuickFilter(
-                          'Todos',
-                          Icons.grid_view_rounded,
-                          selectedType == null,
-                          () => setState(() => selectedType = null),
-                        ),
+                        _buildQuickFilter('Todos', Icons.grid_view_rounded, selectedType == null, () => setState(() => selectedType = null)),
                         SizedBox(width: 8),
-                        _buildQuickFilter(
-                          'Adopción',
-                          Icons.favorite,
-                          selectedType == PostType.adopcion,
-                          () =>
-                              setState(() => selectedType = PostType.adopcion),
-                        ),
+                        _buildQuickFilter('Adopción', Icons.favorite, selectedType == PostType.adopcion, () => setState(() => selectedType = PostType.adopcion)),
                         SizedBox(width: 8),
-                        _buildQuickFilter(
-                          'Perdidos',
-                          Icons.search,
-                          selectedType == PostType.perdido,
-                          () => setState(() => selectedType = PostType.perdido),
-                        ),
+                        _buildQuickFilter('Perdidos', Icons.search, selectedType == PostType.perdido, () => setState(() => selectedType = PostType.perdido)),
                         SizedBox(width: 8),
-                        _buildQuickFilter(
-                          'Denuncias',
-                          Icons.report,
-                          selectedType == PostType.denuncia,
-                          () =>
-                              setState(() => selectedType = PostType.denuncia),
-                        ),
+                        _buildQuickFilter('Denuncias', Icons.report, selectedType == PostType.denuncia, () => setState(() => selectedType = PostType.denuncia)),
                       ],
                     ),
                   ),
@@ -292,10 +257,7 @@ class _PageHomeState extends State<PageHome> {
                         child: Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                         ),
                       ),
                   ],
@@ -303,8 +265,6 @@ class _PageHomeState extends State<PageHome> {
               ],
             ),
           ),
-
-          // Active filters chips
           if (hasFilters)
             Container(
               color: Colors.white,
@@ -315,37 +275,20 @@ class _PageHomeState extends State<PageHome> {
                 runSpacing: 8,
                 children: [
                   if (selectedPetType != null)
-                    _buildActiveFilterChip(
-                      _getPetTypeLabel(selectedPetType!),
-                      () => setState(() => selectedPetType = null),
-                    ),
+                    _buildActiveFilterChip(_getPetTypeLabel(selectedPetType!), () => setState(() => selectedPetType = null)),
                   if (selectedLocation != null)
-                    _buildActiveFilterChip(
-                      selectedLocation!,
-                      () => setState(() => selectedLocation = null),
-                    ),
+                    _buildActiveFilterChip(selectedLocation!, () => setState(() => selectedLocation = null)),
                   if (selectedDateRange != null)
-                    _buildActiveFilterChip(
-                      'Rango de fecha',
-                      () => setState(() => selectedDateRange = null),
-                    ),
+                    _buildActiveFilterChip('Rango de fecha', () => setState(() => selectedDateRange = null)),
                   TextButton.icon(
                     onPressed: _clearFilters,
                     icon: Icon(Icons.clear_all, size: 16),
                     label: Text('Limpiar filtros'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red, padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
                   ),
                 ],
               ),
             ),
-
-          // Posts feed
           Expanded(
             child: filteredPosts.isEmpty
                 ? Center(
@@ -354,88 +297,43 @@ class _PageHomeState extends State<PageHome> {
                       children: [
                         Icon(Icons.search_off, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text(
-                          'No se encontraron posts',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
+                        Text('No se encontraron posts', style: TextStyle(fontSize: 18, color: Colors.grey)),
                       ],
                     ),
                   )
                 : ListView.builder(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     itemCount: filteredPosts.length,
-                    itemBuilder: (context, index) {
-                      return ModernPostCard(post: filteredPosts[index]);
-                    },
+                    itemBuilder: (context, index) => ModernPostCard(post: filteredPosts[index]),
                   ),
           ),
         ],
       ),
-      floatingActionButton: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Colors.purple, Colors.pink],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.purple.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => GoRouter.of(context).push('/posts/uuid/edit'),
-            borderRadius: BorderRadius.circular(30),
-            child: Center(
-              child: Icon(Icons.add, size: 28, color: Colors.white),
-            ),
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => GoRouter.of(context).push('/posts/uuid/edit'),
+        backgroundColor: Colors.purple,
+        child: Icon(Icons.add),
       ),
     );
   }
 
-  Widget _buildQuickFilter(
-    String label,
-    IconData icon,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
+  // Filtros y chips
+  Widget _buildQuickFilter(String label, IconData icon, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(colors: [Colors.purple, Colors.pink])
-              : null,
+          gradient: isSelected ? LinearGradient(colors: [Colors.purple, Colors.pink]) : null,
           color: isSelected ? null : Colors.grey[100],
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? Colors.white : Colors.black87,
-            ),
+            Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.black87),
             SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
+            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
           ],
         ),
       ),
@@ -466,6 +364,7 @@ class _PageHomeState extends State<PageHome> {
   }
 }
 
+// ------------------ MODERN POST CARD -----------------
 class ModernPostCard extends StatelessWidget {
   final Post post;
 
@@ -474,249 +373,78 @@ class ModernPostCard extends StatelessWidget {
   PostTypeConfig _getTypeConfig() {
     switch (post.type) {
       case PostType.adopcion:
-        return PostTypeConfig(
-          color: Colors.blue,
-          icon: Icons.favorite,
-          label: 'EN ADOPCIÓN',
-          gradient: [Colors.blue[400]!, Colors.blue[600]!],
-        );
+        return PostTypeConfig(color: Colors.blue, icon: Icons.favorite, label: 'EN ADOPCIÓN', gradient: [Colors.blue[400]!, Colors.blue[600]!]);
       case PostType.perdido:
-        return PostTypeConfig(
-          color: Colors.orange,
-          icon: Icons.search,
-          label: 'PERDIDO',
-          gradient: [Colors.orange[400]!, Colors.red[400]!],
-        );
+        return PostTypeConfig(color: Colors.orange, icon: Icons.search, label: 'PERDIDO', gradient: [Colors.orange[400]!, Colors.red[400]!]);
       case PostType.denuncia:
-        return PostTypeConfig(
-          color: Colors.red,
-          icon: Icons.report,
-          label: 'DENUNCIA',
-          gradient: [Colors.red[400]!, Colors.red[700]!],
-        );
+        return PostTypeConfig(color: Colors.red, icon: Icons.report, label: 'DENUNCIA', gradient: [Colors.red[400]!, Colors.red[700]!]);
       case PostType.veterinaria:
-        return PostTypeConfig(
-          color: Colors.purple,
-          icon: Icons.medical_services,
-          label: 'VETERINARIA',
-          gradient: [Colors.purple[400]!, Colors.purple[700]!],
-        );
+        return PostTypeConfig(color: Colors.purple, icon: Icons.medical_services, label: 'VETERINARIA', gradient: [Colors.purple[400]!, Colors.purple[700]!]);
       case PostType.refugio:
-        return PostTypeConfig(
-          color: Colors.teal,
-          icon: Icons.home,
-          label: 'REFUGIO',
-          gradient: [Colors.teal[400]!, Colors.teal[700]!],
-        );
+        return PostTypeConfig(color: Colors.teal, icon: Icons.home, label: 'REFUGIO', gradient: [Colors.teal[400]!, Colors.teal[700]!]);
       case PostType.miMascota:
-        return PostTypeConfig(
-          color: Colors.green,
-          icon: Icons.pets,
-          label: 'MI MASCOTA',
-          gradient: [Colors.green[400]!, Colors.green[700]!],
-        );
+        return PostTypeConfig(color: Colors.green, icon: Icons.pets, label: 'MI MASCOTA', gradient: [Colors.green[400]!, Colors.green[700]!]);
     }
   }
 
   String _getTimeAgo() {
     final difference = DateTime.now().difference(post.timestamp);
-    if (difference.inDays > 0) {
-      return 'hace ${difference.inDays}d';
-    } else if (difference.inHours > 0) {
-      return 'hace ${difference.inHours}h';
-    } else {
-      return 'hace ${difference.inMinutes}m';
-    }
+    if (difference.inDays > 0) return 'hace ${difference.inDays}d';
+    if (difference.inHours > 0) return 'hace ${difference.inHours}h';
+    return 'hace ${difference.inMinutes}m';
   }
 
   @override
   Widget build(BuildContext context) {
     final config = _getTypeConfig();
-
     return InkWell(
       onTap: () => GoRouter.of(context).push('/posts/${post.id}/view'),
       child: Container(
         margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: config.gradient),
-                    ),
-                    padding: EdgeInsets.all(2),
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundImage: NetworkImage(post.userAvatar),
-                      backgroundColor: Colors.white,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          post.username,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            if (post.location != null) ...[
-                              Icon(
-                                Icons.location_on,
-                                size: 12,
-                                color: Colors.grey[600],
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                post.location!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                            ],
-                            Text(
-                              _getTimeAgo(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: config.gradient),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(config.icon, color: Colors.white, size: 14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // HEADER
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(children: [
+              CircleAvatar(radius: 22, backgroundImage: NetworkImage(post.userAvatar), backgroundColor: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(post.username, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Row(
+                    children: [
+                      if (post.location != null) ...[
+                        Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
                         SizedBox(width: 4),
-                        Text(
-                          config.label,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
+                        Text(post.location!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        SizedBox(width: 8),
                       ],
-                    ),
+                      Text(_getTimeAgo(), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    ],
                   ),
-                ],
+                ]),
               ),
-            ),
-
-            // Imagen
-            ClipRRect(
-              borderRadius: BorderRadius.circular(0),
-              child: Image.network(
-                post.imageUrl,
-                width: double.infinity,
-                height: 350,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: double.infinity,
-                    height: 350,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.pets, size: 100, color: Colors.grey),
-                  );
-                },
-              ),
-            ),
-
-            // Botones de acción
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  _buildActionButton(
-                    Icons.favorite_border,
-                    post.likes.toString(),
-                  ),
-                  SizedBox(width: 20),
-                  _buildActionButton(
-                    Icons.chat_bubble_outline,
-                    post.comments.toString(),
-                  ),
-                  SizedBox(width: 20),
-                  _buildActionButton(Icons.share_outlined, ''),
-                  Spacer(),
-                  Icon(Icons.bookmark_border, size: 26),
-                ],
-              ),
-            ),
-
-            // Descripción
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: post.username,
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(text: ' ${post.description}'),
-                  ],
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(gradient: LinearGradient(colors: config.gradient), borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [Icon(config.icon, color: Colors.white, size: 14), SizedBox(width: 4), Text(config.label, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))],
                 ),
               ),
-            ),
-
-            SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String count) {
-    return Row(
-      children: [
-        Icon(icon, size: 26),
-        if (count.isNotEmpty) ...[
-          SizedBox(width: 4),
-          Text(
-            count,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ]),
           ),
-        ],
-      ],
+          // IMAGEN
+          ClipRRect(
+            borderRadius: BorderRadius.circular(0),
+            child: Image.network(post.imageUrl, width: double.infinity, height: 350, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+              return Container(width: double.infinity, height: 350, color: Colors.grey[200], child: Icon(Icons.pets, size: 100, color: Colors.grey));
+            }),
+          ),
+          SizedBox(height: 16),
+        ]),
+      ),
     );
   }
 }
@@ -727,14 +455,10 @@ class PostTypeConfig {
   final String label;
   final List<Color> gradient;
 
-  PostTypeConfig({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.gradient,
-  });
+  PostTypeConfig({required this.color, required this.icon, required this.label, required this.gradient});
 }
 
+// ------------------ FILTER BOTTOM SHEET -----------------
 class FilterBottomSheet extends StatefulWidget {
   final PostType? selectedType;
   final PetType? selectedPetType;
@@ -756,269 +480,45 @@ class FilterBottomSheet extends StatefulWidget {
 }
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
-  late PostType? tempType;
-  late PetType? tempPetType;
-  late String? tempLocation;
-  late DateTimeRange? tempDateRange;
-
-  final List<String> locations = [
-    'Centro',
-    'Palermo',
-    'Recoleta',
-    'Belgrano',
-    'Caballito',
-    'Flores',
-  ];
+  PostType? tempSelectedType;
+  PetType? tempSelectedPetType;
+  String? tempSelectedLocation;
+  DateTimeRange? tempSelectedDateRange;
 
   @override
   void initState() {
     super.initState();
-    tempType = widget.selectedType;
-    tempPetType = widget.selectedPetType;
-    tempLocation = widget.selectedLocation;
-    tempDateRange = widget.selectedDateRange;
+    tempSelectedType = widget.selectedType;
+    tempSelectedPetType = widget.selectedPetType;
+    tempSelectedLocation = widget.selectedLocation;
+    tempSelectedDateRange = widget.selectedDateRange;
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Filtros',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 24),
-
-                // Tipo de post
-                Text(
-                  'Tipo de Publicación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: PostType.values.map((type) {
-                    final isSelected = tempType == type;
-                    return ChoiceChip(
-                      label: Text(_getPostTypeLabel(type)),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() => tempType = selected ? type : null);
-                      },
-                      selectedColor: Colors.purple[100],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.purple : Colors.black87,
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                SizedBox(height: 24),
-
-                // Tipo de mascota
-                Text(
-                  'Tipo de Mascota',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: PetType.values.map((type) {
-                    final isSelected = tempPetType == type;
-                    return ChoiceChip(
-                      label: Text(_getPetTypeLabel(type)),
-                      avatar: Icon(
-                        _getPetTypeIcon(type),
-                        size: 18,
-                        color: isSelected ? Colors.purple : Colors.black54,
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() => tempPetType = selected ? type : null);
-                      },
-                      selectedColor: Colors.purple[100],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.purple : Colors.black87,
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                SizedBox(height: 24),
-
-                // Ubicación
-                Text(
-                  'Ubicación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: locations.map((location) {
-                    final isSelected = tempLocation == location;
-                    return ChoiceChip(
-                      label: Text(location),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(
-                          () => tempLocation = selected ? location : null,
-                        );
-                      },
-                      selectedColor: Colors.purple[100],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.purple : Colors.black87,
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                SizedBox(height: 24),
-
-                // Rango de fechas
-                Text(
-                  'Fecha de Publicación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final range = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                      initialDateRange: tempDateRange,
-                    );
-                    if (range != null) {
-                      setState(() => tempDateRange = range);
-                    }
-                  },
-                  icon: Icon(Icons.calendar_today),
-                  label: Text(
-                    tempDateRange != null
-                        ? '${tempDateRange!.start.day}/${tempDateRange!.start.month} - ${tempDateRange!.end.day}/${tempDateRange!.end.month}'
-                        : 'Seleccionar rango',
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.purple,
-                    side: BorderSide(color: Colors.purple),
-                  ),
-                ),
-
-                SizedBox(height: 24),
-
-                // Botones
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            tempType = null;
-                            tempPetType = null;
-                            tempLocation = null;
-                            tempDateRange = null;
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey,
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text('Limpiar'),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          widget.onApply(
-                            tempType,
-                            tempPetType,
-                            tempLocation,
-                            tempDateRange,
-                          );
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text('Aplicar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          Center(child: Container(width: 40, height: 4, color: Colors.grey[300], margin: EdgeInsets.only(bottom: 16))),
+          Text('Filtrar publicaciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          SizedBox(height: 16),
+          // Aquí podés agregar dropdowns, selects y datepickers
+          ElevatedButton(
+            onPressed: () {
+              widget.onApply(tempSelectedType, tempSelectedPetType, tempSelectedLocation, tempSelectedDateRange);
+              Navigator.pop(context);
+            },
+            child: Text('Aplicar filtros'),
           ),
         ],
       ),
     );
-  }
-
-  String _getPostTypeLabel(PostType type) {
-    switch (type) {
-      case PostType.adopcion:
-        return 'Adopción';
-      case PostType.perdido:
-        return 'Perdido';
-      case PostType.denuncia:
-        return 'Denuncia';
-      case PostType.veterinaria:
-        return 'Veterinaria';
-      case PostType.refugio:
-        return 'Refugio';
-      case PostType.miMascota:
-        return 'Mi Mascota';
-    }
-  }
-
-  String _getPetTypeLabel(PetType type) {
-    switch (type) {
-      case PetType.perro:
-        return 'Perro';
-      case PetType.gato:
-        return 'Gato';
-      case PetType.ave:
-        return 'Ave';
-      case PetType.otros:
-        return 'Otros';
-    }
-  }
-
-  IconData _getPetTypeIcon(PetType type) {
-    switch (type) {
-      case PetType.perro:
-        return Icons.pets;
-      case PetType.gato:
-        return Icons.pets;
-      case PetType.ave:
-        return Icons.flutter_dash;
-      case PetType.otros:
-        return Icons.cruelty_free;
-    }
   }
 }

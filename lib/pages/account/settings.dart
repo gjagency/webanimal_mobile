@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:mobile_app/service/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
 class PageAccountSettings extends StatefulWidget {
@@ -15,6 +15,17 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
   bool showLocation = true;
   bool darkMode = false;
 
+  /// Función central para cerrar sesión
+  Future<void> _logout() async {
+    // Cierra sesión en backend y elimina token local
+    await AuthService.logout();
+
+    // Redirige al login
+    if (mounted) {
+      context.go('/auth/sign_in');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,7 +35,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
+          onPressed: _logout, // back button protegido
         ),
         title: Text(
           'Cuenta',
@@ -38,11 +49,9 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
       body: ListView(
         padding: EdgeInsets.symmetric(vertical: 16),
         children: [
-          // Perfil
           _buildProfileSection(),
           SizedBox(height: 16),
 
-          // Cuenta
           _buildSection('Cuenta', [
             _buildSettingItem(
               icon: Icons.edit,
@@ -64,7 +73,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ]),
           SizedBox(height: 16),
 
-          // Notificaciones
           _buildSection('Notificaciones', [
             _buildSwitchItem(
               icon: Icons.notifications,
@@ -82,7 +90,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ]),
           SizedBox(height: 16),
 
-          // Privacidad
           _buildSection('Privacidad y seguridad', [
             _buildSwitchItem(
               icon: Icons.lock_person,
@@ -106,7 +113,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ]),
           SizedBox(height: 16),
 
-          // Preferencias
           _buildSection('Preferencias', [
             _buildSwitchItem(
               icon: Icons.dark_mode,
@@ -123,7 +129,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ]),
           SizedBox(height: 16),
 
-          // Ayuda y soporte
           _buildSection('Ayuda y soporte', [
             _buildSettingItem(
               icon: Icons.help,
@@ -149,14 +154,35 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ]),
           SizedBox(height: 16),
 
-          // Cerrar sesión
           _buildSection('', [
             _buildSettingItem(
               icon: Icons.logout,
               title: 'Cerrar sesión',
               titleColor: Colors.red,
               iconColor: Colors.red,
-              onTap: () => _showLogoutDialog(),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Cerrar sesión'),
+                    content: Text('¿Estás seguro que deseas cerrar sesión?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Cancelar'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _logout(); // llama a logout global
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: Text('Cerrar sesión'),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             _buildSettingItem(
               icon: Icons.delete_forever,
@@ -364,31 +390,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.purple,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cerrar sesión'),
-        content: Text('¿Estás seguro que deseas cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.go('/auth/sign_in');
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Cerrar sesión'),
+            activeThumbColor: Colors.purple,
           ),
         ],
       ),
@@ -409,7 +411,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Lógica de eliminación
+              // TODO: Lógica de eliminación
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
             child: Text('Eliminar'),
