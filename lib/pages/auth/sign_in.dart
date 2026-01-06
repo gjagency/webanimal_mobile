@@ -12,9 +12,17 @@ class PageAuthSignIn extends StatefulWidget {
 class _PageAuthSignInState extends State<PageAuthSignIn> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _loading = false;
 
-  /// Manejo de login
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  /// 🔐 Login tradicional
   Future<void> _login() async {
     setState(() => _loading = true);
 
@@ -22,31 +30,57 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa todos los campos')),
-      );
+      _showError('Por favor completa todos los campos');
       return;
     }
 
     try {
       final success = await AuthService.login(username, password);
-      setState(() => _loading = false);
 
       if (success) {
-        GoRouter.of(context).go('/home');
+        _goHome();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario o contraseña incorrectos')),
-        );
+        _showError('Usuario o contraseña incorrectos');
       }
     } catch (e) {
+      _showError('Error al iniciar sesión');
+      debugPrint('Login error: $e');
+    } finally {
       setState(() => _loading = false);
-      print('Login exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al iniciar sesión')),
-      );
     }
+  }
+
+  /// 🔵 Login con Google
+  Future<void> _loginWithGoogle() async {
+    setState(() => _loading = true);
+
+    try {
+      final success = await AuthService.loginWithGoogle();
+
+      if (success) {
+        _goHome();
+      } else {
+        _showError('No se pudo iniciar sesión con Google');
+      }
+    } catch (e) {
+      _showError('Error con Google Sign-In');
+      debugPrint('Google login error: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _goHome() {
+    if (!mounted) return;
+    GoRouter.of(context).go('/home');
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    setState(() => _loading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -59,33 +93,82 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.pets, size: 80, color: Colors.purple),
+              const Icon(Icons.pets, size: 80, color: Colors.purple),
               const SizedBox(height: 16),
+
               const Text(
                 'Iniciar sesión',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.purple),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
               ),
+
               const SizedBox(height: 32),
+
+              // Usuario
               TextField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Usuario', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Usuario o Email',
+                  border: OutlineInputBorder(),
+                ),
               ),
+
               const SizedBox(height: 16),
+
+              // Password
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder()),
                 obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña',
+                  border: OutlineInputBorder(),
+                ),
               ),
+
               const SizedBox(height: 24),
+
+              // Botón login
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                  ),
                   child: _loading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Divider
+              Row(
+                children: const [
+                  Expanded(child: Divider()),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('o'),
+                  ),
+                  Expanded(child: Divider()),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Botón Google
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.g_mobiledata, size: 32),
+                  label: const Text('Ingresar con Google'),
+                  onPressed: _loading ? null : _loginWithGoogle,
                 ),
               ),
             ],
