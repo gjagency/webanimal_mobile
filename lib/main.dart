@@ -7,7 +7,7 @@ import 'package:mobile_app/pages/splash.dart';
 import 'package:mobile_app/pages/auth/sign_in.dart';
 import 'package:mobile_app/pages/home/home.dart';
 import 'package:mobile_app/pages/account/settings.dart';
-
+import 'package:mobile_app/pages/auth/recover.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -25,6 +25,10 @@ final _router = GoRouter(
       builder: (context, state) => const PageAuthSignIn(),
     ),
     GoRoute(
+      path: '/auth/recover', // <- AQUI
+      builder: (context, state) => const PageAuthRecover(),
+    ),
+    GoRoute(
       path: '/home',
       builder: (context, state) => const PageHome(),
     ),
@@ -32,6 +36,7 @@ final _router = GoRouter(
       path: '/account/settings',
       builder: (context, state) => const PageAccountSettings(),
     ),
+
   ],
 );
 

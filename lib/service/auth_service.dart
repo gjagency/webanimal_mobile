@@ -55,6 +55,30 @@ class AuthService {
       return false;
     }
   }
+  /* ==========================================================
+     RECOVER PASSWORD
+     ========================================================== */
+  static Future<bool> recoverPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/auth/password/reset/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      debugPrint(
+        'Recover password response: ${response.statusCode} ${response.body}',
+      );
+
+      // Backend suele devolver 200 o 204
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      debugPrint('Recover password error: $e');
+      return false;
+    }
+  }
 
   /* ==========================================================
      LOGIN CON GOOGLE (CORREGIDO)

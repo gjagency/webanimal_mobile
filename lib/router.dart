@@ -8,7 +8,7 @@ import 'package:mobile_app/pages/auth/sign_in.dart';
 import 'package:mobile_app/pages/auth/sign_up.dart';
 import 'package:mobile_app/pages/auth/otp.dart';
 import 'package:mobile_app/pages/auth/reset_password.dart';
-
+import 'package:mobile_app/pages/auth/recover.dart';
 // HOME
 import 'package:mobile_app/pages/home/home.dart';
 
@@ -33,6 +33,14 @@ final router = GoRouter(
     GoRoute(
       path: '/splash',
       builder: (context, state) => const SplashPage(),
+    ),
+
+    /* =========================
+       AUTH RECOVER
+       ========================= */
+    GoRoute(
+      path: '/auth/recover',
+      builder: (context, state) => const PageAuthRecover(),
     ),
 
     /* =========================
@@ -128,13 +136,11 @@ final router = GoRouter(
 
     final isSplash = location == '/splash';
     final isReset = location.startsWith('/auth/reset_password');
+    final isRecover = location == '/auth/recover';
     final isAuthRoute = location.startsWith('/auth');
 
-    // 👉 Splash siempre permitido
-    if (isSplash) return null;
-
-    // 👉 Reset password SIEMPRE permitido
-    if (isReset) return null;
+    // 👉 Splash, Reset y Recover siempre permitidos
+    if (isSplash || isReset || isRecover) return null;
 
     // 👉 No logueado → fuera de auth
     if (token == null && !isAuthRoute) {
