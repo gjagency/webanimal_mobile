@@ -58,27 +58,60 @@ class AuthService {
   /* ==========================================================
      RECOVER PASSWORD
      ========================================================== */
-  static Future<bool> recoverPassword(String email) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/auth/password/reset/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-        }),
-      );
+/* ==========================================================
+   RECOVER PASSWORD (CORREGIDO)
+   ========================================================== */
+static Future<bool> recoverPassword(String email) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/auth/reset/'), // ✅ CORRECTO
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+      }),
+    );
 
-      debugPrint(
-        'Recover password response: ${response.statusCode} ${response.body}',
-      );
+    debugPrint(
+      'Recover password response: ${response.statusCode} ${response.body}',
+    );
 
-      // Backend suele devolver 200 o 204
-      return response.statusCode == 200 || response.statusCode == 204;
-    } catch (e) {
-      debugPrint('Recover password error: $e');
-      return false;
-    }
+    // Django devuelve 200 aunque el email no exista (correcto)
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint('Recover password error: $e');
+    return false;
   }
+}
+
+/* ==========================================================
+   CONFIRM RESET PASSWORD
+   ========================================================== */
+static Future<bool> confirmResetPassword({
+  required String uid,
+  required String token,
+  required String password,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/auth/reset/confirm/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'uid': uid,
+        'token': token,
+        'password': password,
+      }),
+    );
+
+    debugPrint(
+      'Confirm reset response: ${response.statusCode} ${response.body}',
+    );
+
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint('Confirm reset password error: $e');
+    return false;
+  }
+}
 
   /* ==========================================================
      LOGIN CON GOOGLE (CORREGIDO)
