@@ -1,14 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-/// Configuración fija
-class Config {
-  // ⚠️ ANDROID EMULATOR
-  static const String baseUrl = 'http://127.0.0.1:8000';
-}
 
 /// Servicio de autenticación
 class AuthService {
@@ -16,11 +11,11 @@ class AuthService {
   static const _refreshTokenKey = 'refresh_token';
 
   /// 🔴 ESTE CLIENT ID TIENE QUE SER EL WEB CLIENT
-    static final GoogleSignIn _googleSignIn = GoogleSignIn(
-      scopes: ['email', 'profile'],
-      serverClientId:
-          '824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com',
-    );
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId:
+        '824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com',
+  );
 
   /* ==========================================================
      LOGIN USUARIO / PASSWORD (JWT)
@@ -30,10 +25,7 @@ class AuthService {
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/login/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
+        body: jsonEncode({'username': username, 'password': password}),
       );
 
       debugPrint('Login response: ${response.statusCode} ${response.body}');
@@ -51,75 +43,69 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      debugPrint('Login exception: $e');
+      debugPrint('Login exception: ${e.toString()}');
       return false;
     }
   }
+
   /* ==========================================================
      RECOVER PASSWORD
      ========================================================== */
-/* ==========================================================
+  /* ==========================================================
    RECOVER PASSWORD (CORREGIDO)
    ========================================================== */
-static Future<bool> recoverPassword(String email) async {
-  try {
-    final response = await http.post(
-      Uri.parse('${Config.baseUrl}/auth/reset/'), // ✅ CORRECTO
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-      }),
-    );
+  static Future<bool> recoverPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/auth/reset/'), // ✅ CORRECTO
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
 
-    debugPrint(
-      'Recover password response: ${response.statusCode} ${response.body}',
-    );
+      debugPrint(
+        'Recover password response: ${response.statusCode} ${response.body}',
+      );
 
-    // Django devuelve 200 aunque el email no exista (correcto)
-    return response.statusCode == 200;
-  } catch (e) {
-    debugPrint('Recover password error: $e');
-    return false;
+      // Django devuelve 200 aunque el email no exista (correcto)
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Recover password error: $e');
+      return false;
+    }
   }
-}
 
-/* ==========================================================
+  /* ==========================================================
    CONFIRM RESET PASSWORD
    ========================================================== */
-static Future<bool> confirmResetPassword({
-  required String uid,
-  required String token,
-  required String password,
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse('${Config.baseUrl}/auth/reset/confirm/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'uid': uid,
-        'token': token,
-        'password': password,
-      }),
-    );
+  static Future<bool> confirmResetPassword({
+    required String uid,
+    required String token,
+    required String password,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/auth/reset/confirm/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'uid': uid, 'token': token, 'password': password}),
+      );
 
-    debugPrint(
-      'Confirm reset response: ${response.statusCode} ${response.body}',
-    );
+      debugPrint(
+        'Confirm reset response: ${response.statusCode} ${response.body}',
+      );
 
-    return response.statusCode == 200;
-  } catch (e) {
-    debugPrint('Confirm reset password error: $e');
-    return false;
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Confirm reset password error: $e');
+      return false;
+    }
   }
-}
 
   /* ==========================================================
      LOGIN CON GOOGLE (CORREGIDO)
      ========================================================== */
   static Future<bool> loginWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser =
-          await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
         debugPrint('Google login cancelado');
@@ -144,7 +130,8 @@ static Future<bool> confirmResetPassword({
       debugPrint('ID TOKEN: ${googleAuth.idToken}');
 
       debugPrint(
-          'Google login response: ${response.statusCode} ${response.body}');
+        'Google login response: ${response.statusCode} ${response.body}',
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

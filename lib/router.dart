@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/pages/posts/create.dart';
 
 import 'package:mobile_app/pages/splash.dart';
 import 'package:mobile_app/service/auth_service.dart';
@@ -30,10 +31,7 @@ final router = GoRouter(
     /* =========================
        SPLASH
        ========================= */
-    GoRoute(
-      path: '/splash',
-      builder: (context, state) => const SplashPage(),
-    ),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
 
     /* =========================
        AUTH RECOVER
@@ -46,10 +44,7 @@ final router = GoRouter(
     /* =========================
        HOME
        ========================= */
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const PageHome(),
-    ),
+    GoRoute(path: '/home', builder: (context, state) => const PageHome()),
 
     /* =========================
        AUTH
@@ -78,10 +73,7 @@ final router = GoRouter(
           return const PageAuthSignIn();
         }
 
-        return ResetPasswordPage(
-          uid: uid,
-          token: token,
-        );
+        return ResetPasswordPage(uid: uid, token: token);
       },
     ),
 
@@ -111,6 +103,10 @@ final router = GoRouter(
     /* =========================
        POSTS
        ========================= */
+    GoRoute(
+      path: '/posts/create',
+      builder: (context, state) => PagePostCreate(),
+    ),
     GoRoute(
       path: '/posts/:id/edit',
       builder: (context, state) {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/service/posts_service.dart';
 
 class PagePostView extends StatefulWidget {
   final String postId;
-
   const PagePostView({super.key, required this.postId});
 
   @override
@@ -11,34 +11,17 @@ class PagePostView extends StatefulWidget {
 }
 
 class _PagePostViewState extends State<PagePostView> {
-  bool isLiked = false;
-  bool isSaved = false;
-  int likes = 128;
+  Post? _post;
+  List<Comment> _comments = [];
+  bool _isLoading = true;
+  String? _error;
   final TextEditingController _commentController = TextEditingController();
 
-  final List<Comment> comments = [
-    Comment(
-      username: 'maria_rodriguez',
-      userAvatar: 'https://i.pravatar.cc/150?img=1',
-      comment: 'Hermosa mascota! ❤️',
-      timestamp: DateTime.now().subtract(Duration(hours: 2)),
-      likes: 12,
-    ),
-    Comment(
-      username: 'carlos_mendez',
-      userAvatar: 'https://i.pravatar.cc/150?img=3',
-      comment: 'Espero que encuentres familia pronto 🙏',
-      timestamp: DateTime.now().subtract(Duration(hours: 5)),
-      likes: 8,
-    ),
-    Comment(
-      username: 'ana_garcia',
-      userAvatar: 'https://i.pravatar.cc/150?img=5',
-      comment: 'Qué linda! Me interesa adoptar',
-      timestamp: DateTime.now().subtract(Duration(days: 1)),
-      likes: 5,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadPost();
+  }
 
   @override
   void dispose() {
@@ -46,33 +29,77 @@ class _PagePostViewState extends State<PagePostView> {
     super.dispose();
   }
 
-  void _toggleLike() {
-    setState(() {
-      isLiked = !isLiked;
-      likes += isLiked ? 1 : -1;
-    });
+  Future<void> _loadPost() async {
+    try {
+      final results = await Future.wait([
+        PostsService.getPost(widget.postId),
+        PostsService.getComments(widget.postId),
+      ]);
+
+      setState(() {
+        _post = results[0] as Post;
+        _comments = results[1] as List<Comment>;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
-  void _addComment() {
-    if (_commentController.text.isNotEmpty) {
-      setState(() {
-        comments.insert(
-          0,
-          Comment(
-            username: 'tu_usuario',
-            userAvatar: 'https://i.pravatar.cc/150?img=10',
-            comment: _commentController.text,
-            timestamp: DateTime.now(),
-            likes: 0,
-          ),
-        );
-        _commentController.clear();
-      });
+  Future<void> _toggleLike() async {
+    await PostsService.addReaction(widget.postId, "1");
+    await _loadPost();
+  }
+
+  Future<void> _addComment() async {
+    if (_commentController.text.isEmpty) return;
+
+    try {
+      await PostsService.addComment(widget.postId, _commentController.text);
+      _commentController.clear();
+      _loadPost();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Comentario agregado')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al comentar')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Cargando...')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Error: $_error'),
+              ElevatedButton(onPressed: _loadPost, child: Text('Reintentar')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final post = _post!;
+    final config = _getTypeConfig(post.postType.name);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -93,28 +120,9 @@ class _PagePostViewState extends State<PagePostView> {
               PopupMenuItem(
                 child: Row(
                   children: [
-                    Icon(Icons.edit, size: 20),
-                    SizedBox(width: 12),
-                    Text('Editar'),
-                  ],
-                ),
-                onTap: () => context.push('/posts/${widget.postId}/edit'),
-              ),
-              PopupMenuItem(
-                child: Row(
-                  children: [
                     Icon(Icons.share, size: 20),
                     SizedBox(width: 12),
                     Text('Compartir'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                child: Row(
-                  children: [
-                    Icon(Icons.report, size: 20, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Reportar', style: TextStyle(color: Colors.red)),
                   ],
                 ),
               ),
@@ -127,28 +135,26 @@ class _PagePostViewState extends State<PagePostView> {
           Expanded(
             child: ListView(
               children: [
-                // Header del post
+                // Header
                 Padding(
                   padding: EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () => context.push('/profiles/refugio_patitas'),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Colors.blue[400]!, Colors.blue[600]!],
-                            ),
-                          ),
-                          padding: EdgeInsets.all(2),
-                          child: CircleAvatar(
-                            radius: 22,
-                            backgroundImage: NetworkImage(
-                              'https://i.pravatar.cc/150?img=2',
-                            ),
-                            backgroundColor: Colors.white,
-                          ),
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(colors: config.gradient),
+                        ),
+                        padding: EdgeInsets.all(2),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundImage: post.user.imageUrl != null
+                              ? NetworkImage(post.user.imageUrl!)
+                              : null,
+                          backgroundColor: Colors.grey[300],
+                          child: post.user.imageUrl == null
+                              ? Icon(Icons.person, color: Colors.white)
+                              : null,
                         ),
                       ),
                       SizedBox(width: 12),
@@ -157,7 +163,7 @@ class _PagePostViewState extends State<PagePostView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'refugio_patitas',
+                              post.user.username,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -171,11 +177,14 @@ class _PagePostViewState extends State<PagePostView> {
                                   color: Colors.grey[600],
                                 ),
                                 SizedBox(width: 4),
-                                Text(
-                                  'Palermo • hace 5h',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
+                                Expanded(
+                                  child: Text(
+                                    '${post.location.label} • ${_getTimeAgo(post.datetime)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -189,18 +198,16 @@ class _PagePostViewState extends State<PagePostView> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.blue[400]!, Colors.blue[600]!],
-                          ),
+                          gradient: LinearGradient(colors: config.gradient),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.favorite, color: Colors.white, size: 14),
+                            Icon(config.icon, color: Colors.white, size: 14),
                             SizedBox(width: 4),
                             Text(
-                              'ADOPCIÓN',
+                              config.label,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -216,7 +223,8 @@ class _PagePostViewState extends State<PagePostView> {
 
                 // Imagen
                 Image.network(
-                  'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e',
+                  post.imageUrl ??
+                      "https://via.placeholder.com/400x300?text=Sin+Imagen",
                   width: double.infinity,
                   height: 400,
                   fit: BoxFit.cover,
@@ -229,7 +237,7 @@ class _PagePostViewState extends State<PagePostView> {
                   },
                 ),
 
-                // Botones de acción
+                // Acciones
                 Padding(
                   padding: EdgeInsets.all(16),
                   child: Row(
@@ -238,14 +246,10 @@ class _PagePostViewState extends State<PagePostView> {
                         onTap: _toggleLike,
                         child: Row(
                           children: [
-                            Icon(
-                              isLiked ? Icons.favorite : Icons.favorite_border,
-                              size: 28,
-                              color: isLiked ? Colors.red : Colors.black,
-                            ),
+                            Icon(Icons.favorite_border, size: 28),
                             SizedBox(width: 4),
                             Text(
-                              '$likes',
+                              '${post.likes}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -260,7 +264,7 @@ class _PagePostViewState extends State<PagePostView> {
                           Icon(Icons.chat_bubble_outline, size: 28),
                           SizedBox(width: 4),
                           Text(
-                            '${comments.length}',
+                            '${post.comments}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -271,14 +275,7 @@ class _PagePostViewState extends State<PagePostView> {
                       SizedBox(width: 20),
                       Icon(Icons.share_outlined, size: 28),
                       Spacer(),
-                      GestureDetector(
-                        onTap: () => setState(() => isSaved = !isSaved),
-                        child: Icon(
-                          isSaved ? Icons.bookmark : Icons.bookmark_border,
-                          size: 28,
-                          color: isSaved ? Colors.purple : Colors.black,
-                        ),
-                      ),
+                      Icon(Icons.bookmark_border, size: 28),
                     ],
                   ),
                 ),
@@ -286,60 +283,21 @@ class _PagePostViewState extends State<PagePostView> {
                 // Descripción
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'refugio_patitas',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  ' Luna busca familia ❤️ Es una cachorra muy cariñosa de 6 meses. Esterilizada y vacunada.',
-                            ),
-                          ],
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: post.user.username,
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          Chip(
-                            avatar: Icon(Icons.pets, size: 16),
-                            label: Text(
-                              'Perro',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            backgroundColor: Colors.purple[50],
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          Chip(
-                            label: Text(
-                              '6 meses',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            backgroundColor: Colors.blue[50],
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          Chip(
-                            label: Text(
-                              'Vacunada',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            backgroundColor: Colors.green[50],
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ),
-                    ],
+                        TextSpan(text: ' ${post.description}'),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -354,27 +312,37 @@ class _PagePostViewState extends State<PagePostView> {
                   ),
                 ),
                 SizedBox(height: 16),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: comments.length,
-                  itemBuilder: (context, index) {
-                    return CommentCard(comment: comments[index]);
-                  },
-                ),
+
+                _comments.isEmpty
+                    ? Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            'No hay comentarios aún',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _comments.length,
+                        itemBuilder: (context, index) =>
+                            CommentCard(comment: _comments[index]),
+                      ),
                 SizedBox(height: 80),
               ],
             ),
           ),
 
-          // Input de comentario
+          // Input comentario
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: Offset(0, -4),
                 ),
@@ -382,12 +350,7 @@ class _PagePostViewState extends State<PagePostView> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage(
-                    'https://i.pravatar.cc/150?img=10',
-                  ),
-                ),
+                CircleAvatar(radius: 18, backgroundColor: Colors.grey[300]),
                 SizedBox(width: 12),
                 Expanded(
                   child: TextField(
@@ -427,34 +390,56 @@ class _PagePostViewState extends State<PagePostView> {
       ),
     );
   }
-}
 
-class Comment {
-  final String username;
-  final String userAvatar;
-  final String comment;
-  final DateTime timestamp;
-  final int likes;
+  PostTypeConfig _getTypeConfig(String typeName) {
+    final lower = typeName.toLowerCase();
+    if (lower.contains('adopción') || lower.contains('adopcion')) {
+      return PostTypeConfig(
+        color: Colors.blue,
+        icon: Icons.favorite,
+        label: 'ADOPCIÓN',
+        gradient: [Colors.blue[400]!, Colors.blue[600]!],
+      );
+    } else if (lower.contains('perdido')) {
+      return PostTypeConfig(
+        color: Colors.orange,
+        icon: Icons.search,
+        label: 'PERDIDO',
+        gradient: [Colors.orange[400]!, Colors.red[400]!],
+      );
+    } else if (lower.contains('denuncia')) {
+      return PostTypeConfig(
+        color: Colors.red,
+        icon: Icons.report,
+        label: 'DENUNCIA',
+        gradient: [Colors.red[400]!, Colors.red[700]!],
+      );
+    }
+    return PostTypeConfig(
+      color: Colors.green,
+      icon: Icons.pets,
+      label: typeName.toUpperCase(),
+      gradient: [Colors.green[400]!, Colors.green[700]!],
+    );
+  }
 
-  Comment({
-    required this.username,
-    required this.userAvatar,
-    required this.comment,
-    required this.timestamp,
-    required this.likes,
-  });
+  String _getTimeAgo(DateTime datetime) {
+    final diff = DateTime.now().difference(datetime);
+    if (diff.inDays > 0) return 'hace ${diff.inDays}d';
+    if (diff.inHours > 0) return 'hace ${diff.inHours}h';
+    return 'hace ${diff.inMinutes}m';
+  }
 }
 
 class CommentCard extends StatelessWidget {
   final Comment comment;
-
   const CommentCard({super.key, required this.comment});
 
   String _getTimeAgo() {
-    final difference = DateTime.now().difference(comment.timestamp);
-    if (difference.inDays > 0) return 'hace ${difference.inDays}d';
-    if (difference.inHours > 0) return 'hace ${difference.inHours}h';
-    if (difference.inMinutes > 0) return 'hace ${difference.inMinutes}m';
+    final diff = DateTime.now().difference(comment.timestamp);
+    if (diff.inDays > 0) return 'hace ${diff.inDays}d';
+    if (diff.inHours > 0) return 'hace ${diff.inHours}h';
+    if (diff.inMinutes > 0) return 'hace ${diff.inMinutes}m';
     return 'ahora';
   }
 
@@ -465,10 +450,7 @@ class CommentCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundImage: NetworkImage(comment.userAvatar),
-          ),
+          CircleAvatar(radius: 18, backgroundColor: Colors.grey[300]),
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -491,34 +473,16 @@ class CommentCard extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 4),
-                      Text(comment.comment, style: TextStyle(fontSize: 14)),
+                      Text(comment.text, style: TextStyle(fontSize: 14)),
                     ],
                   ),
                 ),
                 SizedBox(height: 4),
                 Padding(
                   padding: EdgeInsets.only(left: 8),
-                  child: Row(
-                    children: [
-                      Text(
-                        _getTimeAgo(),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      SizedBox(width: 16),
-                      Text(
-                        '${comment.likes} Me gusta',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      SizedBox(width: 16),
-                      Text(
-                        'Responder',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    _getTimeAgo(),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ),
               ],
@@ -528,4 +492,18 @@ class CommentCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class PostTypeConfig {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final List<Color> gradient;
+
+  PostTypeConfig({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.gradient,
+  });
 }

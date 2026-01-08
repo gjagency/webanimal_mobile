@@ -20,8 +20,9 @@ dependencies:
   http: ^1.6.0
   flutter_secure_storage: ^10.0.0
 
-  firebase_core: ^2.26.0
-  firebase_dynamic_links: ^5.1.0
+  firebase_core: ^3.15.2
+  firebase_dynamic_links: ^6.1.10
+  geolocator: ^10.1.0
 
 dev_dependencies:
   flutter_test:
