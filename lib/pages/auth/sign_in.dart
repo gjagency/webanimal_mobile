@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/pages/auth/recover.dart';
+
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});
 
@@ -78,9 +79,9 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
   void _showError(String message) {
     if (!mounted) return;
     setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -130,17 +131,16 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
 
               const SizedBox(height: 10),
 
-      // 🔹 Recuperar contraseña
-      TextButton(
-        onPressed: () => GoRouter.of(context).go('/auth/recover'),
-        child: const Text(
-          '¿Olvidaste tu contraseña?',
-          style: TextStyle(color: Colors.purple),
-        ),
-      ),
+              // 🔹 Recuperar contraseña
+              TextButton(
+                onPressed: () => GoRouter.of(context).go('/auth/recover'),
+                child: const Text(
+                  '¿Olvidaste tu contraseña?',
+                  style: TextStyle(color: Colors.purple),
+                ),
+              ),
 
-      const SizedBox(height: 14),
-
+              const SizedBox(height: 14),
 
               // Botón login
               SizedBox(

@@ -10,7 +10,12 @@ class App extends StatelessWidget {
     return MaterialApp.router(
       title: 'Web Animal',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      theme: ThemeData(
+        colorScheme: .fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
+      ),
       routerConfig: router,
     );
   }

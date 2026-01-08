@@ -176,7 +176,9 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                           Navigator.pop(context);
                           _logout(); // llama a logout global
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
                         child: Text('Cerrar sesión'),
                       ),
                     ],
@@ -211,7 +213,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: Colors.purple.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -246,7 +248,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 Text(
                   '@juanperez',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -254,7 +256,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 Text(
                   '45 publicaciones • 234 seguidores',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 12,
                   ),
                 ),
@@ -314,7 +316,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
             Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (iconColor ?? Colors.purple).withOpacity(0.1),
+                color: (iconColor ?? Colors.purple).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor ?? Colors.purple, size: 22),
@@ -363,7 +365,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           Container(
             padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.1),
+              color: Colors.purple.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.purple, size: 22),

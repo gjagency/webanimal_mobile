@@ -1,29 +1,37 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mobile_app/service/posts_service.dart';
 
-enum PostType { adopcion, perdido, denuncia, veterinaria, refugio, miMascota }
-
-enum PetType { perro, gato, ave, otros }
-
-class PagePostEdit extends StatefulWidget {
-  final String postId;
-
-  const PagePostEdit({super.key, required this.postId});
+class PagePostCreate extends StatefulWidget {
+  const PagePostCreate({super.key});
 
   @override
-  State<PagePostEdit> createState() => _PagePostEditState();
+  State<PagePostCreate> createState() => _PagePostCreateState();
 }
 
-class _PagePostEditState extends State<PagePostEdit> {
+class _PagePostCreateState extends State<PagePostCreate> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
 
-  PostType selectedPostType = PostType.miMascota;
-  PetType selectedPetType = PetType.perro;
-  String? selectedImage;
-  bool isLoading = false;
+  List<PostType> _postTypes = [];
+  List<PetType> _petTypes = [];
+  String? _selectedPostTypeId;
+  String? _selectedPetTypeId;
+  File? _selectedImageFile;
+  Position? _currentPosition;
+  bool _isLoading = false;
+  bool _isLoadingTypes = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
 
   @override
   void dispose() {
@@ -32,39 +40,149 @@ class _PagePostEditState extends State<PagePostEdit> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => selectedImage = image.path);
+  Future<void> _loadInitialData() async {
+    try {
+      final results = await Future.wait([
+        PostsService.getPostTypes(),
+        PostsService.getPetTypes(),
+        _getCurrentLocation(),
+      ]);
+
+      setState(() {
+        _postTypes = results[0] as List<PostType>;
+        _petTypes = results[1] as List<PetType>;
+        if (_postTypes.isNotEmpty) _selectedPostTypeId = _postTypes[0].id;
+        if (_petTypes.isNotEmpty) _selectedPetTypeId = _petTypes[0].id;
+        _isLoadingTypes = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingTypes = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error cargando datos: $e')));
+      }
     }
   }
 
-  Future<void> _savePost() async {
-    if (_formKey.currentState!.validate() && selectedImage != null) {
-      setState(() => isLoading = true);
+  Future<void> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _locationController.text = 'Ubicación no disponible';
+        return;
+      }
 
-      // Simular guardado
-      await Future.delayed(Duration(seconds: 2));
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _locationController.text = 'Permiso de ubicación denegado';
+          return;
+        }
+      }
+
+      _currentPosition = await Geolocator.getCurrentPosition();
+      _locationController.text =
+          'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}';
+    } catch (e) {
+      _locationController.text = 'Error obteniendo ubicación';
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      setState(() => _selectedImageFile = File(image.path));
+    }
+  }
+
+  Future<String> _imageToBase64(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    return base64Encode(bytes);
+  }
+
+  Future<void> _savePost() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedImageFile == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Debes seleccionar una imagen')));
+      return;
+    }
+
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo obtener tu ubicación')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final base64Image = await _imageToBase64(_selectedImageFile!);
+
+      final result = await PostsService.createPost(
+        postTypeId: _selectedPostTypeId!,
+        petTypeId: _selectedPetTypeId!,
+        description: _descriptionController.text,
+        imageBase64: base64Image,
+        lat: _currentPosition!.latitude,
+        lng: _currentPosition!.longitude,
+        locationLabel: _locationController.text,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Publicación actualizada exitosamente'),
+            content: Text('Publicación creada exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
+        context.go('/posts/${result.id}/view');
       }
-    } else if (selectedImage == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Debes seleccionar una imagen')));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al crear publicación: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingTypes) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.close, color: Colors.black),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            'Nueva publicación',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -75,20 +193,20 @@ class _PagePostEditState extends State<PagePostEdit> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Editar publicación',
+          'Nueva publicación',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
-            onPressed: isLoading ? null : _savePost,
-            child: isLoading
+            onPressed: _isLoading ? null : _savePost,
+            child: _isLoading
                 ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    'Guardar',
+                    'Publicar',
                     style: TextStyle(
                       color: Colors.purple,
                       fontWeight: FontWeight.bold,
@@ -114,28 +232,12 @@ class _PagePostEditState extends State<PagePostEdit> {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.grey[300]!, width: 2),
                 ),
-                child: selectedImage != null
+                child: _selectedImageFile != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(18),
-                        child: Image.network(
-                          'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
+                        child: Image.file(
+                          _selectedImageFile!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.image,
-                                    size: 64,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text('Toca para cambiar imagen'),
-                                ],
-                              ),
-                            );
-                          },
                         ),
                       )
                     : Center(
@@ -168,20 +270,18 @@ class _PagePostEditState extends State<PagePostEdit> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: PostType.values.map((type) {
-                final isSelected = selectedPostType == type;
+              children: _postTypes.map((type) {
+                final isSelected = _selectedPostTypeId == type.id;
                 return ChoiceChip(
-                  label: Text(_getPostTypeLabel(type)),
+                  label: Text(type.name),
                   selected: isSelected,
                   onSelected: (selected) {
-                    setState(() => selectedPostType = type);
+                    setState(() => _selectedPostTypeId = type.id);
                   },
-                  selectedColor: _getPostTypeColor(type).withValues(alpha: 0.2),
+                  selectedColor: Colors.purple[100],
                   backgroundColor: Colors.white,
                   labelStyle: TextStyle(
-                    color: isSelected
-                        ? _getPostTypeColor(type)
-                        : Colors.black87,
+                    color: isSelected ? Colors.purple : Colors.black87,
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -200,20 +300,20 @@ class _PagePostEditState extends State<PagePostEdit> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: PetType.values.map((type) {
-                final isSelected = selectedPetType == type;
+              children: _petTypes.map((type) {
+                final isSelected = _selectedPetTypeId == type.id;
                 return ChoiceChip(
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(_getPetTypeIcon(type), size: 18),
+                      Icon(Icons.pets, size: 18),
                       SizedBox(width: 6),
-                      Text(_getPetTypeLabel(type)),
+                      Text(type.name),
                     ],
                   ),
                   selected: isSelected,
                   onSelected: (selected) {
-                    setState(() => selectedPetType = type);
+                    setState(() => _selectedPetTypeId = type.id);
                   },
                   selectedColor: Colors.purple[100],
                   backgroundColor: Colors.white,
@@ -267,8 +367,12 @@ class _PagePostEditState extends State<PagePostEdit> {
             TextFormField(
               controller: _locationController,
               decoration: InputDecoration(
-                hintText: 'Ej: Palermo, Buenos Aires',
+                hintText: 'Ubicación automática',
                 prefixIcon: Icon(Icons.location_on, color: Colors.purple),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.my_location, color: Colors.purple),
+                  onPressed: _getCurrentLocation,
+                ),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -284,71 +388,17 @@ class _PagePostEditState extends State<PagePostEdit> {
                   borderSide: BorderSide(color: Colors.purple, width: 2),
                 ),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'La ubicación es obligatoria';
+                }
+                return null;
+              },
             ),
             SizedBox(height: 32),
           ],
         ),
       ),
     );
-  }
-
-  String _getPostTypeLabel(PostType type) {
-    switch (type) {
-      case PostType.adopcion:
-        return 'Adopción';
-      case PostType.perdido:
-        return 'Perdido';
-      case PostType.denuncia:
-        return 'Denuncia';
-      case PostType.veterinaria:
-        return 'Veterinaria';
-      case PostType.refugio:
-        return 'Refugio';
-      case PostType.miMascota:
-        return 'Mi Mascota';
-    }
-  }
-
-  Color _getPostTypeColor(PostType type) {
-    switch (type) {
-      case PostType.adopcion:
-        return Colors.blue;
-      case PostType.perdido:
-        return Colors.orange;
-      case PostType.denuncia:
-        return Colors.red;
-      case PostType.veterinaria:
-        return Colors.purple;
-      case PostType.refugio:
-        return Colors.teal;
-      case PostType.miMascota:
-        return Colors.green;
-    }
-  }
-
-  String _getPetTypeLabel(PetType type) {
-    switch (type) {
-      case PetType.perro:
-        return 'Perro';
-      case PetType.gato:
-        return 'Gato';
-      case PetType.ave:
-        return 'Ave';
-      case PetType.otros:
-        return 'Otros';
-    }
-  }
-
-  IconData _getPetTypeIcon(PetType type) {
-    switch (type) {
-      case PetType.perro:
-        return Icons.pets;
-      case PetType.gato:
-        return Icons.pets;
-      case PetType.ave:
-        return Icons.flutter_dash;
-      case PetType.otros:
-        return Icons.cruelty_free;
-    }
   }
 }
