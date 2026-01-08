@@ -135,7 +135,7 @@ static Future<bool> confirmResetPassword({
       }
 
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/auth/google/'),
+        Uri.parse('${Config.baseUrl}/auth/google/flutter/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'id_token': googleAuth.idToken, // 🔥 JWT REAL
