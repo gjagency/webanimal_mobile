@@ -53,6 +53,7 @@ class Post {
   final PetType petType;
   final String? imageUrl;
   final String description;
+  final String? telefono;
   final PostLocation location;
   final DateTime datetime;
   final int likes;
@@ -65,6 +66,7 @@ class Post {
     required this.petType,
     this.imageUrl,
     required this.description,
+    this.telefono,
     required this.location,
     required this.datetime,
     this.likes = 0,
@@ -132,6 +134,7 @@ class PostsService {
     required String postTypeId,
     required String petTypeId,
     required String description,
+    required String telefono,
     required String imageBase64,
     required double lat,
     required double lng,
@@ -141,6 +144,7 @@ class PostsService {
       'posteo_tipo': postTypeId,
       'mascota_tipo': petTypeId,
       'descripcion': description,
+      'telefono': telefono,
       'imagen': imageBase64,
       'ubicacion_lat': lat,
       'ubicacion_lng': lng,
@@ -288,6 +292,7 @@ class PostsService {
       ),
       imageUrl: json['imagen'],
       description: json['descripcion'],
+      telefono: json['telefono'],
       location: PostLocation(
         id: json['id'].toString(),
         lat: json['ubicacion_lat'],

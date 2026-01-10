@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,6 +18,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _telefonoController = TextEditingController();
 
   List<PostType> _postTypes = [];
   List<PetType> _petTypes = [];
@@ -37,9 +39,9 @@ class _PagePostCreateState extends State<PagePostCreate> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
-
   Future<void> _loadInitialData() async {
     try {
       final results = await Future.wait([
@@ -133,6 +135,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
         postTypeId: _selectedPostTypeId!,
         petTypeId: _selectedPetTypeId!,
         description: _descriptionController.text,
+        telefono: _telefonoController.text,
         imageBase64: base64Image,
         lat: _currentPosition!.latitude,
         lng: _currentPosition!.longitude,
@@ -322,6 +325,45 @@ class _PagePostCreateState extends State<PagePostCreate> {
             ),
             SizedBox(height: 24),
 
+            // Teléfono
+            Text(
+              'Teléfono',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            TextFormField(
+              controller: _telefonoController,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly], // ✅ solo números
+              maxLength: 10,
+              decoration: InputDecoration(
+                hintText: 'Ingresa tu teléfono',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.purple, width: 2),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'El teléfono es obligatorio';
+                }
+                if (value.length != 10) {
+                  return 'El teléfono debe tener 10 dígitos';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 24),
             // Descripción
             Text(
               'Descripción',
@@ -357,6 +399,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
               },
             ),
             SizedBox(height: 24),
+
 
             // Ubicación
             Text(
