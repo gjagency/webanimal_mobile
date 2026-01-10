@@ -14,8 +14,15 @@ class PetType {
 class PostType {
   final String id;
   final String name;
+  final String color;
+  final String icon;
 
-  PostType({required this.id, required this.name});
+  PostType({
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.icon,
+  });
 }
 
 class PostUser {
@@ -58,6 +65,7 @@ class Post {
   final DateTime datetime;
   final int likes;
   final int comments;
+  final List<String> reacciones;
 
   Post({
     required this.id,
@@ -71,6 +79,7 @@ class Post {
     required this.datetime,
     this.likes = 0,
     this.comments = 0,
+    this.reacciones = const [],
   });
 }
 
@@ -264,7 +273,12 @@ class PostsService {
       final List data = jsonDecode(response.body);
       return data
           .map(
-            (json) => PostType(id: json['id'].toString(), name: json['nombre']),
+            (json) => PostType(
+              id: json['id'].toString(),
+              name: json['nombre'],
+              color: json['color'],
+              icon: json['icono'],
+            ),
           )
           .toList();
     }
@@ -285,6 +299,8 @@ class PostsService {
       postType: PostType(
         id: json['posteo_tipo']['id'].toString(),
         name: json['posteo_tipo']['nombre'],
+        color: json['posteo_tipo']['color'],
+        icon: json['posteo_tipo']['icono'],
       ),
       petType: PetType(
         id: json['mascota_tipo']['id'].toString(),
@@ -302,6 +318,9 @@ class PostsService {
       datetime: DateTime.parse(json['fecha_creacion']),
       likes: json['total_reacciones'] ?? 0,
       comments: json['total_comentarios'] ?? 0,
+      reacciones: List.from(
+        (json['reacciones'] ?? []).map((json) => json.toString()),
+      ),
     );
   }
 }

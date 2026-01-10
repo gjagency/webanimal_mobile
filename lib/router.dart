@@ -1,7 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:mobile_app/pages/posts/create.dart';
 
-import 'package:mobile_app/pages/splash.dart';
 import 'package:mobile_app/service/auth_service.dart';
 
 // AUTH
@@ -10,7 +8,9 @@ import 'package:mobile_app/pages/auth/sign_up.dart';
 import 'package:mobile_app/pages/auth/otp.dart';
 import 'package:mobile_app/pages/auth/reset_password.dart';
 import 'package:mobile_app/pages/auth/recover.dart';
+
 // HOME
+import 'package:mobile_app/pages/splash.dart';
 import 'package:mobile_app/pages/home/home.dart';
 
 // ACCOUNT
@@ -18,7 +18,7 @@ import 'package:mobile_app/pages/account/settings.dart';
 import 'package:mobile_app/pages/account/notifications.dart';
 
 // POSTS
-import 'package:mobile_app/pages/posts/edit.dart';
+import 'package:mobile_app/pages/posts/create.dart';
 import 'package:mobile_app/pages/posts/view.dart';
 
 // PROFILES
@@ -106,13 +106,6 @@ final router = GoRouter(
     GoRoute(
       path: '/posts/create',
       builder: (context, state) => PagePostCreate(),
-    ),
-    GoRoute(
-      path: '/posts/:id/edit',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return PagePostEdit(postId: id);
-      },
     ),
     GoRoute(
       path: '/posts/:id/view',

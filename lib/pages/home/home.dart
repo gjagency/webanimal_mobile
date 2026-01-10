@@ -416,61 +416,28 @@ class _PageHomeState extends State<PageHome> {
   }
 }
 
-class ModernPostCard extends StatelessWidget {
+class ModernPostCard extends StatefulWidget {
   final Post post;
 
   const ModernPostCard({super.key, required this.post});
 
-  PostTypeConfig _getTypeConfig() {
-    final typeName = post.postType.name.toLowerCase();
+  @override
+  State<ModernPostCard> createState() => _ModernPostCardState();
+}
 
-    if (typeName.contains('adopción') || typeName.contains('adopcion')) {
-      return PostTypeConfig(
-        color: Colors.blue,
-        icon: Icons.favorite,
-        label: 'EN ADOPCIÓN',
-        gradient: [Colors.blue[400]!, Colors.blue[600]!],
-      );
-    } else if (typeName.contains('perdido')) {
-      return PostTypeConfig(
-        color: Colors.orange,
-        icon: Icons.search,
-        label: 'PERDIDO',
-        gradient: [Colors.orange[400]!, Colors.red[400]!],
-      );
-    } else if (typeName.contains('denuncia')) {
-      return PostTypeConfig(
-        color: Colors.red,
-        icon: Icons.report,
-        label: 'DENUNCIA',
-        gradient: [Colors.red[400]!, Colors.red[700]!],
-      );
-    } else if (typeName.contains('veterinaria')) {
-      return PostTypeConfig(
-        color: Colors.purple,
-        icon: Icons.medical_services,
-        label: 'VETERINARIA',
-        gradient: [Colors.purple[400]!, Colors.purple[700]!],
-      );
-    } else if (typeName.contains('refugio')) {
-      return PostTypeConfig(
-        color: Colors.teal,
-        icon: Icons.home,
-        label: 'REFUGIO',
-        gradient: [Colors.teal[400]!, Colors.teal[700]!],
-      );
-    } else {
-      return PostTypeConfig(
-        color: Colors.green,
-        icon: Icons.pets,
-        label: post.postType.name.toUpperCase(),
-        gradient: [Colors.green[400]!, Colors.green[700]!],
-      );
-    }
+class _ModernPostCardState extends State<ModernPostCard> {
+  bool like = false;
+  int inc = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    like = widget.post.reacciones.isNotEmpty;
   }
 
   String _getTimeAgo() {
-    final difference = DateTime.now().difference(post.datetime);
+    final difference = DateTime.now().difference(widget.post.datetime);
     if (difference.inDays > 0) {
       return 'hace ${difference.inDays}d';
     } else if (difference.inHours > 0) {
@@ -482,10 +449,18 @@ class ModernPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = _getTypeConfig();
+    final color = Color(
+      int.parse(widget.post.postType.color.replaceAll('#', '0xff')),
+    );
+    final colors = [color.withValues(alpha: 0.7), color];
+    final icon = IconData(
+      int.parse(widget.post.postType.icon),
+      fontFamily: 'MaterialIcons',
+    );
 
     return InkWell(
-      onTap: () => GoRouter.of(context).push('/posts/${post.id}/view'),
+      onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
+      onDoubleTap: _toggleLike,
       child: Container(
         margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
         decoration: BoxDecoration(
@@ -510,16 +485,16 @@ class ModernPostCard extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: config.gradient),
+                      gradient: LinearGradient(colors: colors),
                     ),
                     padding: EdgeInsets.all(2),
                     child: CircleAvatar(
                       radius: 22,
-                      backgroundImage: post.user.imageUrl != null
-                          ? NetworkImage(post.user.imageUrl!)
+                      backgroundImage: widget.post.user.imageUrl != null
+                          ? NetworkImage(widget.post.user.imageUrl!)
                           : null,
                       backgroundColor: Colors.grey[300],
-                      child: post.user.imageUrl == null
+                      child: widget.post.user.imageUrl == null
                           ? Icon(Icons.person, color: Colors.white)
                           : null,
                     ),
@@ -530,39 +505,19 @@ class ModernPostCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          post.user.username,
+                          widget.post.user.username,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 12,
-                              color: Colors.grey[600],
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                post.location.label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              _getTimeAgo(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
+                        Text(
+                          "${_getTimeAgo()} - ${widget.post.location.label}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -570,16 +525,16 @@ class ModernPostCard extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: config.gradient),
+                      gradient: LinearGradient(colors: colors),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(config.icon, color: Colors.white, size: 14),
+                        Icon(icon, color: Colors.white, size: 14),
                         SizedBox(width: 4),
                         Text(
-                          config.label,
+                          widget.post.postType.name,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -597,7 +552,7 @@ class ModernPostCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(0),
               child: Image.network(
-                post.imageUrl ??
+                widget.post.imageUrl ??
                     "https://via.placeholder.com/400x300?text=Sin+Imagen",
                 width: double.infinity,
                 height: 350,
@@ -615,22 +570,41 @@ class ModernPostCard extends StatelessWidget {
 
             // Botones de acción
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16),
               child: Row(
                 children: [
-                  _buildActionButton(
-                    Icons.favorite_border,
-                    post.likes.toString(),
+                  GestureDetector(
+                    onTap: _toggleLike,
+                    child: Row(
+                      children: [
+                        like
+                            ? Icon(Icons.favorite, size: 28, color: Colors.red)
+                            : Icon(Icons.favorite_border, size: 28),
+                        SizedBox(width: 4),
+                        Text(
+                          '${widget.post.likes + inc}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(width: 20),
-                  _buildActionButton(
-                    Icons.chat_bubble_outline,
-                    post.comments.toString(),
+                  Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline, size: 28),
+                      SizedBox(width: 4),
+                      Text(
+                        '${widget.post.comments}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 20),
-                  _buildActionButton(Icons.share_outlined, ''),
-                  Spacer(),
-                  Icon(Icons.bookmark_border, size: 26),
                 ],
               ),
             ),
@@ -647,10 +621,10 @@ class ModernPostCard extends StatelessWidget {
                   ),
                   children: [
                     TextSpan(
-                      text: post.user.username,
+                      text: widget.post.user.username,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    TextSpan(text: ' ${post.description}'),
+                    TextSpan(text: ' ${widget.post.description}'),
                   ],
                 ),
               ),
@@ -663,34 +637,14 @@ class ModernPostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(IconData icon, String count) {
-    return Row(
-      children: [
-        Icon(icon, size: 26),
-        if (count.isNotEmpty) ...[
-          SizedBox(width: 4),
-          Text(
-            count,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-        ],
-      ],
-    );
+  Future<void> _toggleLike() async {
+    await PostsService.addReaction(widget.post.id, "1");
+
+    setState(() {
+      like = !like;
+      inc = like ? inc + 1 : inc - 1;
+    });
   }
-}
-
-class PostTypeConfig {
-  final Color color;
-  final IconData icon;
-  final String label;
-  final List<Color> gradient;
-
-  PostTypeConfig({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.gradient,
-  });
 }
 
 class FilterBottomSheet extends StatefulWidget {

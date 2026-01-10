@@ -98,7 +98,13 @@ class _PagePostViewState extends State<PagePostView> {
     }
 
     final post = _post!;
-    final config = _getTypeConfig(post.postType.name);
+
+    final color = Color(int.parse(post.postType.color.replaceAll('#', '0xff')));
+    final colors = [color.withValues(alpha: 0.7), color];
+    final icon = IconData(
+      int.parse(post.postType.icon),
+      fontFamily: 'MaterialIcons',
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -113,22 +119,6 @@ class _PagePostViewState extends State<PagePostView> {
           'Publicación',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          PopupMenuButton(
-            icon: Icon(Icons.more_vert, color: Colors.black),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                child: Row(
-                  children: [
-                    Icon(Icons.share, size: 20),
-                    SizedBox(width: 12),
-                    Text('Compartir'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -143,7 +133,7 @@ class _PagePostViewState extends State<PagePostView> {
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: config.gradient),
+                          gradient: LinearGradient(colors: colors),
                         ),
                         padding: EdgeInsets.all(2),
                         child: CircleAvatar(
@@ -169,25 +159,13 @@ class _PagePostViewState extends State<PagePostView> {
                                 fontSize: 15,
                               ),
                             ),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  size: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    '${post.location.label} • ${_getTimeAgo(post.datetime)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              "${_getTimeAgo(post.datetime)} - ${post.location.label}",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -198,16 +176,16 @@ class _PagePostViewState extends State<PagePostView> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: config.gradient),
+                          gradient: LinearGradient(colors: colors),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(config.icon, color: Colors.white, size: 14),
+                            Icon(icon, color: Colors.white, size: 14),
                             SizedBox(width: 4),
                             Text(
-                              config.label,
+                              post.postType.name,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -246,7 +224,13 @@ class _PagePostViewState extends State<PagePostView> {
                         onTap: _toggleLike,
                         child: Row(
                           children: [
-                            Icon(Icons.favorite_border, size: 28),
+                            post.reacciones.isNotEmpty
+                                ? Icon(
+                                    Icons.favorite,
+                                    size: 28,
+                                    color: Colors.red,
+                                  )
+                                : Icon(Icons.favorite_border, size: 28),
                             SizedBox(width: 4),
                             Text(
                               '${post.likes}',
@@ -272,10 +256,6 @@ class _PagePostViewState extends State<PagePostView> {
                           ),
                         ],
                       ),
-                      SizedBox(width: 20),
-                      Icon(Icons.share_outlined, size: 28),
-                      Spacer(),
-                      Icon(Icons.bookmark_border, size: 28),
                     ],
                   ),
                 ),
@@ -388,38 +368,6 @@ class _PagePostViewState extends State<PagePostView> {
           ),
         ],
       ),
-    );
-  }
-
-  PostTypeConfig _getTypeConfig(String typeName) {
-    final lower = typeName.toLowerCase();
-    if (lower.contains('adopción') || lower.contains('adopcion')) {
-      return PostTypeConfig(
-        color: Colors.blue,
-        icon: Icons.favorite,
-        label: 'ADOPCIÓN',
-        gradient: [Colors.blue[400]!, Colors.blue[600]!],
-      );
-    } else if (lower.contains('perdido')) {
-      return PostTypeConfig(
-        color: Colors.orange,
-        icon: Icons.search,
-        label: 'PERDIDO',
-        gradient: [Colors.orange[400]!, Colors.red[400]!],
-      );
-    } else if (lower.contains('denuncia')) {
-      return PostTypeConfig(
-        color: Colors.red,
-        icon: Icons.report,
-        label: 'DENUNCIA',
-        gradient: [Colors.red[400]!, Colors.red[700]!],
-      );
-    }
-    return PostTypeConfig(
-      color: Colors.green,
-      icon: Icons.pets,
-      label: typeName.toUpperCase(),
-      gradient: [Colors.green[400]!, Colors.green[700]!],
     );
   }
 

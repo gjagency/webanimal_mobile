@@ -42,6 +42,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
     _telefonoController.dispose();
     super.dispose();
   }
+
   Future<void> _loadInitialData() async {
     try {
       final results = await Future.wait([
@@ -94,11 +95,41 @@ class _PagePostCreateState extends State<PagePostCreate> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
+
+    // Mostrar opciones
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_camera, color: Colors.purple),
+              title: Text('Cámara'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library, color: Colors.purple),
+              title: Text('Galería'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final image = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 1200,
       imageQuality: 85,
     );
+
     if (image != null) {
       setState(() => _selectedImageFile = File(image.path));
     }
@@ -334,7 +365,9 @@ class _PagePostCreateState extends State<PagePostCreate> {
             TextFormField(
               controller: _telefonoController,
               keyboardType: TextInputType.phone,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly], // ✅ solo números
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ], // ✅ solo números
               maxLength: 10,
               decoration: InputDecoration(
                 hintText: 'Ingresa tu teléfono',
@@ -399,7 +432,6 @@ class _PagePostCreateState extends State<PagePostCreate> {
               },
             ),
             SizedBox(height: 24),
-
 
             // Ubicación
             Text(
