@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
-import 'package:mobile_app/pages/auth/recover.dart';
 
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});

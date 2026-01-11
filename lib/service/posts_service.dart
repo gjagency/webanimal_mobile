@@ -114,11 +114,11 @@ class PostsService {
     if (lng != null) queryParams['lng'] = lng.toString();
 
     final uri = Uri.parse(
-      '${Config.baseUrl}/posteos/',
+      '${Config.baseUrl}/api/posteos/',
     ).replace(queryParameters: queryParams);
 
     final response = await AuthService.getWithToken(
-      '/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
+      '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
     );
 
     if (response.statusCode == 200) {
@@ -130,7 +130,7 @@ class PostsService {
 
   // GET: Post individual
   static Future<Post> getPost(String postId) async {
-    final response = await AuthService.getWithToken('/posteos/$postId/');
+    final response = await AuthService.getWithToken('/api/posteos/$postId/');
 
     if (response.statusCode == 200) {
       return _parsePost(jsonDecode(response.body));
@@ -149,7 +149,7 @@ class PostsService {
     required double lng,
     required String locationLabel,
   }) async {
-    final response = await AuthService.postWithToken('/posteos/', {
+    final response = await AuthService.postWithToken('/api/posteos/', {
       'posteo_tipo': postTypeId,
       'mascota_tipo': petTypeId,
       'descripcion': description,
@@ -173,7 +173,7 @@ class PostsService {
   ) async {
     final token = await AuthService.getAccessToken();
     final response = await http.put(
-      Uri.parse('${Config.baseUrl}/posteos/$postId/'),
+      Uri.parse('${Config.baseUrl}/api/posteos/$postId/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ class PostsService {
   static Future<bool> deletePost(String postId) async {
     final token = await AuthService.getAccessToken();
     final response = await http.delete(
-      Uri.parse('${Config.baseUrl}/posteos/$postId/'),
+      Uri.parse('${Config.baseUrl}/api/posteos/$postId/'),
       headers: {'Authorization': 'Bearer $token'},
     );
 
@@ -200,7 +200,7 @@ class PostsService {
 
   // POST: Crear reacción
   static Future<bool> addReaction(String postId, String type) async {
-    final response = await AuthService.postWithToken('/reacciones/', {
+    final response = await AuthService.postWithToken('/api/reacciones/', {
       'posteo': postId,
       'tipo': type,
     });
@@ -212,7 +212,7 @@ class PostsService {
   static Future<bool> removeReaction(String reactionId) async {
     final token = await AuthService.getAccessToken();
     final response = await http.delete(
-      Uri.parse('${Config.baseUrl}/reacciones/$reactionId/'),
+      Uri.parse('${Config.baseUrl}/api/reacciones/$reactionId/'),
       headers: {'Authorization': 'Bearer $token'},
     );
 
@@ -242,7 +242,7 @@ class PostsService {
 
   // POST: Crear comentario
   static Future<bool> addComment(String postId, String text) async {
-    final response = await AuthService.postWithToken('/comentarios/', {
+    final response = await AuthService.postWithToken('/api/comentarios/', {
       'posteo': postId,
       'body': text,
     });
@@ -252,7 +252,7 @@ class PostsService {
 
   // GET: Tipos de mascotas
   static Future<List<PetType>> getPetTypes() async {
-    final response = await AuthService.getWithToken('/mascotas/tipos/');
+    final response = await AuthService.getWithToken('/api/mascotas/tipos/');
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
@@ -267,7 +267,7 @@ class PostsService {
 
   // GET: Tipos de posteos
   static Future<List<PostType>> getPostTypes() async {
-    final response = await AuthService.getWithToken('/posteos/tipos/');
+    final response = await AuthService.getWithToken('/api/posteos/tipos/');
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);

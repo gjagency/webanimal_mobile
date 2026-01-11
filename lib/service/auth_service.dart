@@ -23,7 +23,7 @@ class AuthService {
   static Future<bool> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/login/'),
+        Uri.parse('${Config.baseUrl}/api/auth/login/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
       );
@@ -57,7 +57,7 @@ class AuthService {
   static Future<bool> recoverPassword(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/auth/reset/'), // ✅ CORRECTO
+        Uri.parse('${Config.baseUrl}/api/auth/reset/'), // ✅ CORRECTO
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -84,7 +84,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/auth/reset/confirm/'),
+        Uri.parse('${Config.baseUrl}/api/auth/reset/confirm/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'uid': uid, 'token': token, 'password': password}),
       );
@@ -121,7 +121,7 @@ class AuthService {
       }
 
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/auth/google/flutter/'),
+        Uri.parse('${Config.baseUrl}/api/auth/google/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'id_token': googleAuth.idToken, // 🔥 JWT REAL
@@ -179,6 +179,10 @@ class AuthService {
      LOGOUT
      ========================================================== */
   static Future<void> logout() async {
+    try {
+      await postWithToken("api/logout/", {});
+    } catch (_) {}
+
     try {
       await _googleSignIn.signOut();
     } catch (_) {}
