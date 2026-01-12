@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_app/service/posts_service.dart';
+import 'package:geocoding/geocoding.dart'; // <-- agregar a pubspec.yaml
 
 class PagePostCreate extends StatefulWidget {
   const PagePostCreate({super.key});
@@ -68,31 +69,46 @@ class _PagePostCreateState extends State<PagePostCreate> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _locationController.text = 'Ubicación no disponible';
+
+Future<void> _getCurrentLocation() async {
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _locationController.text = 'Ubicación no disponible';
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _locationController.text = 'Permiso de ubicación denegado';
         return;
       }
+    }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _locationController.text = 'Permiso de ubicación denegado';
-          return;
-        }
-      }
+    // Obtener la posición
+    _currentPosition = await Geolocator.getCurrentPosition();
 
-      _currentPosition = await Geolocator.getCurrentPosition();
+    // Reverse geocoding
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      localeIdentifier: "es", // Español
+    );
+
+    if (placemarks.isNotEmpty) {
+      final place = placemarks.first;
+      _locationController.text =
+          '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
+    } else {
       _locationController.text =
           'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}';
-    } catch (e) {
-      _locationController.text = 'Error obteniendo ubicación';
     }
+  } catch (e) {
+    _locationController.text = 'Error obteniendo ubicación';
   }
-
+}
   Future<void> _pickImage() async {
     final picker = ImagePicker();
 
@@ -208,10 +224,27 @@ class _PagePostCreateState extends State<PagePostCreate> {
             icon: Icon(Icons.close, color: Colors.black),
             onPressed: () => context.pop(),
           ),
-          title: Text(
-            'Nueva publicación',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
+          title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'WebAnimal',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
+        ),
         ),
         body: Center(child: CircularProgressIndicator()),
       );
@@ -226,9 +259,26 @@ class _PagePostCreateState extends State<PagePostCreate> {
           icon: Icon(Icons.close, color: Colors.black),
           onPressed: () => context.pop(),
         ),
-        title: Text(
-          'Nueva publicación',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+      title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'WebAnimal',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(

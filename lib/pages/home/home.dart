@@ -354,7 +354,6 @@ class _PageHomeState extends State<PageHome> {
 
   IconData _getIconForType(String typeName) {
     switch (typeName.toLowerCase()) {
-      case 'adopción':
       case 'adopcion':
         return Icons.favorite;
       case 'perdido':
@@ -508,7 +507,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
                           widget.post.user.username,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 12,
                           ),
                         ),
                         Text(
@@ -522,28 +521,42 @@ class _ModernPostCardState extends State<ModernPostCard> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: colors),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          widget.post.postType.name,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              Container(
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+  decoration: BoxDecoration(
+    gradient: LinearGradient(colors: colors),
+    borderRadius: BorderRadius.circular(20),
+  ),
+  child: Center(
+    child: RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        children: [
+          WidgetSpan(
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 14,
+            ),
+            alignment: PlaceholderAlignment.middle,
+          ),
+          const WidgetSpan(
+            child: SizedBox(width: 4),
+          ),
+          TextSpan(
+            text: widget.post.postType.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+)
+
                 ],
               ),
             ),

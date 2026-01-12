@@ -221,7 +221,7 @@ class PostsService {
 
   static Future<List<Comment>> getComments(String postId) async {
     final response = await AuthService.getWithToken(
-      '/comentarios/?posteo=$postId',
+      '/api/comentarios/?posteo=$postId',
     );
 
     if (response.statusCode == 200) {

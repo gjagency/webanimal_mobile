@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/pages/auth/PageEditProfile.dart';
 
 import 'package:mobile_app/service/auth_service.dart';
 
@@ -113,6 +114,11 @@ final router = GoRouter(
         final id = state.pathParameters['id']!;
         return PagePostView(postId: id);
       },
+      
+    ),
+        GoRoute(
+      path: '/api/auth/profile',
+      builder: (context, state) => const PageEditProfile(),
     ),
   ],
 
@@ -140,6 +146,7 @@ final router = GoRouter(
     if (token != null && isAuthRoute && !isReset) {
       return '/';
     }
+    
 
     return null;
   },

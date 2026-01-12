@@ -19,7 +19,7 @@ dependencies:
   local_auth: ^3.0.0
   http: ^1.6.0
   flutter_secure_storage: ^10.0.0
-
+  geocoding: ^2.0.5
   firebase_core: ^3.15.2
   firebase_dynamic_links: ^6.1.10
   geolocator: ^10.1.0

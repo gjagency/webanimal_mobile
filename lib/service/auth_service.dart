@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/config.dart';
@@ -51,13 +52,10 @@ class AuthService {
   /* ==========================================================
      RECOVER PASSWORD
      ========================================================== */
-  /* ==========================================================
-   RECOVER PASSWORD (CORREGIDO)
-   ========================================================== */
   static Future<bool> recoverPassword(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/api/auth/reset/'), // ✅ CORRECTO
+        Uri.parse('${Config.baseUrl}/api/auth/reset/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -66,7 +64,6 @@ class AuthService {
         'Recover password response: ${response.statusCode} ${response.body}',
       );
 
-      // Django devuelve 200 aunque el email no exista (correcto)
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Recover password error: $e');
@@ -75,8 +72,8 @@ class AuthService {
   }
 
   /* ==========================================================
-   CONFIRM RESET PASSWORD
-   ========================================================== */
+     CONFIRM RESET PASSWORD
+     ========================================================== */
   static Future<bool> confirmResetPassword({
     required String uid,
     required String token,
@@ -101,7 +98,7 @@ class AuthService {
   }
 
   /* ==========================================================
-     LOGIN CON GOOGLE (CORREGIDO)
+     LOGIN CON GOOGLE
      ========================================================== */
   static Future<bool> loginWithGoogle() async {
     try {
@@ -124,11 +121,10 @@ class AuthService {
         Uri.parse('${Config.baseUrl}/api/auth/google/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'id_token': googleAuth.idToken, // 🔥 JWT REAL
+          'id_token': googleAuth.idToken,
         }),
       );
       debugPrint('ID TOKEN: ${googleAuth.idToken}');
-
       debugPrint(
         'Google login response: ${response.statusCode} ${response.body}',
       );
@@ -222,4 +218,69 @@ class AuthService {
       body: jsonEncode(body),
     );
   }
+
+  /* ==========================================================
+     GET PROFILE
+     ========================================================== */
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+
+      final response = await getWithToken('/api/auth/profile/');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        debugPrint(
+            'Error al obtener perfil: ${response.statusCode} ${response.body}');
+        return {};
+      }
+    } catch (e) {
+      debugPrint('Excepción en getProfile: $e');
+      return {};
+    }
+  }static Future<bool> updateProfile({
+  required String name,
+  required String bio,
+  File? avatar,
+}) async {
+  try {
+    final token = await getAccessToken();
+
+    final uri = Uri.parse('${Config.baseUrl}/api/auth/profile/');
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.fields['name'] = name;
+    request.fields['bio'] = bio;
+
+    if (avatar != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('avatar', avatar.path),
+      );
+    }
+
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+
+    debugPrint('Update profile response: ${response.statusCode}');
+    debugPrint(responseBody);
+
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint('Error updateProfile: $e');
+    return false;
+  }
+}
+static Future<bool> changePassword({
+  required String currentPassword,
+  required String newPassword,
+}) async {
+  final response = await postWithToken('/api/auth/change-password/', {
+    'old_password': currentPassword,
+    'new_password': newPassword,
+  });
+
+  return response.statusCode == 200;
+}
+
 }
