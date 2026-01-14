@@ -17,7 +17,11 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
 
   String displayName = '';
   String username = '';
+  String first_name = '';
+  String lastName = '';
+  String email = '';
   String avatarUrl = '';
+  int postsCount = 0;
   bool loadingProfile = true;
 
   @override
@@ -33,12 +37,24 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
       print('MI TOKEN: $token'); // 👈 Aquí ves si se guardó correctamente
       final profile = await AuthService.getProfile(); // 🟢 Método que trae usuario
       setState(() {
-        displayName = profile['first_name'] ?? profile['username'] ?? '';
+        final firstName = profile['first_name'] ?? '';
+        final lastNameApi = profile['last_name'] ?? '';
+
+        displayName = [
+          firstName,
+          lastNameApi,
+        ].where((e) => e.isNotEmpty).join(' ');
+
         username = profile['username'] ?? '';
+        email = profile['email'] ?? '';
+        postsCount = profile['posts_count'] ?? 0;
+
         avatarUrl = profile['avatar'] ??
-            'https://i.pravatar.cc/150?img=10'; // fallback si no hay avatar
+            'https://i.pravatar.cc/150?img=10';
+
         loadingProfile = false;
       });
+
     } catch (e) {
       debugPrint('Error cargando perfil: $e');
       setState(() {
@@ -236,7 +252,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '@$username',
+                  email,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
@@ -244,12 +260,13 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '45 publicaciones • 234 seguidores',
+                  '$postsCount publicaciones',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 12,
                   ),
                 ),
+
               ],
             ),
           ),

@@ -33,7 +33,10 @@ class _PagePostCreateState extends State<PagePostCreate> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkGpsOrGoBack();
+      _loadInitialData();
+    });
   }
 
   @override
@@ -44,6 +47,21 @@ class _PagePostCreateState extends State<PagePostCreate> {
     super.dispose();
   }
 
+  Future<void> _checkGpsOrGoBack() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes activar el GPS para crear una publicación'),
+        ),
+      );
+      await Geolocator.openLocationSettings();
+      if (mounted) context.pop();
+    }
+  }
+
   Future<void> _loadInitialData() async {
     try {
       final results = await Future.wait([
@@ -52,67 +70,65 @@ class _PagePostCreateState extends State<PagePostCreate> {
         _getCurrentLocation(),
       ]);
 
-      setState(() {
-        _postTypes = results[0] as List<PostType>;
-        _petTypes = results[1] as List<PetType>;
-        if (_postTypes.isNotEmpty) _selectedPostTypeId = _postTypes[0].id;
-        if (_petTypes.isNotEmpty) _selectedPetTypeId = _petTypes[0].id;
-        _isLoadingTypes = false;
-      });
+if (!mounted) return;
+
+  setState(() {
+    _postTypes = results[0] as List<PostType>;
+    _petTypes = results[1] as List<PetType>;
+    if (_postTypes.isNotEmpty) _selectedPostTypeId = _postTypes[0].id;
+    if (_petTypes.isNotEmpty) _selectedPetTypeId = _petTypes[0].id;
+    _isLoadingTypes = false;
+  });
+
     } catch (e) {
-      setState(() => _isLoadingTypes = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error cargando datos: $e')));
-      }
+      if (!mounted) return;
+        setState(() => _isLoadingTypes = false);
+
     }
   }
 
-
-Future<void> _getCurrentLocation() async {
-  try {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _locationController.text = 'Ubicación no disponible';
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _locationController.text = 'Permiso de ubicación denegado';
+  Future<void> _getCurrentLocation() async {
+    if (!mounted) return;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _locationController.text = 'Ubicación no disponible';
         return;
       }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _locationController.text = 'Permiso de ubicación denegado';
+          return;
+        }
+      }
+
+      _currentPosition = await Geolocator.getCurrentPosition();
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        localeIdentifier: "es",
+      );
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        _locationController.text =
+            '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
+      } else {
+        _locationController.text =
+            'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}';
+      }
+    } catch (e) {
+      _locationController.text = 'Error obteniendo ubicación';
     }
-
-    // Obtener la posición
-    _currentPosition = await Geolocator.getCurrentPosition();
-
-    // Reverse geocoding
-    List<Placemark> placemarks = await placemarkFromCoordinates(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-      localeIdentifier: "es", // Español
-    );
-
-    if (placemarks.isNotEmpty) {
-      final place = placemarks.first;
-      _locationController.text =
-          '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
-    } else {
-      _locationController.text =
-          'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}';
-    }
-  } catch (e) {
-    _locationController.text = 'Error obteniendo ubicación';
   }
-}
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
 
-    // Mostrar opciones
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: RoundedRectangleBorder(
@@ -160,9 +176,9 @@ Future<void> _getCurrentLocation() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedImageFile == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Debes seleccionar una imagen')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Debes seleccionar una imagen')),
+      );
       return;
     }
 
@@ -224,27 +240,10 @@ Future<void> _getCurrentLocation() async {
             icon: Icon(Icons.close, color: Colors.black),
             onPressed: () => context.pop(),
           ),
-          title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'WebAnimal',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-          ],
-        ),
+          title: Text(
+            'Nueva publicación',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
         ),
         body: Center(child: CircularProgressIndicator()),
       );
@@ -259,26 +258,9 @@ Future<void> _getCurrentLocation() async {
           icon: Icon(Icons.close, color: Colors.black),
           onPressed: () => context.pop(),
         ),
-      title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'WebAnimal',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-          ],
+        title: Text(
+          'Nueva publicación',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
@@ -301,7 +283,7 @@ Future<void> _getCurrentLocation() async {
           SizedBox(width: 8),
         ],
       ),
-      body: Form(
+           body: Form(
         key: _formKey,
         child: ListView(
           padding: EdgeInsets.all(16),

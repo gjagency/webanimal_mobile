@@ -113,7 +113,13 @@ class _PagePostViewState extends State<PagePostView> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home'); // o la ruta que sea tu inicio
+            }
+          },
         ),
         title: Text(
           'Publicación',
@@ -200,20 +206,25 @@ class _PagePostViewState extends State<PagePostView> {
                 ),
 
                 // Imagen
-                Image.network(
-                  post.imageUrl ??
-                      "https://via.placeholder.com/400x300?text=Sin+Imagen",
-                  width: double.infinity,
-                  height: 400,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 400,
-                      color: Colors.grey[200],
-                      child: Icon(Icons.pets, size: 100, color: Colors.grey),
-                    );
-                  },
-                ),
+               // Imagen (abrir modal)
+GestureDetector(
+  onTap: () => _openImageModal(context, post.imageUrl),
+  child: Image.network(
+    post.imageUrl ??
+        "https://via.placeholder.com/400x300?text=Sin+Imagen",
+    width: double.infinity,
+    height: 400,
+    fit: BoxFit.cover,
+    errorBuilder: (context, error, stackTrace) {
+      return Container(
+        height: 400,
+        color: Colors.grey[200],
+        child: Icon(Icons.pets, size: 100, color: Colors.grey),
+      );
+    },
+  ),
+),
+
 
                 // Acciones
                 Padding(
@@ -441,6 +452,48 @@ class CommentCard extends StatelessWidget {
     );
   }
 }
+void _openImageModal(BuildContext context, String? imageUrl) {
+  if (imageUrl == null) return;
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black,
+    builder: (_) => GestureDetector(
+      onTap: () => Navigator.of(context).pop(),
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 3,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 
 class PostTypeConfig {
   final Color color;
