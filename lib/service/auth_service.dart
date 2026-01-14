@@ -239,6 +239,8 @@ class AuthService {
     }
   }static Future<bool> updateProfile({
   required String name,
+  required String lastName,
+  required String email,
   required String bio,
   File? avatar,
 }) async {
@@ -251,6 +253,8 @@ class AuthService {
     request.headers['Authorization'] = 'Bearer $token';
 
     request.fields['name'] = name;
+    request.fields['last_name'] = lastName;
+    request.fields['email'] = email;
     request.fields['bio'] = bio;
 
     if (avatar != null) {

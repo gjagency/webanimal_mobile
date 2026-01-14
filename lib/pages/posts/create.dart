@@ -234,16 +234,27 @@ if (!mounted) return;
       return Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.close, color: Colors.black),
-            onPressed: () => context.pop(),
-          ),
-          title: Text(
-            'Nueva publicación',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
+          title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'WebAnimal',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
+        ),
         ),
         body: Center(child: CircularProgressIndicator()),
       );
@@ -252,15 +263,26 @@ if (!mounted) return;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: Colors.black),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Nueva publicación',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+       title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'WebAnimal',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(

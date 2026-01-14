@@ -28,24 +28,34 @@ class _PageHomeState extends State<PageHome> {
     _getCurrentLocation();
   }
 
-  Future<void> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return;
-      }
-
-      _currentPosition = await Geolocator.getCurrentPosition();
-      _loadData();
-    } catch (e) {
-      debugPrint('Error obteniendo ubicación: $e');
-      _loadData();
+Future<void> _getCurrentLocation() async {
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint('GPS apagado, cargando posts sin ubicación');
+      await _loadData(); // ✅ importante llamar siempre
+      return;
     }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        debugPrint('Permiso de ubicación denegado, cargando posts sin ubicación');
+        await _loadData();
+        return;
+      }
+    }
+
+    _currentPosition = await Geolocator.getCurrentPosition();
+    await _loadData();
+  } catch (e) {
+    debugPrint('Error obteniendo ubicación: $e');
+    await _loadData();
   }
+}
+
+  
 
   Future<void> _loadData() async {
     setState(() {
@@ -504,7 +514,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.post.user.username,
+                          widget.post.user.fullName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,

@@ -119,7 +119,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                   _buildSettingItem(
                     icon: Icons.edit,
                     title: 'Editar perfil',
-                    subtitle: 'Nombre, foto, bio',
                     onTap: () async {
                       await context.push('/api/auth/profile');
                       _loadProfile(); // 👈 refresca al volver
@@ -409,78 +408,84 @@ void _showChangePasswordModal() {
   final currentController = TextEditingController();
   final newController = TextEditingController();
   final confirmController = TextEditingController();
+showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.white,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  ),
+  builder: (context) {
+    // altura de la mitad de la pantalla
+    final height = MediaQuery.of(context).size.height * 0.5;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(4),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom, // mueve el modal con el teclado
+      ),
+      child: Container(
+        height: height,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               ),
-            ),
-            Text(
-              'Cambiar contraseña',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-
-            _passwordField('Contraseña actual', currentController),
-            SizedBox(height: 12),
-            _passwordField('Nueva contraseña', newController),
-            SizedBox(height: 12),
-            _passwordField('Confirmar contraseña', confirmController),
-            SizedBox(height: 20),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (newController.text != confirmController.text) {
-                    _showError('Las contraseñas no coinciden');
-                    return;
-                  }
-
-                  final success = await AuthService.changePassword(
-                    currentPassword: currentController.text,
-                    newPassword: newController.text,
-                  );
-
-                  if (success) {
-                    Navigator.pop(context);
-                    _showSuccess('Contraseña actualizada');
-                  } else {
-                    _showError('No se pudo cambiar la contraseña');
-                  }
-                },
-                child: Text('Guardar cambios'),
+              Text(
+                'Cambiar contraseña',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+
+              _passwordField('Contraseña actual', currentController),
+              SizedBox(height: 12),
+              _passwordField('Nueva contraseña', newController),
+              SizedBox(height: 12),
+              _passwordField('Confirmar contraseña', confirmController),
+              SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (newController.text != confirmController.text) {
+                      _showError('Las contraseñas no coinciden');
+                      return;
+                    }
+
+                    final success = await AuthService.changePassword(
+                      currentPassword: currentController.text,
+                      newPassword: newController.text,
+                    );
+
+                    if (success) {
+                      Navigator.pop(context);
+                      _showSuccess('Contraseña actualizada');
+                    } else {
+                      _showError('No se pudo cambiar la contraseña');
+                    }
+                  },
+                  child: Text('Guardar cambios'),
+                ),
+              ),
+            ],
+          ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  },
+);
+
 }
 Widget _passwordField(String label, TextEditingController controller) {
   return TextField(
@@ -701,7 +706,7 @@ Los cambios serán informados dentro de la aplicación.
 
 Para cualquier consulta relacionada con esta Política de Privacidad, podés escribirnos a:
 
-📧 soporte@tuapp.com
+📧 webanimalok@gmail.com
 ''';
 
 
@@ -806,7 +811,7 @@ La app puede suspender o eliminar cuentas que incumplan estos términos.
 
 Para cualquier consulta relacionada con estos términos, podés contactarnos en:
 
-📧 soporte@tuapp.com
+📧 webanimalok@gmail.com
 ''';
 
 }

@@ -13,6 +13,8 @@ class PageEditProfile extends StatefulWidget {
 class _PageEditProfileState extends State<PageEditProfile> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();  
   final _bioCtrl = TextEditingController();
 
   File? _avatarFile;
@@ -32,6 +34,8 @@ class _PageEditProfileState extends State<PageEditProfile> {
 
     setState(() {
       _nameCtrl.text = profile['first_name'] ?? '';
+      _lastNameCtrl.text = profile['last_name'] ?? '';
+      _emailCtrl.text = profile['email'] ?? '';
       _bioCtrl.text = profile['bio'] ?? '';
       _avatarUrl = profile['avatar'] ?? '';
       _loading = false;
@@ -58,8 +62,9 @@ class _PageEditProfileState extends State<PageEditProfile> {
 
     final ok = await AuthService.updateProfile(
       name: _nameCtrl.text,
+      lastName: _lastNameCtrl.text,
       bio: _bioCtrl.text,
-      avatar: _avatarFile,
+      email: _emailCtrl.text,
     );
 
     setState(() => _saving = false);
@@ -145,13 +150,20 @@ class _PageEditProfileState extends State<PageEditProfile> {
                     ),
 
                     SizedBox(height: 16),
-
-                    /// 📝 BIO
                     TextFormField(
-                      controller: _bioCtrl,
-                      maxLines: 3,
-                      decoration: InputDecoration(labelText: 'Bio'),
+                      controller: _lastNameCtrl,
+                      decoration: InputDecoration(labelText: 'Apellido'),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Campo requerido' : null,
                     ),
+                     TextFormField(
+                      controller: _emailCtrl,
+                      decoration: InputDecoration(labelText: 'Email'),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Campo requerido' : null,
+                    ),
+                    /// 📝 BIO
+                  
 
                     SizedBox(height: 32),
 
