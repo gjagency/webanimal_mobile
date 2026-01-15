@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ class PageHome extends StatefulWidget {
 class _PageHomeState extends State<PageHome> {
   String? selectedTypeId;
   String? selectedPetTypeId;
+  String? selectedCityId;
   Position? _currentPosition;
   DateTimeRange? selectedDateRange;
 
@@ -28,34 +31,34 @@ class _PageHomeState extends State<PageHome> {
     _getCurrentLocation();
   }
 
-Future<void> _getCurrentLocation() async {
-  try {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      debugPrint('GPS apagado, cargando posts sin ubicación');
-      await _loadData(); // ✅ importante llamar siempre
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        debugPrint('Permiso de ubicación denegado, cargando posts sin ubicación');
-        await _loadData();
+  Future<void> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('GPS apagado, cargando posts sin ubicación');
+        await _loadData(); // ✅ importante llamar siempre
         return;
       }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint(
+            'Permiso de ubicación denegado, cargando posts sin ubicación',
+          );
+          await _loadData();
+          return;
+        }
+      }
+
+      _currentPosition = await Geolocator.getCurrentPosition();
+      await _loadData();
+    } catch (e) {
+      debugPrint('Error obteniendo ubicación: $e');
+      await _loadData();
     }
-
-    _currentPosition = await Geolocator.getCurrentPosition();
-    await _loadData();
-  } catch (e) {
-    debugPrint('Error obteniendo ubicación: $e');
-    await _loadData();
   }
-}
-
-  
 
   Future<void> _loadData() async {
     setState(() {
@@ -68,8 +71,7 @@ Future<void> _getCurrentLocation() async {
         PostsService.getPosts(
           postType: selectedTypeId,
           petType: selectedPetTypeId,
-          lat: _currentPosition?.latitude,
-          lng: _currentPosition?.longitude,
+          cityId: selectedCityId,
         ),
         PostsService.getPostTypes(),
         PostsService.getPetTypes(),
@@ -98,6 +100,7 @@ Future<void> _getCurrentLocation() async {
       selectedTypeId = null;
       selectedPetTypeId = null;
       selectedDateRange = null;
+      selectedCityId = null;
     });
     _loadData();
   }
@@ -112,11 +115,13 @@ Future<void> _getCurrentLocation() async {
         selectedPetTypeId: selectedPetTypeId,
         postTypes: _postTypes,
         petTypes: _petTypes,
+        selectedCityId: selectedCityId,
         hasLocation: _currentPosition != null,
-        onApply: (typeId, petTypeId) {
+        onApply: (typeId, petTypeId, citiId) {
           setState(() {
             selectedTypeId = typeId;
             selectedPetTypeId = petTypeId;
+            selectedCityId = citiId;
           });
           _loadData();
         },
@@ -129,6 +134,7 @@ Future<void> _getCurrentLocation() async {
     final hasFilters =
         selectedTypeId != null ||
         selectedPetTypeId != null ||
+        selectedCityId != null ||
         selectedDateRange != null;
 
     return Scaffold(
@@ -531,42 +537,38 @@ class _ModernPostCardState extends State<ModernPostCard> {
                       ],
                     ),
                   ),
-              Container(
-  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-  decoration: BoxDecoration(
-    gradient: LinearGradient(colors: colors),
-    borderRadius: BorderRadius.circular(20),
-  ),
-  child: Center(
-    child: RichText(
-      textAlign: TextAlign.center,
-      text: TextSpan(
-        children: [
-          WidgetSpan(
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 14,
-            ),
-            alignment: PlaceholderAlignment.middle,
-          ),
-          const WidgetSpan(
-            child: SizedBox(width: 4),
-          ),
-          TextSpan(
-            text: widget.post.postType.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-)
-
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: colors),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          children: [
+                            WidgetSpan(
+                              child: Icon(icon, color: Colors.white, size: 14),
+                              alignment: PlaceholderAlignment.middle,
+                            ),
+                            const WidgetSpan(child: SizedBox(width: 4)),
+                            TextSpan(
+                              text: widget.post.postType.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -673,15 +675,17 @@ class _ModernPostCardState extends State<ModernPostCard> {
 class FilterBottomSheet extends StatefulWidget {
   final String? selectedTypeId;
   final String? selectedPetTypeId;
+  final String? selectedCityId;
   final List<PostType> postTypes;
   final List<PetType> petTypes;
   final bool hasLocation;
-  final Function(String?, String?) onApply;
+  final Function(String?, String?, String?) onApply;
 
   const FilterBottomSheet({
     super.key,
     this.selectedTypeId,
     this.selectedPetTypeId,
+    this.selectedCityId,
     required this.postTypes,
     required this.petTypes,
     required this.hasLocation,
@@ -695,12 +699,14 @@ class FilterBottomSheet extends StatefulWidget {
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late String? tempTypeId;
   late String? tempPetTypeId;
+  late String? tempCityId;
 
   @override
   void initState() {
     super.initState();
     tempTypeId = widget.selectedTypeId;
     tempPetTypeId = widget.selectedPetTypeId;
+    tempCityId = widget.selectedCityId;
   }
 
   @override
@@ -790,6 +796,185 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     );
                   }).toList(),
                 ),
+                SizedBox(height: 12),
+
+                // ✅ CIUDAD con SearchView mejorado
+                Text(
+                  'Ciudad',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                SearchAnchor(
+                  builder: (BuildContext context, SearchController controller) {
+                    final data = tempCityId != null
+                        ? utf8.decode(base64.decode(tempCityId!)).split(":")
+                        : [];
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: tempCityId != null
+                            ? Colors.purple[50]
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: tempCityId != null
+                              ? Colors.purple[300]!
+                              : Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => controller.openView(),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: tempCityId != null
+                                      ? Colors.purple
+                                      : Colors.grey[600],
+                                  size: 24,
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    data.length == 3
+                                        ? data[2]
+                                        : 'Seleccionar ciudad',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: tempCityId != null
+                                          ? Colors.purple[900]
+                                          : Colors.grey[600],
+                                      fontWeight: tempCityId != null
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (tempCityId != null)
+                                  IconButton(
+                                    icon: Icon(Icons.clear, size: 20),
+                                    color: Colors.purple,
+                                    padding: EdgeInsets.zero,
+                                    constraints: BoxConstraints(),
+                                    onPressed: () {
+                                      setState(() => tempCityId = null);
+                                      controller.clear();
+                                    },
+                                  )
+                                else
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Colors.grey[600],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  suggestionsBuilder:
+                      (
+                        BuildContext context,
+                        SearchController controller,
+                      ) async {
+                        if (controller.text.length < 2) {
+                          return [
+                            Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.grey),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Escribe al menos 2 caracteres',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ];
+                        }
+
+                        try {
+                          final cities = await PostsService.searchCities(
+                            controller.text,
+                          );
+
+                          if (cities.isEmpty) {
+                            return [
+                              Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.search_off, color: Colors.grey),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'No se encontraron ciudades',
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ];
+                          }
+
+                          return cities.map((city) {
+                            return ListTile(
+                              leading: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.location_city,
+                                  color: Colors.purple,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                city.ciudad,
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text('${city.estado}, ${city.pais}'),
+                              onTap: () {
+                                setState(() {
+                                  tempCityId = city.id;
+                                });
+                                controller.closeView(city.ciudad);
+                              },
+                            );
+                          }).toList();
+                        } catch (e) {
+                          return [
+                            Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error, color: Colors.red),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Error al buscar ciudades',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ];
+                        }
+                      },
+                ),
+
                 SizedBox(height: 24),
 
                 // Botones
@@ -814,7 +999,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          widget.onApply(tempTypeId, tempPetTypeId);
+                          widget.onApply(tempTypeId, tempPetTypeId, tempCityId);
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(

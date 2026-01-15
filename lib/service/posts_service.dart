@@ -25,6 +25,20 @@ class PostType {
   });
 }
 
+class City {
+  final String id;
+  final String ciudad;
+  final String estado;
+  final String pais;
+
+  City({
+    required this.id,
+    required this.ciudad,
+    required this.estado,
+    required this.pais,
+  });
+}
+
 class PostUser {
   final String id;
   final String username;
@@ -105,6 +119,7 @@ class PostsService {
     String? userId,
     double? lat,
     double? lng,
+    String? cityId,
   }) async {
     final Map<String, String> queryParams = {};
     if (postType != null) queryParams['posteo_tipo'] = postType;
@@ -112,6 +127,7 @@ class PostsService {
     if (userId != null) queryParams['usuario'] = userId;
     if (lat != null) queryParams['lat'] = lat.toString();
     if (lng != null) queryParams['lng'] = lng.toString();
+    if (cityId != null) queryParams['ciudad_id'] = cityId.toString();
 
     final uri = Uri.parse(
       '${Config.baseUrl}/api/posteos/',
@@ -322,5 +338,27 @@ class PostsService {
         (json['reacciones'] ?? []).map((json) => json.toString()),
       ),
     );
+  }
+
+  static Future<List<City>> searchCities(String query) async {
+    final response = await AuthService.getWithToken(
+      '/api/ciudades/?q=${Uri.encodeComponent(query)}&take=20',
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List results = data['results'];
+      return results
+          .map(
+            (json) => City(
+              id: json['id'],
+              ciudad: json['ciudad'],
+              estado: json['estado'],
+              pais: json['pais'],
+            ),
+          )
+          .toList();
+    }
+    throw Exception('Error al buscar ciudades');
   }
 }
