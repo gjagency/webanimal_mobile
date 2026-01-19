@@ -1,4 +1,6 @@
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/pages/account/veterinaria_create.dart';
+import 'package:mobile_app/pages/account/veterinaria_modify.dart';
 import 'package:mobile_app/pages/auth/PageEditProfile.dart';
 
 import 'package:mobile_app/service/auth_service.dart';
@@ -89,6 +91,17 @@ final router = GoRouter(
       path: '/account/notifications',
       builder: (context, state) => const PageAccountNotifications(),
     ),
+    GoRoute(
+      path: '/account/mis_veterinarias/create',
+      builder: (context, state) => const MiVeterinariaCreate(),
+    ),
+    GoRoute(
+      path: '/account/mis_veterinarias/edit/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return MiVeterinariaModify(id: id);
+      },
+    ),
 
     /* =========================
        PROFILES
@@ -114,9 +127,8 @@ final router = GoRouter(
         final id = state.pathParameters['id']!;
         return PagePostView(postId: id);
       },
-      
     ),
-        GoRoute(
+    GoRoute(
       path: '/api/auth/profile',
       builder: (context, state) => const PageEditProfile(),
     ),
@@ -146,7 +158,6 @@ final router = GoRouter(
     if (token != null && isAuthRoute && !isReset) {
       return '/';
     }
-    
 
     return null;
   },

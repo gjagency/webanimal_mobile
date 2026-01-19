@@ -120,9 +120,7 @@ class AuthService {
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/api/auth/google/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id_token': googleAuth.idToken,
-        }),
+        body: jsonEncode({'id_token': googleAuth.idToken}),
       );
       debugPrint('ID TOKEN: ${googleAuth.idToken}');
       debugPrint(
@@ -219,72 +217,106 @@ class AuthService {
     );
   }
 
+  static Future<http.Response> putWithToken(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = await getAccessToken();
+
+    return http.put(
+      Uri.parse('${Config.baseUrl}$path'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+  }
+
+  static Future<http.Response> deleteWithToken(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = await getAccessToken();
+
+    return http.delete(
+      Uri.parse('${Config.baseUrl}$path'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+  }
+
   /* ==========================================================
      GET PROFILE
      ========================================================== */
   static Future<Map<String, dynamic>> getProfile() async {
     try {
-
       final response = await getWithToken('/api/auth/profile/');
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         debugPrint(
-            'Error al obtener perfil: ${response.statusCode} ${response.body}');
+          'Error al obtener perfil: ${response.statusCode} ${response.body}',
+        );
         return {};
       }
     } catch (e) {
       debugPrint('Excepción en getProfile: $e');
       return {};
     }
-  }static Future<bool> updateProfile({
-  required String name,
-  required String lastName,
-  required String email,
-  required String bio,
-  File? avatar,
-}) async {
-  try {
-    final token = await getAccessToken();
+  }
 
-    final uri = Uri.parse('${Config.baseUrl}/api/auth/profile/');
-    final request = http.MultipartRequest('POST', uri);
+  static Future<bool> updateProfile({
+    required String name,
+    required String lastName,
+    required String email,
+    required String bio,
+    File? avatar,
+  }) async {
+    try {
+      final token = await getAccessToken();
 
-    request.headers['Authorization'] = 'Bearer $token';
+      final uri = Uri.parse('${Config.baseUrl}/api/auth/profile/');
+      final request = http.MultipartRequest('POST', uri);
 
-    request.fields['name'] = name;
-    request.fields['last_name'] = lastName;
-    request.fields['email'] = email;
-    request.fields['bio'] = bio;
+      request.headers['Authorization'] = 'Bearer $token';
 
-    if (avatar != null) {
-      request.files.add(
-        await http.MultipartFile.fromPath('avatar', avatar.path),
-      );
+      request.fields['name'] = name;
+      request.fields['last_name'] = lastName;
+      request.fields['email'] = email;
+      request.fields['bio'] = bio;
+
+      if (avatar != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('avatar', avatar.path),
+        );
+      }
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      debugPrint('Update profile response: ${response.statusCode}');
+      debugPrint(responseBody);
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error updateProfile: $e');
+      return false;
     }
+  }
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
-
-    debugPrint('Update profile response: ${response.statusCode}');
-    debugPrint(responseBody);
+  static Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await postWithToken('/api/auth/change-password/', {
+      'old_password': currentPassword,
+      'new_password': newPassword,
+    });
 
     return response.statusCode == 200;
-  } catch (e) {
-    debugPrint('Error updateProfile: $e');
-    return false;
   }
-}
-static Future<bool> changePassword({
-  required String currentPassword,
-  required String newPassword,
-}) async {
-  final response = await postWithToken('/api/auth/change-password/', {
-    'old_password': currentPassword,
-    'new_password': newPassword,
-  });
-
-  return response.statusCode == 200;
-}
-
 }

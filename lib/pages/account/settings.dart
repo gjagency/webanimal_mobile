@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/service/mis_veterinarias_service.dart';
 
 class PageAccountSettings extends StatefulWidget {
   const PageAccountSettings({super.key});
@@ -24,10 +25,14 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
   int postsCount = 0;
   bool loadingProfile = true;
 
+  List<MiVeterinaria> veterinarias = [];
+  bool loadingVets = true;
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadVeterinarias();
   }
 
   /// Cargar perfil desde AuthService
@@ -35,7 +40,8 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     try {
       final token = await AuthService.getAccessToken();
       print('MI TOKEN: $token'); // 👈 Aquí ves si se guardó correctamente
-      final profile = await AuthService.getProfile(); // 🟢 Método que trae usuario
+      final profile =
+          await AuthService.getProfile(); // 🟢 Método que trae usuario
       setState(() {
         final firstName = profile['first_name'] ?? '';
         final lastNameApi = profile['last_name'] ?? '';
@@ -49,17 +55,28 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
         email = profile['email'] ?? '';
         postsCount = profile['posts_count'] ?? 0;
 
-        avatarUrl = profile['avatar'] ??
-            'https://i.pravatar.cc/150?img=10';
+        avatarUrl = profile['avatar'] ?? 'https://i.pravatar.cc/150?img=10';
 
         loadingProfile = false;
       });
-
     } catch (e) {
       debugPrint('Error cargando perfil: $e');
       setState(() {
         loadingProfile = false;
       });
+    }
+  }
+
+  Future<void> _loadVeterinarias() async {
+    try {
+      final data = await MisVeterinariasService.getAll();
+      setState(() {
+        veterinarias = data;
+        loadingVets = false;
+      });
+    } catch (e) {
+      debugPrint('Error cargando veterinarias: $e');
+      setState(() => loadingVets = false);
     }
   }
 
@@ -99,14 +116,13 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        
+
         leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.black),
-        onPressed: () {
-          context.go('/home');
-        },
-      ),
-       
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            context.go('/home');
+          },
+        ),
       ),
       body: loadingProfile
           ? Center(child: CircularProgressIndicator())
@@ -131,7 +147,109 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                       _showChangePasswordModal();
                     },
                   ),
+                ]),
+                SizedBox(height: 16),
+                _buildSection('Veterinarias', [
+                  if (loadingVets)
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else ...[
+                    // Listar veterinarias existentes
+                    ...veterinarias.map(
+                      (vet) => InkWell(
+                        onTap: () async {
+                          await context.push(
+                            '/account/mis_veterinarias/edit/${vet.id}',
+                          );
+                          _loadVeterinarias();
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      (vet.verified
+                                              ? Colors.blue
+                                              : Colors.purple)
+                                          .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.local_hospital,
+                                  color: vet.verified
+                                      ? Colors.blue
+                                      : Colors.purple,
+                                  size: 22,
+                                ),
+                              ),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            vet.name,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        if (vet.verified) ...[
+                                          SizedBox(width: 6),
+                                          Icon(
+                                            Icons.verified,
+                                            color: Colors.blue,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      '${vet.location.city}, ${vet.location.state}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey[400],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
 
+                    // Botón agregar
+                    _buildSettingItem(
+                      icon: Icons.add,
+                      title: 'Agregar Veterinaria',
+                      iconColor: Colors.green,
+                      onTap: () async {
+                        await context.push('/account/mis_veterinarias/create');
+                        _loadVeterinarias();
+                      },
+                    ),
+                  ],
                 ]),
                 SizedBox(height: 16),
                 _buildSection('Ayuda y soporte', [
@@ -170,7 +288,8 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                         builder: (context) => AlertDialog(
                           title: Text('Cerrar sesión'),
                           content: Text(
-                              '¿Estás seguro que deseas cerrar sesión?'),
+                            '¿Estás seguro que deseas cerrar sesión?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
@@ -218,7 +337,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: Colors.purple.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -253,7 +372,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 Text(
                   email,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -261,11 +380,10 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                 Text(
                   '$postsCount publicaciones',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 12,
                   ),
                 ),
-
               ],
             ),
           ),
@@ -322,7 +440,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
             Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (iconColor ?? Colors.purple).withOpacity(0.1),
+                color: (iconColor ?? Colors.purple).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor ?? Colors.purple, size: 22),
@@ -371,7 +489,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           Container(
             padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.1),
+              color: Colors.purple.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.purple, size: 22),
@@ -404,115 +522,114 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
       ),
     );
   }
-void _showChangePasswordModal() {
-  final currentController = TextEditingController();
-  final newController = TextEditingController();
-  final confirmController = TextEditingController();
-showModalBottomSheet(
-  context: context,
-  isScrollControlled: true,
-  backgroundColor: Colors.white,
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  ),
-  builder: (context) {
-    // altura de la mitad de la pantalla
-    final height = MediaQuery.of(context).size.height * 0.5;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom, // mueve el modal con el teclado
+  void _showChangePasswordModal() {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Container(
-        height: height,
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              Text(
-                'Cambiar contraseña',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
+      builder: (context) {
+        // altura de la mitad de la pantalla
+        final height = MediaQuery.of(context).size.height * 0.5;
 
-              _passwordField('Contraseña actual', currentController),
-              SizedBox(height: 12),
-              _passwordField('Nueva contraseña', newController),
-              SizedBox(height: 12),
-              _passwordField('Confirmar contraseña', confirmController),
-              SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (newController.text != confirmController.text) {
-                      _showError('Las contraseñas no coinciden');
-                      return;
-                    }
-
-                    final success = await AuthService.changePassword(
-                      currentPassword: currentController.text,
-                      newPassword: newController.text,
-                    );
-
-                    if (success) {
-                      Navigator.pop(context);
-                      _showSuccess('Contraseña actualizada');
-                    } else {
-                      _showError('No se pudo cambiar la contraseña');
-                    }
-                  },
-                  child: Text('Guardar cambios'),
-                ),
-              ),
-            ],
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(
+              context,
+            ).viewInsets.bottom, // mueve el modal con el teclado
           ),
-        ),
+          child: Container(
+            height: height,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Cambiar contraseña',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 20),
+
+                  _passwordField('Contraseña actual', currentController),
+                  SizedBox(height: 12),
+                  _passwordField('Nueva contraseña', newController),
+                  SizedBox(height: 12),
+                  _passwordField('Confirmar contraseña', confirmController),
+                  SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (newController.text != confirmController.text) {
+                          _showError('Las contraseñas no coinciden');
+                          return;
+                        }
+
+                        final success = await AuthService.changePassword(
+                          currentPassword: currentController.text,
+                          newPassword: newController.text,
+                        );
+
+                        if (success) {
+                          Navigator.pop(context);
+                          _showSuccess('Contraseña actualizada');
+                        } else {
+                          _showError('No se pudo cambiar la contraseña');
+                        }
+                      },
+                      child: Text('Guardar cambios'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _passwordField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      obscureText: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  },
-);
+  }
 
-}
-Widget _passwordField(String label, TextEditingController controller) {
-  return TextField(
-    controller: controller,
-    obscureText: true,
-    decoration: InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-  );
-}
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
 
-void _showError(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message), backgroundColor: Colors.red),
-  );
-}
-
-void _showSuccess(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message), backgroundColor: Colors.green),
-  );
-}
-
-
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
 
   void _showDeleteAccountDialog() {
     showDialog(
@@ -537,69 +654,18 @@ void _showSuccess(String message) {
       ),
     );
   }
-  void _showHelpCenter() {
-  showModalBottomSheet(
-    context: context,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            Text(
-              'Centro de ayuda',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            _helpItem('Contacto', 'webanimalok@gmail.com.com'),
-            SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
-  );
-}
 
-Widget _helpItem(String title, String subtitle) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
-        SizedBox(height: 4),
-        Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-      ],
-    ),
-  );
-}
-void _showPrivacyPolicy() {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: SingleChildScrollView(
+  void _showHelpCenter() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
@@ -614,22 +680,76 @@ void _showPrivacyPolicy() {
                 ),
               ),
               Text(
-                'Política de privacidad',
+                'Centro de ayuda',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
-              Text(
-                _privacyText,
-                style: TextStyle(fontSize: 14, height: 1.5),
-              ),
+              _helpItem('Contacto', 'webanimalok@gmail.com.com'),
+              SizedBox(height: 20),
             ],
           ),
-        ),
-      );
-    },
-  );
-}
-static const String _privacyText = '''
+        );
+      },
+    );
+  }
+
+  Widget _helpItem(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+          SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Política de privacidad',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text(_privacyText, style: TextStyle(fontSize: 14, height: 1.5)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static const String _privacyText = '''
 🔐 POLÍTICA DE PRIVACIDAD
 1. Introducción
 
@@ -709,50 +829,46 @@ Para cualquier consulta relacionada con esta Política de Privacidad, podés esc
 📧 webanimalok@gmail.com
 ''';
 
-
-void _showTermsAndConditions() {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(4),
+  void _showTermsAndConditions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                'Términos y condiciones',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
-              Text(
-                _termsText,
-                style: TextStyle(fontSize: 14, height: 1.5),
-              ),
-            ],
+                Text(
+                  'Términos y condiciones',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text(_termsText, style: TextStyle(fontSize: 14, height: 1.5)),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-static const String _termsText = '''
+  static const String _termsText = '''
 1. Aceptación de los términos
 
 Al registrarte o utilizar esta aplicación, aceptás estos Términos y Condiciones.
@@ -813,5 +929,4 @@ Para cualquier consulta relacionada con estos términos, podés contactarnos en:
 
 📧 webanimalok@gmail.com
 ''';
-
 }
