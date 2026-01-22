@@ -149,45 +149,33 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                   ),
                 ]),
                 SizedBox(height: 16),
-                _buildSection('Veterinarias', [
+              _buildSection(
+                AuthService.esVeterinaria ? 'Veterinaria' : '',
+                [
                   if (loadingVets)
                     Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(child: CircularProgressIndicator()),
                     )
                   else ...[
-                    // Listar veterinarias existentes
                     ...veterinarias.map(
                       (vet) => InkWell(
-                        onTap: () async {
-                          await context.push(
-                            '/account/mis_veterinarias/edit/${vet.id}',
-                          );
-                          _loadVeterinarias();
-                        },
+                        onTap: () async {},
                         borderRadius: BorderRadius.circular(16),
                         child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           child: Row(
                             children: [
                               Container(
                                 padding: EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color:
-                                      (vet.verified
-                                              ? Colors.blue
-                                              : Colors.purple)
-                                          .withValues(alpha: 0.1),
+                                  color: (vet.verified ? Colors.blue : Colors.purple)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
                                   Icons.local_hospital,
-                                  color: vet.verified
-                                      ? Colors.blue
-                                      : Colors.purple,
+                                  color: vet.verified ? Colors.blue : Colors.purple,
                                   size: 22,
                                 ),
                               ),
@@ -217,14 +205,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                                         ],
                                       ],
                                     ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      '${vet.location.city}, ${vet.location.state}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -238,19 +218,11 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                         ),
                       ),
                     ),
-
-                    // Botón agregar
-                    _buildSettingItem(
-                      icon: Icons.add,
-                      title: 'Agregar Veterinaria',
-                      iconColor: Colors.green,
-                      onTap: () async {
-                        await context.push('/account/mis_veterinarias/create');
-                        _loadVeterinarias();
-                      },
-                    ),
                   ],
-                ]),
+                ],
+              ),
+
+
                 SizedBox(height: 16),
                 _buildSection('Ayuda y soporte', [
                   _buildSettingItem(

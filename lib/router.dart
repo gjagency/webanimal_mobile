@@ -26,6 +26,7 @@ import 'package:mobile_app/pages/posts/view.dart';
 
 // PROFILES
 import 'package:mobile_app/pages/profiles/public.dart';
+import 'package:mobile_app/service/page_auth_register_vet.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
@@ -101,6 +102,10 @@ final router = GoRouter(
         final id = state.pathParameters['id']!;
         return MiVeterinariaModify(id: id);
       },
+    ),
+    GoRoute(
+      path: '/auth/register-vet',
+      builder: (context, state) => const PageAuthRegisterVet(),
     ),
 
     /* =========================

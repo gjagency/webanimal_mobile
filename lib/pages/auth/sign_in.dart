@@ -84,108 +84,125 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.pets, size: 80, color: Colors.purple),
-              const SizedBox(height: 16),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.grey[50],
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.pets, size: 80, color: Colors.purple),
+            const SizedBox(height: 16),
 
-              const Text(
-                'Iniciar sesión',
+            const Text(
+              'Iniciar sesión',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple,
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Usuario
+            TextField(
+              controller: _usernameController,
+              decoration: const InputDecoration(
+                labelText: 'Usuario o Email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Password
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Contraseña',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // 🔹 Recuperar contraseña
+            TextButton(
+              onPressed: () => GoRouter.of(context).go('/auth/recover'),
+              child: const Text(
+                '¿Olvidaste tu contraseña?',
+                style: TextStyle(color: Colors.purple),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Botón login
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                ),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Divider
+            Row(
+              children: const [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('o'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Botón Google
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.g_mobiledata, size: 32),
+                label: const Text('Ingresar con Google'),
+                onPressed: _loading ? null : _loginWithGoogle,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 🔹 Registrar veterinaria
+            TextButton(
+              onPressed: () => GoRouter.of(context).go('/auth/register-vet'),
+              child: const Text(
+                'Registrar Veterinaria',
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
                   color: Colors.purple,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
-
-              const SizedBox(height: 32),
-
-              // Usuario
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Usuario o Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Password
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // 🔹 Recuperar contraseña
-              TextButton(
-                onPressed: () => GoRouter.of(context).go('/auth/recover'),
-                child: const Text(
-                  '¿Olvidaste tu contraseña?',
-                  style: TextStyle(color: Colors.purple),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Botón login
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                  ),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Ingresar', style: TextStyle(fontSize: 16)),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Divider
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('o'),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Botón Google
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.g_mobiledata, size: 32),
-                  label: const Text('Ingresar con Google'),
-                  onPressed: _loading ? null : _loginWithGoogle,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

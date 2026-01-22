@@ -1,23 +1,36 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_app/config.dart';
+import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
 class PageHome extends StatefulWidget {
   const PageHome({super.key});
 
   @override
+  
   State<PageHome> createState() => _PageHomeState();
 }
 
 class _PageHomeState extends State<PageHome> {
+  bool get hayVeterinarias {
+  return _posts.any((p) => p.user.esVeterinaria == true);
+}
   String? selectedTypeId;
   String? selectedPetTypeId;
   String? selectedCityId;
   Position? _currentPosition;
   DateTimeRange? selectedDateRange;
+  bool? esVeterinariaLogueada;
+  List<Promocion> _promociones = [];
 
   List<Post> _posts = [];
   List<PostType> _postTypes = [];
@@ -28,8 +41,18 @@ class _PageHomeState extends State<PageHome> {
   @override
   void initState() {
     super.initState();
+    _init();
     _getCurrentLocation();
+    
   }
+Future<void> _init() async {
+  await AuthService.loadCurrentUser(); 
+  final esVet = AuthService.esVeterinaria;
+
+  setState(() {
+    esVeterinariaLogueada = esVet;
+  });
+}
 
   Future<void> _getCurrentLocation() async {
     try {
@@ -59,110 +82,525 @@ class _PageHomeState extends State<PageHome> {
       await _loadData();
     }
   }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final results = await Future.wait([
-        PostsService.getPosts(
-          postType: selectedTypeId,
-          petType: selectedPetTypeId,
-          cityId: selectedCityId,
+bool _isDialOpen = false;
+Widget _buildSpeedDial() {
+  return Stack(
+    alignment: Alignment.bottomRight,
+    children: [
+      // Fondo semitransparente cuando el menú está abierto
+      if (_isDialOpen)
+        GestureDetector(
+          onTap: () => setState(() => _isDialOpen = false),
+          child: Container(
+            color: Colors.black54,
+            width: double.infinity,
+            height: double.infinity,
+          ),
         ),
-        PostsService.getPostTypes(),
-        PostsService.getPetTypes(),
-      ]);
 
-      setState(() {
-        _posts = results[0] as List<Post>;
-        _postTypes = results[1] as List<PostType>;
-        _petTypes = results[2] as List<PetType>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
+      // Botones secundarios + principal
+      Positioned(
+        bottom: 16,
+        right: 16,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end, // 🔹 todos pegados a la derecha
+          children: [
+            // Crear Promoción
+            if (AuthService.currentUser?['es_veterinaria'] == true) ...[
+              AnimatedOpacity(
+                opacity: _isDialOpen ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: _fabButton(
+                  icon: Icons.local_offer_rounded,
+                  label: 'Crear Promoción',
+                  onTap: () {
+                    setState(() => _isDialOpen = false);
+                    _mostrarCrearPromocionDialog();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
 
-  List<Post> get filteredPosts {
-    return _posts.toList();
-  }
+            if (_isDialOpen) const SizedBox(height: 16),
 
-  void _clearFilters() {
-    setState(() {
-      selectedTypeId = null;
-      selectedPetTypeId = null;
-      selectedDateRange = null;
-      selectedCityId = null;
-    });
-    _loadData();
-  }
+            // Crear Post
+            AnimatedOpacity(
+              opacity: _isDialOpen ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: _fabButton(
+                icon: Icons.add,
+                label: 'Crear Post',
+                onTap: () {
+                  setState(() => _isDialOpen = false);
+                  GoRouter.of(context).push('/posts/create');
+                },
+              ),
+            ),
+            if (_isDialOpen) const SizedBox(height: 16),
 
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(
-        selectedTypeId: selectedTypeId,
-        selectedPetTypeId: selectedPetTypeId,
-        postTypes: _postTypes,
-        petTypes: _petTypes,
-        selectedCityId: selectedCityId,
-        hasLocation: _currentPosition != null,
-        onApply: (typeId, petTypeId, citiId) {
-          setState(() {
-            selectedTypeId = typeId;
-            selectedPetTypeId = petTypeId;
-            selectedCityId = citiId;
-          });
-          _loadData();
-        },
+            // Botón principal
+            _fabButton(
+              icon: _isDialOpen ? Icons.close : Icons.add,
+              onTap: () => setState(() => _isDialOpen = !_isDialOpen),
+              isMain: true,
+            ),
+          ],
+        ),
       ),
-    );
+    ],
+  );
+}
+
+// Función helper para los FABs
+Widget _fabButton({
+  required IconData icon,
+  required VoidCallback onTap,
+  String? label,
+  bool isMain = false,
+}) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.end, // 🔹 etiqueta también a la derecha
+    children: [
+      if (label != null)
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: isMain
+                ? [Colors.purple, Colors.pink]
+                : [Colors.purple.shade200, Colors.pink.shade200],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.purple.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(30),
+            child: Center(
+              child: Icon(icon, size: 28, color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+Future<void> _loadData() async {
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
+
+  try {
+    // 🔹 PROMOCIONES / OFERTAS
+        if (selectedTypeId == 'promociones') {
+          try {
+            List<dynamic> data;
+
+            if (AuthService.currentUser?['es_veterinaria'] == true) {
+              // 🔹 Veterinaria → Mis Promociones
+              data = await AuthService.getMisPromociones();
+            } else {
+              // 🔹 No veterinaria → Todas las ofertas
+              data = await AuthService.getOfertasPromociones();
+            }
+
+            final promos = data.map((e) => Promocion.fromJson(e)).toList();
+
+            setState(() {
+              _promociones = promos;
+              _posts = [];       // limpiamos posts normales
+              _isLoading = false;
+            });
+          } catch (e) {
+            setState(() {
+              _error = 'Error al cargar promociones: $e';
+              _promociones = [];
+              _posts = [];
+              _isLoading = false;
+            });
+          }
+
+          return; // importante para no continuar con PostsService.getPosts
+        }
+
+
+    // 🔵 POSTS NORMALES
+    final results = await Future.wait([
+      PostsService.getPosts(
+        postType: selectedTypeId,
+        petType: selectedPetTypeId,
+        cityId: selectedCityId,
+        lat: _currentPosition?.latitude,
+        lng: _currentPosition?.longitude,
+      ),
+      PostsService.getPostTypes(),
+      PostsService.getPetTypes(),
+    ]);
+
+    setState(() {
+      _posts = results[0] as List<Post>;
+      _postTypes = results[1] as List<PostType>;
+      _petTypes = results[2] as List<PetType>;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _error = e.toString();
+      _isLoading = false;
+    });
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final hasFilters =
-        selectedTypeId != null ||
-        selectedPetTypeId != null ||
-        selectedCityId != null ||
-        selectedDateRange != null;
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
+/// 🔹 POPUP PARA CREAR PROMOCIÓN
+void _mostrarCrearPromocionDialog() {
+  showDialog(
+    context: context,
+    builder: (context) {
+      final _formKey = GlobalKey<FormState>();
+      String? _titulo;
+      String? _descripcion;
+      String? _precio;
+      DateTime? _fechaDesde;
+      DateTime? _fechaHasta;
+      File? _imagen;
+      final ImagePicker _picker = ImagePicker();
+
+      Future<void> _pickImage(void Function(void Function()) setState) async {
+        final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+        if (picked != null) {
+          setState(() {
+            _imagen = File(picked.path);
+          });
+        }
+      }
+
+      Future<void> _pickDate({required bool desde, required void Function(void Function()) setState}) async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+          setState(() {
+            if (desde) {
+              _fechaDesde = picked;
+            } else {
+              _fechaHasta = picked;
+            }
+          });
+        }
+      }
+
+      // 🔹 StatefulBuilder para que el dialog tenga su propio estado
+      return StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Crear Promoción',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Título
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Ingrese un título' : null,
+                    onSaved: (value) => _titulo = value,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Descripción
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Ingrese una descripción' : null,
+                    onSaved: (value) => _descripcion = value,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Precio
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Precio',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => _precio = value,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Fechas
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _pickDate(desde: true, setState: setState),
+                          child: Text(
+                            _fechaDesde != null
+                                ? 'Desde: ${DateFormat('dd/MM/yyyy').format(_fechaDesde!)}'
+                                : 'Seleccionar fecha desde',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _pickDate(desde: false, setState: setState),
+                          child: Text(
+                            _fechaHasta != null
+                                ? 'Hasta: ${DateFormat('dd/MM/yyyy').format(_fechaHasta!)}'
+                                : 'Seleccionar fecha hasta',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Imagen seleccionada
+                  _imagen != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(_imagen!, height: 120, fit: BoxFit.cover),
+                        )
+                      : const SizedBox(height: 120),
+
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _pickImage(setState),
+                    icon: const Icon(Icons.image),
+                    label: const Text('Seleccionar Imagen'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (!_formKey.currentState!.validate()) return;
+                _formKey.currentState!.save();
+
+                bool success = await PromocionesService.crearPromocion(
+                  titulo: _titulo!,
+                  descripcion: _descripcion!,
+                  precio: _precio,
+                  fechaDesde: _fechaDesde,
+                  fechaHasta: _fechaHasta,
+                  imagen: _imagen,
+                );
+
+                String mensaje = success
+                    ? 'Promoción creada'
+                    : 'Excediste el límite de promociones, para aumentarlo comunicate al WhatsApp';
+
+                // 🔹 Mostrar popup de resultado
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Text(success ? 'Éxito' : 'Error'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(mensaje),
+                        if (!success) ...[
+                          const SizedBox(height: 16),
+                          IconButton(
+                            icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 32),
+                            onPressed: () async {
+                              final Uri whatsappUrl = Uri.parse(
+                                  "https://wa.me/5492920601338?text=Hola%20WebAnimal%20quiero%20aumentar%20el%20límite%20de%20promociones");
+                              try {
+                                await launchUrl(
+                                  whatsappUrl,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+                                );
+                              }
+                            },
+                          ),
+                        ]
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // cerrar popup
+                          if (success) {
+                            Navigator.pop(context); // cerrar dialog principal
+                            _loadData(); // recargar lista de promociones
+                          }
+                        },
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+
+
+
+          List<Post> get filteredPosts {
+            return _posts.toList();
+          }
+
+          void _clearFilters() {
+            setState(() {
+              selectedTypeId = null;
+              selectedPetTypeId = null;
+              selectedDateRange = null;
+              selectedCityId = null;
+            });
+            _loadData();
+          }
+
+          void _showFilterBottomSheet() {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => FilterBottomSheet(
+                selectedTypeId: selectedTypeId,
+                selectedPetTypeId: selectedPetTypeId,
+                postTypes: _postTypes,
+                petTypes: _petTypes,
+                selectedCityId: selectedCityId,
+                hasLocation: _currentPosition != null,
+                onApply: (typeId, petTypeId, citiId) {
+                  setState(() {
+                    selectedTypeId = typeId;
+                    selectedPetTypeId = petTypeId;
+                    selectedCityId = citiId;
+                  });
+                  _loadData();
+                },
+              ),
+            );
+          }
+        Map<String, dynamic>? currentUser;
+        bool _loadingUser = true;
+          @override
+          Widget build(BuildContext context) {
+
+            final hasFilters =
+                selectedTypeId != null ||
+                selectedPetTypeId != null ||
+                selectedCityId != null ||
+                selectedDateRange != null;
+
+            return Scaffold(
+              backgroundColor: Colors.grey[50],
+              appBar: AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+              title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.pets, color: Colors.white, size: 20),
+              child: const Icon(Icons.pets, color: Colors.white, size: 20),
             ),
-            SizedBox(width: 12),
-            Text(
+            const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
               'WebAnimal',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
-                fontSize: 24,
+                fontSize: 22,
               ),
             ),
+          if (AuthService.currentUser != null)
+          Text(
+            'Hola ${AuthService.displayName}',
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+
+
           ],
         ),
+
+          ],
+        ),
+
         actions: [
           IconButton(
             icon: Icon(Icons.notifications_outlined, color: Colors.black),
@@ -188,7 +626,8 @@ class _PageHomeState extends State<PageHome> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: [
+                     children: [
+              
                         _buildQuickFilter(
                           'Todos',
                           Icons.grid_view_rounded,
@@ -198,24 +637,46 @@ class _PageHomeState extends State<PageHome> {
                             _loadData();
                           },
                         ),
-                        SizedBox(width: 8),
-                        ..._postTypes
-                            .take(3)
-                            .map(
-                              (type) => Padding(
-                                padding: EdgeInsets.only(right: 8),
-                                child: _buildQuickFilter(
-                                  type.name,
-                                  _getIconForType(type.name),
-                                  selectedTypeId == type.id,
-                                  () {
-                                    setState(() => selectedTypeId = type.id);
-                                    _loadData();
-                                  },
-                                ),
-                              ),
+                      if (AuthService.currentUser?['es_veterinaria'] == true) ...[
+                          _buildQuickFilter(
+                            'Mis Promociones',
+                            Icons.local_offer_rounded,
+                            selectedTypeId == 'promociones',
+                            () {
+                              setState(() => selectedTypeId = 'promociones');
+                              _loadData();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ] else ...[
+                          _buildQuickFilter(
+                            'Ofertas',
+                            Icons.local_fire_department,
+                            selectedTypeId == 'promociones',
+                            () {
+                              setState(() => selectedTypeId = 'promociones'); // <- aquí
+                              _loadData();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        // Los primeros 3 tipos de post
+                        ..._postTypes.take(3).map(
+                          (type) => Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: _buildQuickFilter(
+                              type.name,
+                              _getIconForType(type.name),
+                              selectedTypeId == type.id,
+                              () {
+                                setState(() => selectedTypeId = type.id);
+                                _loadData();
+                              },
                             ),
+                          ),
+                        ),
                       ],
+
                     ),
                   ),
                 ),
@@ -230,18 +691,43 @@ class _PageHomeState extends State<PageHome> {
                       ),
                     ),
                     if (hasFilters)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
+                     // Botón secundario: Crear Post
+Positioned(
+  bottom: 90, // separa los botones
+  right: 16,
+  child: Container(
+    width: 60,
+    height: 60,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: LinearGradient(
+        colors: [Colors.purple, Colors.pink],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.purple.withOpacity(0.4),
+          blurRadius: 12,
+          offset: Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          GoRouter.of(context).push('/posts/create'); // 🔹 acá abrís crear post
+        },
+        borderRadius: BorderRadius.circular(30),
+        child: const Center(
+          child: Icon(Icons.add_circle_outline, size: 28, color: Colors.white),
+        ),
+      ),
+    ),
+  ),
+),
+
                   ],
                 ),
               ],
@@ -290,81 +776,101 @@ class _PageHomeState extends State<PageHome> {
             ),
 
           // Posts feed
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        SizedBox(height: 16),
-                        Text('Error: $_error'),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadData,
-                          child: Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : filteredPosts.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No se encontraron posts',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadData,
-                    child: ListView.builder(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      itemCount: filteredPosts.length,
-                      itemBuilder: (context, index) {
-                        return ModernPostCard(post: filteredPosts[index]);
-                      },
-                    ),
+Expanded(
+  child: _isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : _error != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: $_error'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Reintentar'),
                   ),
-          ),
+                ],
+              ),
+            )
+
+          // 🔥 PROMOCIONES
+          : selectedTypeId == 'promociones'
+              ? _promociones.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.local_offer_outlined,
+                              size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'No tenés promociones activas',
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                   : RefreshIndicator(
+                      onRefresh: _loadData,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          top: 16,
+                          bottom: 80,
+                        ),
+                        itemCount: _promociones.length,
+                        itemBuilder: (context, index) {
+                          final promo = _promociones[index];
+                          return _PromocionCard(
+                            promocion: promo,
+                            onCrearPromocion: _mostrarCrearPromocionDialog, // <-- así abrís el popup desde cada card
+                          );
+                        },
+                      ),
+                      )
+
+          // 🔵 POSTS NORMALES
+          : filteredPosts.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No se encontraron posts',
+                        style:
+                            TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 16,
+                            bottom: 80, // ✅ deja espacio al final para que no choque con la barra del teléfono
+                          ),
+                    itemCount: filteredPosts.length,
+                    itemBuilder: (context, index) {
+                      return ModernPostCard(post: filteredPosts[index]);
+                    },
+                  ),
+                ),
+),
+
         ],
       ),
-      floatingActionButton: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Colors.purple, Colors.pink],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.purple.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => GoRouter.of(context).push('/posts/create'),
-            borderRadius: BorderRadius.circular(30),
-            child: Center(
-              child: Icon(Icons.add, size: 28, color: Colors.white),
-            ),
-          ),
-        ),
-      ),
+      
+floatingActionButton: _buildSpeedDial(),
     );
   }
 
@@ -414,6 +920,7 @@ class _PageHomeState extends State<PageHome> {
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
+            
           ],
         ),
       ),
@@ -461,6 +968,32 @@ class _ModernPostCardState extends State<ModernPostCard> {
       return 'hace ${difference.inMinutes}m';
     }
   }
+void _openImagePopup(BuildContext context, String imageUrl) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.9),
+    builder: (_) {
+      return GestureDetector(
+        onTap: () => Navigator.of(context).pop(), // cerrar al tocar
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 1,
+            maxScale: 4,
+            child: Center(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -477,14 +1010,14 @@ class _ModernPostCardState extends State<ModernPostCard> {
       onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
       onDoubleTap: _toggleLike,
       child: Container(
-        margin: EdgeInsets.only(bottom: 16, left: 16, right: 16),
+      margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
+              color: const Color.fromARGB(255, 229, 12, 12).withValues(alpha: 0.05),
+              blurRadius: 5,
               offset: Offset(0, 4),
             ),
           ],
@@ -494,7 +1027,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(0.5),
               child: Row(
                 children: [
                   Container(
@@ -519,13 +1052,15 @@ class _ModernPostCardState extends State<ModernPostCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.post.user.fullName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+
+                           Text(
+                              widget.post.user.displayName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            
                         Text(
                           "${_getTimeAgo()} - ${widget.post.location.label}",
                           style: TextStyle(
@@ -574,24 +1109,18 @@ class _ModernPostCardState extends State<ModernPostCard> {
             ),
 
             // Imagen
+           // Imagen
             ClipRRect(
-              borderRadius: BorderRadius.circular(0),
+              borderRadius: BorderRadius.zero, // sin bordes
               child: Image.network(
                 widget.post.imageUrl ??
                     "https://via.placeholder.com/400x300?text=Sin+Imagen",
                 width: double.infinity,
-                height: 350,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: double.infinity,
-                    height: 350,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.pets, size: 100, color: Colors.grey),
-                  );
-                },
+                fit: BoxFit.fitWidth,
               ),
             ),
+
+
 
             // Botones de acción
             Padding(
@@ -729,7 +1258,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1008,6 +1537,141 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: Text('Aplicar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+}
+String getFullImageUrl(String? path) {
+  if (path == null || path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  // Usamos tu Config.baseUrl
+  return '${Config.baseUrl}$path';
+}
+class _PromocionCard extends StatelessWidget {
+  final Promocion promocion;
+  final VoidCallback onCrearPromocion; // <-- NUEVO: función que viene del padre
+
+  const _PromocionCard({
+    required this.promocion,
+    required this.onCrearPromocion, // <-- la pasamos al constructor
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [          
+          // 🖼️ IMAGEN
+          if (promocion.imagen != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: Image.network(
+                getFullImageUrl(promocion.imagen),
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) {
+                  return Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                      Icon(Icons.local_offer_rounded, color: Colors.purple),
+                      SizedBox(width: 8),
+                      Text(
+                        'Ofertas - ${promocion.nombreComercio}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple,
+                        ),
+                      ),
+                    ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  promocion.titulo,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  promocion.descripcion,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (promocion.precio != null && promocion.precio!.isNotEmpty)
+                  Text(
+                    'Precio: ${promocion.precio}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    
+                  ),
+                  
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.event, size: 16, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      promocion.fechadesde != null
+                          ? 'Desde ${promocion.fechadesde}'
+                          : 'Sin fecha de inicio',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      promocion.fechahasta != null
+                          ? 'Hasta ${promocion.fechahasta}'
+                          : 'Sin fecha de vencimiento',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
                       ),
                     ),
                   ],

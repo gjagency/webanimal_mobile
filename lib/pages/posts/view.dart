@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 
 class PagePostView extends StatefulWidget {
@@ -21,6 +22,7 @@ class _PagePostViewState extends State<PagePostView> {
   void initState() {
     super.initState();
     _loadPost();
+    
   }
 
   @override
@@ -106,280 +108,224 @@ class _PagePostViewState extends State<PagePostView> {
       fontFamily: 'MaterialIcons',
     );
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home'); // o la ruta que sea tu inicio
-            }
-          },
-        ),
-        title: Text(
-          'Publicación',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                // Header
-                Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: colors),
-                        ),
-                        padding: EdgeInsets.all(2),
-                        child: CircleAvatar(
-                          radius: 22,
-                          backgroundImage: post.user.imageUrl != null
-                              ? NetworkImage(post.user.imageUrl!)
-                              : null,
-                          backgroundColor: Colors.grey[300],
-                          child: post.user.imageUrl == null
-                              ? Icon(Icons.person, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              post.user.username,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            Text(
-                              "${_getTimeAgo(post.datetime)} - ${post.location.label}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: colors),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(icon, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              post.postType.name,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Imagen
-               // Imagen (abrir modal)
-GestureDetector(
-  onTap: () => _openImageModal(context, post.imageUrl),
-  child: Image.network(
-    post.imageUrl ??
-        "https://via.placeholder.com/400x300?text=Sin+Imagen",
-    width: double.infinity,
-    height: 400,
-    fit: BoxFit.cover,
-    errorBuilder: (context, error, stackTrace) {
-      return Container(
-        height: 400,
-        color: Colors.grey[200],
-        child: Icon(Icons.pets, size: 100, color: Colors.grey),
-      );
-    },
+return Scaffold(
+  backgroundColor: Colors.white,
+  resizeToAvoidBottomInset: true,
+  appBar: AppBar(
+    backgroundColor: Colors.white,
+    elevation: 0,
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back, color: Colors.black),
+      onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+    ),
+    title: Text(
+      'Publicación',
+      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+    ),
   ),
+  body: _isLoading
+      ? Center(child: CircularProgressIndicator())
+      : ListView(
+          padding: EdgeInsets.only(bottom: 6),
+          children: [
+            // Header
+            Padding(
+              padding: EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: colors),
+                    ),
+                    padding: EdgeInsets.all(2),
+                    child: CircleAvatar(
+  radius: 22,
+  backgroundImage: AuthService.avatarUrl != null
+      ? NetworkImage(AuthService.avatarUrl!)
+      : null,
+  backgroundColor: Colors.grey[300],
+  child: AuthService.avatarUrl == null
+      ? Icon(Icons.person, color: Colors.white)
+      : null,
 ),
 
-
-                // Acciones
-                Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _toggleLike,
-                        child: Row(
-                          children: [
-                            post.reacciones.isNotEmpty
-                                ? Icon(
-                                    Icons.favorite,
-                                    size: 28,
-                                    color: Colors.red,
-                                  )
-                                : Icon(Icons.favorite_border, size: 28),
-                            SizedBox(width: 4),
-                            Text(
-                              '${post.likes}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                      Row(
-                        children: [
-                          Icon(Icons.chat_bubble_outline, size: 28),
-                          SizedBox(width: 4),
-                          Text(
-                            '${post.comments}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
-                ),
-
-                // Descripción
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextSpan(
-                          text: post.user.username,
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        Text(
+                          post.user.displayName,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                         ),
-                        TextSpan(text: ' ${post.description}'),
+                        Text(
+                          "${_getTimeAgo(post.datetime)} - ${post.location.label}",
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
-                ),
-
-                Divider(height: 32, thickness: 8, color: Colors.grey[100]),
-
-                // Comentarios
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Comentarios',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                _comments.isEmpty
-                    ? Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(
-                          child: Text(
-                            'No hay comentarios aún',
-                            style: TextStyle(color: Colors.grey),
-                          ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: colors),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          post.postType.name,
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                         ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: _comments.length,
-                        itemBuilder: (context, index) =>
-                            CommentCard(comment: _comments[index]),
-                      ),
-                SizedBox(height: 80),
-              ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+           // Imagen
+          GestureDetector(
+            onTap: () => _openImageModal(context, post.imageUrl),
+            child: Image.network(
+              post.imageUrl ?? "https://via.placeholder.com/400x300?text=Sin+Imagen",
+              width: double.infinity,
+              fit: BoxFit.fitWidth, // adapta la altura según el ancho
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: double.infinity,
+                color: Colors.grey[200],
+                child: Icon(Icons.pets, size: 100, color: Colors.grey),
+              ),
             ),
           ),
 
-          // Input comentario
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: Offset(0, -4),
-                ),
-              ],
+
+            // Acciones
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _toggleLike,
+                    child: Row(
+                      children: [
+                        post.reacciones.isNotEmpty
+                            ? Icon(Icons.favorite, size: 28, color: Colors.red)
+                            : Icon(Icons.favorite_border, size: 28),
+                        SizedBox(width: 4),
+                        Text('${post.likes}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 20),
+                  Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline, size: 28),
+                      SizedBox(width: 4),
+                      Text('${post.comments}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                CircleAvatar(radius: 18, backgroundColor: Colors.grey[300]),
-                SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: InputDecoration(
-                      hintText: 'Escribe un comentario...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
+
+            // Descripción
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(color: Colors.black, fontSize: 14, height: 1.4),
+                  children: [
+                    TextSpan(text: post.user.username, style: TextStyle(fontWeight: FontWeight.bold)),
+                    TextSpan(text: ' ${post.description}'),
+                  ],
                 ),
-                SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.purple, Colors.pink],
+              ),
+            ),
+
+            Divider(height: 32, thickness: 8, color: Colors.grey[100]),
+
+            // Comentarios
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Comentarios', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            SizedBox(height: 16),
+
+            _comments.isEmpty
+                ? Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(
+                      child: Text('No hay comentarios aún', style: TextStyle(color: Colors.grey)),
                     ),
-                    shape: BoxShape.circle,
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: _comments.length,
+                    itemBuilder: (context, index) => CommentCard(comment: _comments[index]),
                   ),
-                  child: IconButton(
-                    icon: Icon(Icons.send, color: Colors.white),
-                    onPressed: _addComment,
-                  ),
+
+            SizedBox(height: 80), // para que no quede pegado al bottom
+          ],
+        ),
+        bottomNavigationBar: Container(
+        padding: EdgeInsets.all(16),
+        color: Colors.white,
+        child: SafeArea(
+          child: Row(
+            children: [
+              /// 👇 ESTE AVATAR
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: AuthService.avatarUrl != null
+                    ? NetworkImage(AuthService.avatarUrl!)
+                    : null,
+                backgroundColor: Colors.grey[300],
+                child: AuthService.avatarUrl == null
+                    ? Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+
+          SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                hintText: 'Escribe un comentario...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
-              ],
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(Icons.send, color: Colors.white),
+              onPressed: _addComment,
             ),
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
+
   }
 
   String _getTimeAgo(DateTime datetime) {
@@ -404,12 +350,23 @@ class CommentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      debugPrint('COMMENT AVATAR (UI) → ${comment.avatar}');
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 18, backgroundColor: Colors.grey[300]),
+          CircleAvatar(
+            radius: 22,
+            backgroundImage:
+                comment.avatar != null ? NetworkImage(comment.avatar!) : null,
+            backgroundColor: Colors.grey[300],
+            child: comment.avatar == null
+                ? Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
+
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -473,9 +430,12 @@ void _openImageModal(BuildContext context, String? imageUrl) {
                   minScale: 1,
                   maxScale: 3,
                   child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                  ),
+  imageUrl,
+  fit: BoxFit.contain,
+  height: MediaQuery.of(context).size.height * 0.35, // 35% de la pantalla
+  width: double.infinity,
+),
+
                 ),
               ),
             ),

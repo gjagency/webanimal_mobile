@@ -9,7 +9,7 @@ class Config {
     await dotenv.load(fileName: ".env");
 
     SCHEMA = dotenv.env['SCHEMA'] ?? 'http';
-    HOST = dotenv.env['HOST'] ?? 'localhost';
+    HOST = dotenv.env['HOST'] ?? '127.0.0.1';
     PORT = dotenv.env['PORT'] ?? '8000';
   }
 

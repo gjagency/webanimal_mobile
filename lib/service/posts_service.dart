@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/config.dart';
 import 'package:mobile_app/service/auth_service.dart';
@@ -44,13 +45,80 @@ class PostUser {
   final String username;
   final String fullName;
   final String? imageUrl;
+  final bool esVeterinaria;
+  final String? nombreComercial;
 
   PostUser({
     required this.id,
     required this.username,
     required this.fullName,
+    this.nombreComercial,
     this.imageUrl,
+    required this.esVeterinaria,
   });
+  factory PostUser.fromJson(Map<String, dynamic> json) {
+    String? image;
+
+    final rawImage = json['avatar'] ?? json['imagen'];
+
+    if (rawImage != null) {
+      final img = rawImage.toString();
+
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        image = img;
+      } else if (img.startsWith('/')) {
+        image = '${Config.baseUrl}$img';
+      }
+    }
+
+  return PostUser(
+    id: json['id'].toString(),
+    username: json['username'],
+    fullName: json['display_name'] ?? json['username'],
+    imageUrl: image,
+    esVeterinaria: json['es_veterinaria'] ?? false,
+    nombreComercial: json['nombre_comercial'],
+  );
+
+  }
+
+  String get displayName =>
+      esVeterinaria ? (nombreComercial ?? fullName) : fullName;
+}
+
+class Promocion {
+  final String id;
+  final String titulo;
+  final String descripcion;
+  final String? precio;
+  final String? imagen;
+  final String? fechadesde;
+  final String? fechahasta;
+  final String nombreComercio;
+  Promocion({
+    required this.id,
+    required this.titulo,
+    required this.descripcion,
+    this.precio,
+    this.imagen,
+    this.fechadesde,
+    this.fechahasta,
+    required this.nombreComercio,
+  });
+
+factory Promocion.fromJson(Map<String, dynamic> json) {
+  return Promocion(
+    id: json['id'].toString(),
+    titulo: json['titulo'] ?? '',
+    descripcion: json['descripcion'] ?? '',
+    precio: json['precio']?.toString(),
+    imagen: json['imagen']?.toString(),
+    fechadesde: json['fecha_desde']?.toString(),
+    fechahasta: json['fecha_hasta']?.toString(),
+    nombreComercio: json['nombreComercio'] ?? '',
+  );
+}
+
 }
 
 class PostLocation {
@@ -66,7 +134,6 @@ class PostLocation {
     required this.label,
   });
 }
-
 class Post {
   final String id;
   final PostUser user;
@@ -100,16 +167,51 @@ class Post {
 class Comment {
   final String id;
   final String username;
+  final String displayName;
+  final String? avatar;
   final String text;
   final DateTime timestamp;
+
 
   Comment({
     required this.id,
     required this.username,
+    required this.displayName,
+    required this.avatar,
     required this.text,
     required this.timestamp,
   });
+factory Comment.fromJson(Map<String, dynamic> json) {
+  String? avatar;
+
+  final rawAvatar = json['usuario']?['avatar'];
+
+  if (rawAvatar != null) {
+    final img = rawAvatar.toString();
+
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      avatar = img;
+    } else if (img.startsWith('/')) {
+      avatar = '${Config.baseUrl}$img';
+    }
+  }
+
+  debugPrint('COMMENT AVATAR → $avatar'); // 🔍 debug definitivo
+
+  return Comment(
+    id: json['id'].toString(),
+    username: json['usuario']['username'],
+    displayName:
+        json['usuario']['display_name'] ?? json['usuario']['username'],
+    avatar: avatar,
+    text: json['body'],
+    timestamp: DateTime.parse(json['fecha_creacion']),
+  );
 }
+
+
+}
+
 
 class PostsService {
   // GET: Lista de posts
@@ -117,6 +219,8 @@ class PostsService {
     String? postType,
     String? petType,
     String? userId,
+    String? esVeterinaria,
+    String? vet,
     double? lat,
     double? lng,
     String? cityId,
@@ -124,6 +228,7 @@ class PostsService {
     final Map<String, String> queryParams = {};
     if (postType != null) queryParams['posteo_tipo'] = postType;
     if (petType != null) queryParams['mascota_tipo'] = petType;
+    if (esVeterinaria != null) queryParams['usuario__veterinaria'] = esVeterinaria;
     if (userId != null) queryParams['usuario'] = userId;
     if (lat != null) queryParams['lat'] = lat.toString();
     if (lng != null) queryParams['lng'] = lng.toString();
@@ -235,26 +340,23 @@ class PostsService {
     return response.statusCode == 200;
   }
 
-  static Future<List<Comment>> getComments(String postId) async {
-    final response = await AuthService.getWithToken(
-      '/api/comentarios/?posteo=$postId',
-    );
+static Future<List<Comment>> getComments(String postId) async {
+  final response = await AuthService.getWithToken(
+    '/api/comentarios/?posteo=$postId',
+  );
 
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data
-          .map(
-            (json) => Comment(
-              id: json['id'].toString(),
-              username: json['usuario']['username'],
-              text: json['body'],
-              timestamp: DateTime.parse(json['fecha_creacion']),
-            ),
-          )
-          .toList();
-    }
-    throw Exception('Error al cargar comentarios');
+  if (response.statusCode == 200) {
+    final List data = jsonDecode(response.body);
+
+    return data
+        .map((json) => Comment.fromJson(json))
+        .toList();
   }
+
+  throw Exception('Error al cargar comentarios');
+}
+
+
 
   // POST: Crear comentario
   static Future<bool> addComment(String postId, String text) async {
@@ -302,43 +404,39 @@ class PostsService {
   }
 
   // Parser privado
-  static Post _parsePost(Map<String, dynamic> json) {
-    return Post(
+static Post _parsePost(Map<String, dynamic> json) {
+  final usuarioJson = json['usuario'] ?? {};
+
+  return Post(
+    id: json['id'].toString(),
+    user: PostUser.fromJson(usuarioJson), // 👈 aquí usamos fromJson
+    postType: PostType(
+      id: json['posteo_tipo']['id'].toString(),
+      name: json['posteo_tipo']['nombre'],
+      color: json['posteo_tipo']['color'],
+      icon: json['posteo_tipo']['icono'],
+    ),
+    petType: PetType(
+      id: json['mascota_tipo']['id'].toString(),
+      name: json['mascota_tipo']['nombre'],
+    ),
+    imageUrl: json['imagen'],
+    description: json['descripcion'] ?? '',
+    telefono: json['telefono'],
+    location: PostLocation(
       id: json['id'].toString(),
-      user: PostUser(
-        id: json['usuario']['id'].toString(),
-        username: json['usuario']['username'],
-        fullName:
-            json['usuario']['nombre_completo'] ?? json['usuario']['username'],
-        imageUrl: json['usuario']['imagen'],
-      ),
-      postType: PostType(
-        id: json['posteo_tipo']['id'].toString(),
-        name: json['posteo_tipo']['nombre'],
-        color: json['posteo_tipo']['color'],
-        icon: json['posteo_tipo']['icono'],
-      ),
-      petType: PetType(
-        id: json['mascota_tipo']['id'].toString(),
-        name: json['mascota_tipo']['nombre'],
-      ),
-      imageUrl: json['imagen'],
-      description: json['descripcion'],
-      telefono: json['telefono'],
-      location: PostLocation(
-        id: json['id'].toString(),
-        lat: json['ubicacion_lat'],
-        lng: json['ubicacion_lng'],
-        label: json['ubicacion_label'],
-      ),
-      datetime: DateTime.parse(json['fecha_creacion']),
-      likes: json['total_reacciones'] ?? 0,
-      comments: json['total_comentarios'] ?? 0,
-      reacciones: List.from(
-        (json['reacciones'] ?? []).map((json) => json.toString()),
-      ),
-    );
-  }
+      lat: (json['ubicacion_lat'] ?? 0).toDouble(),
+      lng: (json['ubicacion_lng'] ?? 0).toDouble(),
+      label: json['ubicacion_label'] ?? '',
+    ),
+    datetime: DateTime.parse(json['fecha_creacion']),
+    likes: json['total_reacciones'] ?? 0,
+    comments: json['total_comentarios'] ?? 0,
+    reacciones: List<String>.from((json['reacciones'] ?? []).map((e) => e.toString())),
+  );
+}
+
+
 
   static Future<List<City>> searchCities(String query) async {
     final response = await AuthService.getWithToken(

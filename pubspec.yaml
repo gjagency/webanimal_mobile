@@ -23,7 +23,9 @@ dependencies:
   firebase_core: ^3.15.2
   firebase_dynamic_links: ^6.1.10
   geolocator: ^10.1.0
-
+  url_launcher: ^6.1.12
+  font_awesome_flutter: ^10.4.0
+  intl: ^0.18.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

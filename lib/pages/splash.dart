@@ -27,6 +27,7 @@ class _SplashPageState extends State<SplashPage> {
       if (!mounted) return;
 
       if (loggedIn) {
+        await AuthService.loadCurrentUser();
         GoRouter.of(context).go('/home');
       } else {
         GoRouter.of(context).go('/auth/sign_in');

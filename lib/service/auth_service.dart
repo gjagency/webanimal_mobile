@@ -10,6 +10,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
+  static String? get avatarUrl => _currentUser?['avatar'];
+  static String get displayNameSafe => displayName;
+  static Map<String, dynamic>? _currentUser;
+  static Map<String, dynamic>? get currentUser => _currentUser;
 
   /// 🔴 ESTE CLIENT ID TIENE QUE SER EL WEB CLIENT
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -17,6 +21,21 @@ class AuthService {
     serverClientId:
         '824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com',
   );
+
+  static Future<void> loadCurrentUser() async {
+    try {
+      final profile = await getProfile();
+      if (profile.isNotEmpty) {
+        _currentUser = profile;
+        debugPrint('🧠 Usuario logueado: ${profile['first_name']}');
+      }
+    } catch (e) {
+      debugPrint('Error cargando usuario: $e');
+    }
+  }
+
+  static String? get username => _currentUser?['first_name'];
+  static bool get esVeterinaria => _currentUser?['es_veterinaria'] == true;
 
   /* ==========================================================
      LOGIN USUARIO / PASSWORD (JWT)
@@ -96,6 +115,25 @@ class AuthService {
       return false;
     }
   }
+/* ==========================================================
+   TODAS LAS OFERTAS / PROMOCIONES ACTIVAS
+   ========================================================== */
+static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
+  try {
+    final response = await getWithToken('/api/veterinarias/promociones/ofertas/');
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      debugPrint('Error al obtener ofertas: ${response.statusCode} ${response.body}');
+      return [];
+    }
+  } catch (e) {
+    debugPrint('Excepción en getOfertasPromociones: $e');
+    return [];
+  }
+}
+
 
   /* ==========================================================
      LOGIN CON GOOGLE
@@ -158,6 +196,26 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_accessTokenKey);
   }
+static String get displayName {
+  final user = _currentUser;
+  if (user == null) return '';
+
+  final bool esVeterinaria = user['es_veterinaria'] == true;
+
+  final String fullName =
+      ('${user['first_name'] ?? ''} ${user['last_name'] ?? ''}')
+              .trim()
+              .isNotEmpty
+          ? '${user['first_name']} ${user['last_name']}'.trim()
+          : user['username'] ?? '';
+
+  final String? nombreComercial = user['nombre_comercial'];
+
+  return esVeterinaria
+      ? (nombreComercial ?? fullName)
+      : fullName;
+}
+
 
   static Future<String?> getRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -249,6 +307,62 @@ class AuthService {
     );
   }
 
+
+static Future<bool> registerVeterinaria({
+  required String email,
+  required String password,
+  required String nombreComercial,
+  String? telefono,
+  String? direccion,
+  File? imagen,
+  String? ubicacionLabel,
+  double? lat,
+  double? lng,
+}) async {
+  try {
+    final uri = Uri.parse('${Config.baseUrl}/auth/register-vet/');
+    final request = http.MultipartRequest('POST', uri);
+
+    request.fields['email'] = email;
+    request.fields['password'] = password;
+    request.fields['nombre_comercial'] = nombreComercial;
+    request.fields['telefono'] = telefono ?? '';
+    request.fields['direccion'] = direccion ?? '';
+    request.fields['ubicacion_label'] = ubicacionLabel ?? '';
+    request.fields['ubicacion_lat'] = lat?.toString() ?? '';
+    request.fields['ubicacion_lng'] = lng?.toString() ?? '';
+
+    if (imagen != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'imagen',
+          imagen.path,
+          filename: imagen.path.split('/').last,
+        ),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final responseBody = await streamedResponse.stream.bytesToString();
+
+    debugPrint(
+      'Register vet response: ${streamedResponse.statusCode} $responseBody',
+    );
+
+    if (streamedResponse.statusCode == 201) {
+      return true;
+    } else {
+      final data = jsonDecode(responseBody);
+      final message = data['message'] ?? 'Error al registrar veterinaria';
+      throw Exception(message);
+    }
+  } catch (e) {
+    debugPrint('Register vet error: $e');
+    return false;
+  }
+}
+
+
   /* ==========================================================
      GET PROFILE
      ========================================================== */
@@ -268,6 +382,29 @@ class AuthService {
       return {};
     }
   }
+/* ==========================================================
+   PROMOCIONES DE MI VETERINARIA
+   ========================================================== */
+static Future<List<Map<String, dynamic>>> getMisPromociones() async {
+  try {
+    final response = await getWithToken(
+      '/veterinarias/promociones/mias/',
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      debugPrint(
+        'Error al obtener promociones: ${response.statusCode} ${response.body}',
+      );
+      return [];
+    }
+  } catch (e) {
+    debugPrint('Excepción en getMisPromociones: $e');
+    return [];
+  }
+}
 
   static Future<bool> updateProfile({
     required String name,
@@ -318,5 +455,66 @@ class AuthService {
     });
 
     return response.statusCode == 200;
+  }
+  
+}
+
+
+class PromocionesService {
+  static Future<bool> crearPromocion({
+    required String titulo,
+    required String descripcion,
+    String? precio,
+    DateTime? fechaDesde,
+    DateTime? fechaHasta,
+    File? imagen,
+  }) async {
+    try {
+      final token = await AuthService.getAccessToken();
+      final uri = Uri.parse('${Config.baseUrl}/api/veterinarias/promociones/cargar/');
+      final request = http.MultipartRequest('POST', uri);
+
+      request.headers['Authorization'] = 'Bearer $token';
+
+      request.fields['titulo'] = titulo;
+      request.fields['descripcion'] = descripcion;
+
+      if (precio != null) request.fields['precio'] = precio;
+
+      if (fechaDesde != null) {
+        request.fields['fecha_desde'] =
+            "${fechaDesde.year.toString().padLeft(4, '0')}-"
+            "${fechaDesde.month.toString().padLeft(2, '0')}-"
+            "${fechaDesde.day.toString().padLeft(2, '0')}";
+      }
+      if (fechaHasta != null) {
+        request.fields['fecha_hasta'] =
+            "${fechaHasta.year.toString().padLeft(4, '0')}-"
+            "${fechaHasta.month.toString().padLeft(2, '0')}-"
+            "${fechaHasta.day.toString().padLeft(2, '0')}";
+      }
+
+      if (imagen != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'imagen',
+            imagen.path,
+            filename: imagen.path.split('/').last,
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+
+      // 🔹 Parseamos el JSON de la respuesta
+      final Map<String, dynamic> jsonResponse = json.decode(responseBody);
+
+      // 🔹 Devuelve true si la API dice ok = true, false en cualquier otro caso
+      return jsonResponse['ok'] == true;
+    } catch (e) {
+      print('Excepción creando promoción: $e');
+      return false;
+    }
   }
 }
