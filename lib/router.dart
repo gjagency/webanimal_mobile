@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/pages/account/veterinaria_create.dart';
 import 'package:mobile_app/pages/account/veterinaria_modify.dart';
@@ -28,7 +29,10 @@ import 'package:mobile_app/pages/posts/view.dart';
 import 'package:mobile_app/pages/profiles/public.dart';
 import 'package:mobile_app/service/page_auth_register_vet.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 final router = GoRouter(
+  navigatorKey: navigatorKey,
   initialLocation: '/splash',
 
   routes: [
@@ -68,10 +72,12 @@ final router = GoRouter(
 
     // 🔐 RESET PASSWORD (con uid + token)
     GoRoute(
-      path: '/auth/reset_password',
+      path: '/auth/reset-password',
       builder: (context, state) {
         final uid = state.uri.queryParameters['uid'];
         final token = state.uri.queryParameters['token'];
+
+        print("uid $uid token $token");
 
         if (uid == null || token == null) {
           return const PageAuthSignIn();
@@ -146,13 +152,16 @@ final router = GoRouter(
     final token = await AuthService.getAccessToken();
     final location = state.matchedLocation;
 
+    print(location);
+
     final isSplash = location == '/splash';
     final isReset = location.startsWith('/auth/reset_password');
     final isRecover = location == '/auth/recover';
+    final isRecoverPassword = location == '/auth/reset-password';
     final isAuthRoute = location.startsWith('/auth');
 
     // 👉 Splash, Reset y Recover siempre permitidos
-    if (isSplash || isReset || isRecover) return null;
+    if (isSplash || isReset || isRecover || isRecoverPassword) return null;
 
     // 👉 No logueado → fuera de auth
     if (token == null && !isAuthRoute) {
@@ -160,7 +169,7 @@ final router = GoRouter(
     }
 
     // 👉 Logueado → evitar auth (menos reset)
-    if (token != null && isAuthRoute && !isReset) {
+    if (token != null && isAuthRoute && !isReset && !isRecoverPassword) {
       return '/';
     }
 

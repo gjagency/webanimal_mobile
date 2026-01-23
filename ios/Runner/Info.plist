@@ -49,5 +49,16 @@
     <string>Necesitamos tu ubicación para mostrar posts cercanos</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Necesitamos tu ubicación para mostrar posts cercanos</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>webanimal</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
