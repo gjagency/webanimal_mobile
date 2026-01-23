@@ -471,6 +471,11 @@ class PromocionesService {
   }) async {
     try {
       final token = await AuthService.getAccessToken();
+      if (token == null || token.isEmpty) {
+        print('No hay token disponible, usuario no logueado');
+        return false;
+      }
+
       final uri = Uri.parse('${Config.baseUrl}/api/veterinarias/promociones/cargar/');
       final request = http.MultipartRequest('POST', uri);
 
@@ -478,7 +483,6 @@ class PromocionesService {
 
       request.fields['titulo'] = titulo;
       request.fields['descripcion'] = descripcion;
-
       if (precio != null) request.fields['precio'] = precio;
 
       if (fechaDesde != null) {
@@ -506,11 +510,15 @@ class PromocionesService {
 
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
+      print('Crear promoción status: ${streamedResponse.statusCode}');
+      print('Crear promoción body: $responseBody');
 
-      // 🔹 Parseamos el JSON de la respuesta
+      if (streamedResponse.statusCode == 401) {
+        print('Unauthorized: Token inválido o expirado');
+        return false;
+      }
+
       final Map<String, dynamic> jsonResponse = json.decode(responseBody);
-
-      // 🔹 Devuelve true si la API dice ok = true, false en cualquier otro caso
       return jsonResponse['ok'] == true;
     } catch (e) {
       print('Excepción creando promoción: $e');

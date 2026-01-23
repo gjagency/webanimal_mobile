@@ -140,15 +140,15 @@ return Scaffold(
                     ),
                     padding: EdgeInsets.all(2),
                     child: CircleAvatar(
-  radius: 22,
-  backgroundImage: AuthService.avatarUrl != null
-      ? NetworkImage(AuthService.avatarUrl!)
-      : null,
-  backgroundColor: Colors.grey[300],
-  child: AuthService.avatarUrl == null
-      ? Icon(Icons.person, color: Colors.white)
-      : null,
-),
+                  radius: 22,
+                  backgroundImage: post.user.imageUrl != null
+                      ? NetworkImage(post.user.imageUrl!)
+                      : null,
+                  backgroundColor: Colors.grey[300],
+                  child: post.user.imageUrl == null
+                      ? Icon(Icons.person, color: Colors.white)
+                      : null,
+                ),
 
                   ),
                   SizedBox(width: 12),
