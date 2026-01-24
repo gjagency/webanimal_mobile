@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});
@@ -98,7 +99,7 @@ Widget build(BuildContext context) {
             const SizedBox(height: 16),
 
             const Text(
-              'Iniciar sesión',
+              'WeBaNiMaL',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -149,11 +150,11 @@ Widget build(BuildContext context) {
               child: ElevatedButton(
                 onPressed: _loading ? null : _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: const Color.fromARGB(255, 212, 67, 238),
                 ),
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+                    : const Text('Ingresar', style: TextStyle(fontSize: 16,color: Colors.white)),
               ),
             ),
 

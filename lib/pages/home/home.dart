@@ -481,10 +481,18 @@ class _PageHomeState extends State<PageHome> {
           ),
         ],
       ),
-      floatingActionButton: SpeedDialCustom(
-        onCrearPromocion: AuthService.esVeterinaria ? _mostrarCrearPromocionDialog : null,
-        onCrearPost: () => GoRouter.of(context).push('/posts/create'),
-      ),
+    floatingActionButton: Padding(
+  padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
+  child: SpeedDialCustom(
+    onCrearPromocion: AuthService.esVeterinaria
+        ? _mostrarCrearPromocionDialog
+        : () {}, // función vacía evita que haga algo
+    onCrearPost: () => GoRouter.of(context).push('/posts/create'),
+  ),
+),
+floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+
+
     );
   }
 }
@@ -501,9 +509,11 @@ class SpeedDialCustom extends StatefulWidget {
   @override
   State<SpeedDialCustom> createState() => _SpeedDialCustomState();
 }
-
 class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProviderStateMixin {
   bool _isOpen = false;
+
+  void _toggleMenu() => setState(() => _isOpen = !_isOpen);
+  void _closeMenu() => setState(() => _isOpen = false);
 
   @override
   Widget build(BuildContext context) {
@@ -513,7 +523,10 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
       buttons.add(_buildActionButton(
         icon: Icons.local_offer_rounded,
         label: 'Crear Promoción',
-        onTap: widget.onCrearPromocion!,
+        onTap: () {
+          _closeMenu();
+          widget.onCrearPromocion!();
+        },
       ));
     }
 
@@ -521,30 +534,65 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
       buttons.add(_buildActionButton(
         icon: Icons.post_add,
         label: 'Crear Post',
-        onTap: widget.onCrearPost!,
+        onTap: () {
+          _closeMenu();
+          widget.onCrearPost!();
+        },
       ));
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Stack(
+      alignment: Alignment.bottomRight,
       children: [
-        ...buttons.reversed,
-        const SizedBox(height: 8),
-        _buildMainButton(),
+        // Fondo transparente que cierra el menú al tocar fuera
+        if (_isOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeMenu,
+              behavior: HitTestBehavior.opaque,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16, right: 16), // pegado al borde
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Botones secundarios animados
+              ...buttons.reversed.map((btn) => AnimatedSlide(
+                    offset: _isOpen ? Offset.zero : const Offset(0, 0.2),
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedOpacity(
+                      opacity: _isOpen ? 1 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: IgnorePointer(
+                        ignoring: !_isOpen,
+                        child: btn,
+                      ),
+                    ),
+                  )),
+              const SizedBox(height: 8),
+              // Botón principal
+              _fab(
+                icon: _isOpen ? Icons.close : Icons.add,
+                onTap: _toggleMenu,
+                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
+                isMain: true,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-Widget _buildActionButton({
-  required IconData icon,
-  required String label,
-  required VoidCallback onTap,
-}) {
-  return AnimatedOpacity(
-    opacity: _isOpen ? 1 : 0,
-    duration: const Duration(milliseconds: 200),
-    child: Column(
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -560,24 +608,10 @@ Widget _buildActionButton({
         ),
         _fab(
           icon: icon,
-          onTap: () {
-            setState(() => _isOpen = false); // ✅ Cierra el menú
-            onTap();
-          },
+          onTap: onTap,
           gradient: LinearGradient(colors: [Colors.purple.shade200, Colors.pink.shade200]),
         ),
       ],
-    ),
-  );
-}
-
-
-  Widget _buildMainButton() {
-    return _fab(
-      icon: _isOpen ? Icons.close : Icons.add,
-      onTap: () => setState(() => _isOpen = !_isOpen),
-      gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
-      isMain: true,
     );
   }
 
@@ -588,7 +622,7 @@ Widget _buildActionButton({
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: gradient,
-        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Material(
         color: Colors.transparent,

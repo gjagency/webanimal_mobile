@@ -52,7 +52,10 @@ class _PagePostViewState extends State<PagePostView> {
   }
 
   Future<void> _toggleLike() async {
-    await PostsService.addReaction(widget.postId, "1");
+    await PostsService.addReaction(
+      int.parse(widget.postId),
+      1,
+    );
     await _loadPost();
   }
 
@@ -140,15 +143,16 @@ return Scaffold(
                     ),
                     padding: EdgeInsets.all(2),
                     child: CircleAvatar(
-                  radius: 22,
-                  backgroundImage: post.user.imageUrl != null
-                      ? NetworkImage(post.user.imageUrl!)
-                      : null,
-                  backgroundColor: Colors.grey[300],
-                  child: post.user.imageUrl == null
-                      ? Icon(Icons.person, color: Colors.white)
-                      : null,
-                ),
+                    radius: 22,
+                    backgroundImage: post.user.imageUrl != null
+                        ? NetworkImage(post.user.imageUrl!)
+                        : null,
+                    backgroundColor: Colors.grey[300],
+                    child: post.user.imageUrl == null
+                        ? Icon(Icons.person, color: Colors.white)
+                        : null,
+                  )
+
 
                   ),
                   SizedBox(width: 12),
@@ -242,7 +246,7 @@ return Scaffold(
                 text: TextSpan(
                   style: TextStyle(color: Colors.black, fontSize: 14, height: 1.4),
                   children: [
-                    TextSpan(text: post.user.username, style: TextStyle(fontWeight: FontWeight.bold)),
+                    TextSpan(text: post.user.displayName, style: TextStyle(fontWeight: FontWeight.bold)),
                     TextSpan(text: ' ${post.description}'),
                   ],
                 ),
@@ -283,15 +287,15 @@ return Scaffold(
             children: [
               /// 👇 ESTE AVATAR
               CircleAvatar(
-                radius: 22,
-                backgroundImage: AuthService.avatarUrl != null
-                    ? NetworkImage(AuthService.avatarUrl!)
-                    : null,
-                backgroundColor: Colors.grey[300],
-                child: AuthService.avatarUrl == null
-                    ? Icon(Icons.person, color: Colors.white)
-                    : null,
-              ),
+            radius: 22,
+            backgroundImage: post.user.imageUrl != null
+                ? NetworkImage(post.user.imageUrl!)
+                : null,
+            backgroundColor: Colors.grey[300],
+            child: post.user.imageUrl == null
+                ? Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
 
           SizedBox(width: 12),
           Expanded(
@@ -382,7 +386,7 @@ class CommentCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        comment.username,
+                        comment.displayName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,

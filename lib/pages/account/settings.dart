@@ -447,6 +447,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSwitchItem({
     required IconData icon,
     required String title,

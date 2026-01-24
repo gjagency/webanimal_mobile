@@ -163,7 +163,6 @@ class Post {
     this.reacciones = const [],
   });
 }
-
 class Comment {
   final String id;
   final String username;
@@ -171,7 +170,6 @@ class Comment {
   final String? avatar;
   final String text;
   final DateTime timestamp;
-
 
   Comment({
     required this.id,
@@ -181,36 +179,33 @@ class Comment {
     required this.text,
     required this.timestamp,
   });
-factory Comment.fromJson(Map<String, dynamic> json) {
-  String? avatar;
 
-  final rawAvatar = json['usuario']?['avatar'];
+  factory Comment.fromJson(Map<String, dynamic> json) {
+    String? avatar;
 
-  if (rawAvatar != null) {
-    final img = rawAvatar.toString();
-
-    if (img.startsWith('http://') || img.startsWith('https://')) {
-      avatar = img;
-    } else if (img.startsWith('/')) {
-      avatar = '${Config.baseUrl}$img';
+    final rawAvatar = json['usuario']?['avatar'];
+    if (rawAvatar != null) {
+      final img = rawAvatar.toString();
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        avatar = img;
+      } else if (img.startsWith('/')) {
+        avatar = '${Config.baseUrl}$img';
+      }
     }
+
+    final user = json['usuario'] ?? {};
+
+    return Comment(
+      id: json['id'].toString(),
+      username: user['username'] ?? 'unknown',
+      displayName: json['display_name'] ?? user['username'], // ✅ aquí usamos directamente el display_name del backend
+      avatar: avatar,
+      text: json['body'] ?? '',
+      timestamp: DateTime.parse(json['fecha_creacion']),
+    );
   }
-
-  debugPrint('COMMENT AVATAR → $avatar'); // 🔍 debug definitivo
-
-  return Comment(
-    id: json['id'].toString(),
-    username: json['usuario']['username'],
-    displayName:
-        json['usuario']['display_name'] ?? json['usuario']['username'],
-    avatar: avatar,
-    text: json['body'],
-    timestamp: DateTime.parse(json['fecha_creacion']),
-  );
 }
 
-
-}
 
 
 class PostsService {
@@ -320,11 +315,14 @@ class PostsService {
   }
 
   // POST: Crear reacción
-  static Future<bool> addReaction(String postId, String type) async {
-    final response = await AuthService.postWithToken('/api/reacciones/', {
-      'posteo': postId,
-      'tipo': type,
-    });
+  static Future<bool> addReaction(int postId, int typeId) async {
+    final response = await AuthService.postWithToken(
+      '/api/reacciones/',
+      {
+        'posteo': postId,
+        'tipo': typeId,
+      },
+    );
 
     return response.statusCode == 201;
   }
