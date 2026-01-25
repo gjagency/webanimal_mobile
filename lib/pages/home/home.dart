@@ -407,7 +407,7 @@ class _PageHomeState extends State<PageHome> {
                         ),
                         const SizedBox(width: 8),
                         QuickFilterChip(
-                          label: AuthService.esVeterinaria ? 'Mis Promociones' : 'Ofertas',
+                          label: AuthService.esVeterinaria ? 'Mis Promociones' : 'Promociones',
                           icon: AuthService.esVeterinaria ? Icons.local_offer_rounded : Icons.local_fire_department,
                           isSelected: selectedTypeId == 'promociones',
                           onTap: () {

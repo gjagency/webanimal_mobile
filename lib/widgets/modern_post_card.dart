@@ -323,9 +323,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
               child: RichText(
                 text: TextSpan(
                   style: const TextStyle(color: Colors.black, fontSize: 14, height: 1.4),
-                  children: [
-                    TextSpan(
-                        text: widget.post.user.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  children: [                   
                     TextSpan(text: ' ${widget.post.description}'),
                   ],
                 ),

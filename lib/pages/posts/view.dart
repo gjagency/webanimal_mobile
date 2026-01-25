@@ -228,13 +228,6 @@ return Scaffold(
                     ),
                   ),
                   SizedBox(width: 20),
-                  Row(
-                    children: [
-                      Icon(Icons.chat_bubble_outline, size: 28),
-                      SizedBox(width: 4),
-                      Text('${post.comments}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -246,7 +239,7 @@ return Scaffold(
                 text: TextSpan(
                   style: TextStyle(color: Colors.black, fontSize: 14, height: 1.4),
                   children: [
-                    TextSpan(text: post.user.displayName, style: TextStyle(fontWeight: FontWeight.bold)),
+                  
                     TextSpan(text: ' ${post.description}'),
                   ],
                 ),
