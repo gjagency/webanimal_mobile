@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_app/widgets/promociones_por_veterinaria_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +13,6 @@ import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/widgets/active_filter_chip.dart';
 import 'package:mobile_app/widgets/filter_bottom_sheet.dart';
 import 'package:mobile_app/widgets/posts_feed.dart';
-import 'package:mobile_app/widgets/promocion_card.dart';
 import 'package:mobile_app/widgets/quick_filter_chip.dart';
 
 class PageHome extends StatefulWidget {
@@ -29,7 +29,8 @@ class _PageHomeState extends State<PageHome> {
   Position? _currentPosition;
   DateTimeRange? selectedDateRange;
   bool? esVeterinariaLogueada;
-  List<Promocion> _promociones = [];
+  List<PromocionesPorVeterinaria> _promocionesAgrupadas = [];
+
   List<Post> _posts = [];
   List<PostType> _postTypes = [];
   List<PetType> _petTypes = [];
@@ -79,19 +80,20 @@ class _PageHomeState extends State<PageHome> {
       _error = null;
     });
 
-    try {
-      if (selectedTypeId == 'promociones') {
-        List<dynamic> data = AuthService.esVeterinaria
-            ? await AuthService.getMisPromociones()
-            : await AuthService.getOfertasPromociones();
+      try {
+        if (selectedTypeId == 'promociones') {
+          List<dynamic> data = AuthService.esVeterinaria
+              ? await AuthService.getMisPromociones()
+              : await AuthService.getOfertasPromociones();
 
-        setState(() {
-          _promociones = data.map((e) => Promocion.fromJson(e)).toList();
-          _posts = [];
-          _isLoading = false;
-        });
-        return;
-      }
+          setState(() {
+            _promocionesAgrupadas =
+                data.map((e) => PromocionesPorVeterinaria.fromJson(e)).toList();
+            _posts = [];
+            _isLoading = false;
+          });
+          return;
+        }
 
       final results = await Future.wait([
         PostsService.getPosts(
@@ -340,6 +342,7 @@ class _PageHomeState extends State<PageHome> {
   Widget build(BuildContext context) {
     final hasFilters =
         selectedTypeId != null || selectedPetTypeId != null || selectedCityId != null || selectedDateRange != null;
+debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -470,15 +473,22 @@ class _PageHomeState extends State<PageHome> {
               ),
             ),
           Expanded(
-            child: PostsFeed(
-              posts: filteredPosts,
-              promociones: _promociones,
-              isLoading: _isLoading,
-              error: _error,
-              selectedTypeId: selectedTypeId,
-              onRefresh: _loadData,
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : selectedTypeId == 'promociones'
+                    ? PromocionesPorVeterinariaList(
+                        grupos: _promocionesAgrupadas,
+                      )
+                    : PostsFeed(
+                        posts: filteredPosts,
+                        promociones: const [],
+                        isLoading: false,
+                        error: _error,
+                        selectedTypeId: selectedTypeId,
+                        onRefresh: _loadData,
+                      ),
           ),
+
         ],
       ),
     floatingActionButton: Padding(

@@ -86,6 +86,34 @@ class PostUser {
       esVeterinaria ? (nombreComercial ?? fullName) : fullName;
 }
 
+
+class PromocionesPorVeterinaria {
+  final int veterinariaId;
+  final String nombreComercio;
+  final String? precio;
+  final List<Promocion> promociones;
+
+  PromocionesPorVeterinaria({
+    required this.veterinariaId,
+    required this.nombreComercio,
+    required this.promociones,
+    required this.precio,
+  });
+
+  factory PromocionesPorVeterinaria.fromJson(Map<String, dynamic> json) {
+    return PromocionesPorVeterinaria(
+      veterinariaId: json['veterinaria_id'],
+      nombreComercio: json['nombreComercio'],
+      precio: json['precio']?.toString(),
+      promociones: (json['promociones'] as List)
+          .map((e) => Promocion.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
+
+
 class Promocion {
   final String id;
   final String titulo;
@@ -95,6 +123,7 @@ class Promocion {
   final String? fechadesde;
   final String? fechahasta;
   final String nombreComercio;
+  final int veterinariaId;
   Promocion({
     required this.id,
     required this.titulo,
@@ -104,6 +133,7 @@ class Promocion {
     this.fechadesde,
     this.fechahasta,
     required this.nombreComercio,
+    required this.veterinariaId,
   });
 
 factory Promocion.fromJson(Map<String, dynamic> json) {
@@ -116,6 +146,7 @@ factory Promocion.fromJson(Map<String, dynamic> json) {
     fechadesde: json['fecha_desde']?.toString(),
     fechahasta: json['fecha_hasta']?.toString(),
     nombreComercio: json['nombreComercio'] ?? '',
+    veterinariaId: json['veterinaria_id'],
   );
 }
 

@@ -204,7 +204,9 @@ class _ModernPostCardState extends State<ModernPostCard> {
     final color = Color(int.parse(widget.post.postType.color.replaceAll('#', '0xff')));
     final icon = IconData(int.parse(widget.post.postType.icon), fontFamily: 'MaterialIcons');
 
+ // ================= CARD =================
     return InkWell(
+
       onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
       onDoubleTap: _toggleLike,
       child: Container(
@@ -213,7 +215,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 15, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: const ui.Color.fromARGB(255, 246, 191, 203).withOpacity(0.35), blurRadius: 15, offset: const Offset(0, 4))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +262,7 @@ class _ModernPostCardState extends State<ModernPostCard> {
               ),
             ),
 
-            // ================= IMAGEN =================
+            // ================= IMAGEN PANTALLA PRINCIPAL HOME =================
             if (widget.post.imageUrl != null)
               GestureDetector(
                 onTap: () => _openImagePopup(context, widget.post.imageUrl!),
