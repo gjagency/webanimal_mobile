@@ -497,7 +497,7 @@ debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
     onCrearPromocion: AuthService.esVeterinaria
         ? _mostrarCrearPromocionDialog
         : () {}, // función vacía evita que haga algo
-    onCrearPost: () => GoRouter.of(context).push('/posts/create'),
+    onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
   ),
 ),
 floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
@@ -532,7 +532,7 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
     if (widget.onCrearPromocion != null) {
       buttons.add(_buildActionButton(
         icon: Icons.local_offer_rounded,
-        label: 'Crear Promoción',
+        label: 'Crear ',
         onTap: () {
           _closeMenu();
           widget.onCrearPromocion!();
