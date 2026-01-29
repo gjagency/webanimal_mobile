@@ -532,7 +532,7 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
     if (widget.onCrearPromocion != null) {
       buttons.add(_buildActionButton(
         icon: Icons.local_offer_rounded,
-        label: 'Crear ',
+        label: 'Crear promoción',
         onTap: () {
           _closeMenu();
           widget.onCrearPromocion!();
