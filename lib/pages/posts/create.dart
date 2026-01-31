@@ -5,8 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:mobile_app/pages/location/search.dart';
 import 'package:mobile_app/service/posts_service.dart';
-import 'package:geocoding/geocoding.dart'; // <-- agregar a pubspec.yaml
+import 'package:mobile_app/service/location_service.dart';
 
 class PagePostCreate extends StatefulWidget {
   const PagePostCreate({super.key});
@@ -26,7 +27,8 @@ class _PagePostCreateState extends State<PagePostCreate> {
   String? _selectedPostTypeId;
   String? _selectedPetTypeId;
   File? _selectedImageFile;
-  Position? _currentPosition;
+  double? _currentLat;
+  double? _currentLng;
   bool _isLoading = false;
   bool _isLoadingTypes = true;
 
@@ -70,20 +72,18 @@ class _PagePostCreateState extends State<PagePostCreate> {
         _getCurrentLocation(),
       ]);
 
-if (!mounted) return;
+      if (!mounted) return;
 
-  setState(() {
-    _postTypes = results[0] as List<PostType>;
-    _petTypes = results[1] as List<PetType>;
-    if (_postTypes.isNotEmpty) _selectedPostTypeId = _postTypes[0].id;
-    if (_petTypes.isNotEmpty) _selectedPetTypeId = _petTypes[0].id;
-    _isLoadingTypes = false;
-  });
-
+      setState(() {
+        _postTypes = results[0] as List<PostType>;
+        _petTypes = results[1] as List<PetType>;
+        if (_postTypes.isNotEmpty) _selectedPostTypeId = _postTypes[0].id;
+        if (_petTypes.isNotEmpty) _selectedPetTypeId = _petTypes[0].id;
+        _isLoadingTypes = false;
+      });
     } catch (e) {
       if (!mounted) return;
-        setState(() => _isLoadingTypes = false);
-
+      setState(() => _isLoadingTypes = false);
     }
   }
 
@@ -105,24 +105,38 @@ if (!mounted) return;
         }
       }
 
-      _currentPosition = await Geolocator.getCurrentPosition();
+      final position = await Geolocator.getCurrentPosition();
+      _currentLat = position.latitude;
+      _currentLng = position.longitude;
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        _currentPosition!.latitude,
-        _currentPosition!.longitude,
-        localeIdentifier: "es",
+      // Usar el servicio de geocodificación inversa
+      final address = await LocationService.reverseGeocode(
+        position.latitude,
+        position.longitude,
       );
 
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        _locationController.text =
-            '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
-      } else {
-        _locationController.text =
-            'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}';
+      if (mounted) {
+        setState(() {
+          _locationController.text = address;
+        });
       }
     } catch (e) {
       _locationController.text = 'Error obteniendo ubicación';
+    }
+  }
+
+  Future<void> _openLocationSearch() async {
+    final result = await Navigator.push<LocationResult>(
+      context,
+      MaterialPageRoute(builder: (context) => LocationSearchPage()),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _locationController.text = result.displayName;
+        _currentLat = result.lat;
+        _currentLng = result.lng;
+      });
     }
   }
 
@@ -176,13 +190,13 @@ if (!mounted) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedImageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Debes seleccionar una imagen')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Debes seleccionar una imagen')));
       return;
     }
 
-    if (_currentPosition == null) {
+    if (_currentLat == null || _currentLng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudo obtener tu ubicación')),
       );
@@ -200,8 +214,8 @@ if (!mounted) return;
         description: _descriptionController.text,
         telefono: _telefonoController.text,
         imageBase64: base64Image,
-        lat: _currentPosition!.latitude,
-        lng: _currentPosition!.longitude,
+        lat: _currentLat!,
+        lng: _currentLng!,
         locationLabel: _locationController.text,
       );
 
@@ -235,26 +249,28 @@ if (!mounted) return;
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
-                borderRadius: BorderRadius.circular(12),
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.purple, Colors.pink],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.pets, color: Colors.white, size: 20),
               ),
-              child: Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'WebAnimal',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
+              SizedBox(width: 12),
+              Text(
+                'WebAnimal',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
         body: Center(child: CircularProgressIndicator()),
       );
@@ -263,7 +279,7 @@ if (!mounted) return;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-       title: Row(
+        title: Row(
           children: [
             Container(
               padding: EdgeInsets.all(8),
@@ -305,7 +321,7 @@ if (!mounted) return;
           SizedBox(width: 8),
         ],
       ),
-           body: Form(
+      body: Form(
         key: _formKey,
         child: ListView(
           padding: EdgeInsets.all(16),
@@ -419,9 +435,7 @@ if (!mounted) return;
             TextFormField(
               controller: _telefonoController,
               keyboardType: TextInputType.phone,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ], // ✅ solo números
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 10,
               decoration: InputDecoration(
                 hintText: 'Ingresa tu teléfono',
@@ -451,6 +465,7 @@ if (!mounted) return;
               },
             ),
             SizedBox(height: 24),
+
             // Descripción
             Text(
               'Descripción',
@@ -487,42 +502,48 @@ if (!mounted) return;
             ),
             SizedBox(height: 24),
 
-            // Ubicación
+            // Ubicación - MEJORADO
             Text(
               'Ubicación',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 12),
-            TextFormField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                hintText: 'Ubicación automática',
-                prefixIcon: Icon(Icons.location_on, color: Colors.purple),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.my_location, color: Colors.purple),
-                  onPressed: _getCurrentLocation,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.purple, width: 2),
+            GestureDetector(
+              onTap: _openLocationSearch,
+              child: AbsorbPointer(
+                child: TextFormField(
+                  controller: _locationController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar dirección...',
+                    prefixIcon: Icon(Icons.search, color: Colors.purple),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.my_location, color: Colors.purple),
+                      onPressed: _getCurrentLocation,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.purple, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'La ubicación es obligatoria';
+                    }
+                    return null;
+                  },
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'La ubicación es obligatoria';
-                }
-                return null;
-              },
             ),
             SizedBox(height: 32),
           ],
