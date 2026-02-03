@@ -170,7 +170,7 @@ class Post {
   final PostUser user;
   final PostType postType;
   final PetType petType;
-  final String? imageUrl;
+  final List<String> imageUrls;
   final String description;
   final String? telefono;
   final PostLocation location;
@@ -184,7 +184,7 @@ class Post {
     required this.user,
     required this.postType,
     required this.petType,
-    this.imageUrl,
+    this.imageUrls = const [],
     required this.description,
     this.telefono,
     required this.location,
@@ -194,6 +194,7 @@ class Post {
     this.reacciones = const [],
   });
 }
+
 class Comment {
   final String id;
   final String username;
@@ -434,11 +435,39 @@ static Future<List<Comment>> getComments(String postId) async {
 
   // Parser privado
 static Post _parsePost(Map<String, dynamic> json) {
-  final usuarioJson = json['usuario'] ?? {};
+  // 🧪 DEBUG
 
+  List<String> imageUrls = [];
+
+  final rawImages = json['imagenes'];
+
+  if (rawImages != null && rawImages is List) {
+    imageUrls = rawImages
+        .whereType<String>()
+        .map((raw) {
+          if (raw.startsWith('http')) {
+            return raw;
+          }
+          if (raw.startsWith('/')) {
+            return '${Config.baseUrl}$raw';
+          }
+          return null;
+        })
+        .whereType<String>()
+        .toList();
+  }
+
+
+  print("🧪 PARSED imageUrls: $imageUrls");
+  print("🧪 imageUrls length: ${imageUrls.length}");
+  print("🧪 POST ID: ${json['id']}");
+  print("🧪 RAW imagenes: ${json['imagenes']}");
+  print("🧪 total_reacciones: ${json['total_reacciones']}");
+  print("🧪 total_comentarios: ${json['total_comentarios']}");
+  print("🧪 reacciones: ${json['reacciones']}");
   return Post(
     id: json['id'].toString(),
-    user: PostUser.fromJson(usuarioJson), // 👈 aquí usamos fromJson
+    user: PostUser.fromJson(json['usuario'] ?? {}),
     postType: PostType(
       id: json['posteo_tipo']['id'].toString(),
       name: json['posteo_tipo']['nombre'],
@@ -449,7 +478,7 @@ static Post _parsePost(Map<String, dynamic> json) {
       id: json['mascota_tipo']['id'].toString(),
       name: json['mascota_tipo']['nombre'],
     ),
-    imageUrl: json['imagen'],
+    imageUrls: imageUrls,
     description: json['descripcion'] ?? '',
     telefono: json['telefono'],
     location: PostLocation(
@@ -459,11 +488,19 @@ static Post _parsePost(Map<String, dynamic> json) {
       label: json['ubicacion_label'] ?? '',
     ),
     datetime: DateTime.parse(json['fecha_creacion']),
-    likes: json['total_reacciones'] ?? 0,
-    comments: json['total_comentarios'] ?? 0,
-    reacciones: List<String>.from((json['reacciones'] ?? []).map((e) => e.toString())),
+
+    // ✅ ESTO ES LO QUE FALTABA
+    likes: (json['total_reacciones'] ?? 0) as int,
+    comments: (json['total_comentarios'] ?? 0) as int,
+    reacciones: (json['reacciones'] is List)
+        ? List<String>.from(
+            json['reacciones'].map((e) => e.toString()),
+          )
+        : [],
   );
+
 }
+
 
 
 

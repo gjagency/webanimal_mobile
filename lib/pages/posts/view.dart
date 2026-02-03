@@ -195,19 +195,26 @@ return Scaffold(
             ),
 
            // Imagen
-          GestureDetector(
-            onTap: () => _openImageModal(context, post.imageUrl),
-            child: Image.network(
-              post.imageUrl ?? "https://via.placeholder.com/400x300?text=Sin+Imagen",
-              width: double.infinity,
-              fit: BoxFit.fitWidth, // adapta la altura según el ancho
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: Icon(Icons.pets, size: 100, color: Colors.grey),
-              ),
-            ),
+          // Imagen
+      GestureDetector(
+        onTap: () => _openImageModal(
+          context,
+          post.imageUrls.first,
+        ),
+        child: Image.network(
+          post.imageUrls.isNotEmpty
+              ? post.imageUrls.first
+              : "https://via.placeholder.com/400x300?text=Sin+Imagen",
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: double.infinity,
+            color: Colors.grey[200],
+            child: const Icon(Icons.pets, size: 100, color: Colors.grey),
           ),
+        ),
+      ),
+
 
 
             // Acciones
