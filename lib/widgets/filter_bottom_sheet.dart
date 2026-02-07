@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/service/posts_service.dart';
 
@@ -26,10 +27,13 @@ class FilterBottomSheet extends StatefulWidget {
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
 }
 
-class _FilterBottomSheetState extends State<FilterBottomSheet> {
+class _FilterBottomSheetState extends State<FilterBottomSheet>
+    with SingleTickerProviderStateMixin {
   late String? tempTypeId;
   late String? tempPetTypeId;
   late String? tempCityId;
+
+  bool _isApplying = false;
 
   @override
   void initState() {
@@ -41,290 +45,264 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Filtros',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final safeBottom = media.padding.bottom;
 
-                // Tipo de post
-                const Text(
-                  'Tipo de Publicación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.88,
+          minChildSize: 0.55,
+          maxChildSize: 0.96,
+          expand: false,
+          builder: (_, controller) {
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.only(bottom: keyboard),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(26),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: widget.postTypes.map((type) {
-                    final isSelected = tempTypeId == type.id;
-                    return ChoiceChip(
-                      label: Text(type.name),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() => tempTypeId = selected ? type.id : null);
-                      },
-                      selectedColor: Colors.purple[100],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.purple : Colors.black87,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-
-                // Tipo de mascota
-                const Text(
-                  'Tipo de Mascota',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: widget.petTypes.map((type) {
-                    final isSelected = tempPetTypeId == type.id;
-                    return ChoiceChip(
-                      label: Text(type.name),
-                      avatar: Icon(
-                        Icons.pets,
-                        size: 18,
-                        color: isSelected ? Colors.purple : Colors.black54,
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(
-                          () => tempPetTypeId = selected ? type.id : null,
-                        );
-                      },
-                      selectedColor: Colors.purple[100],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.purple : Colors.black87,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-
-                // Ciudad
-                const Text(
-                  'Ciudad',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                _buildCitySearch(),
-
-                const SizedBox(height: 24),
-
-                // Botones
-                Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            tempTypeId = null;
-                            tempPetTypeId = null;
-                            tempCityId = null;
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Limpiar'),
+                    /// HANDLE
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    const SizedBox(width: 12),
+
+                    /// CONTENIDO SCROLL
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          widget.onApply(tempTypeId, tempPetTypeId, tempCityId);
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: SingleChildScrollView(
+                        controller: controller,
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Filtros',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+
+                            /// TIPO POST
+                            const Text(
+                              'Tipo de Publicación',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: widget.postTypes.map((type) {
+                                final isSelected = tempTypeId == type.id;
+                                return ChoiceChip(
+                                  label: Text(type.name),
+                                  selected: isSelected,
+                                  onSelected: (v) => setState(() =>
+                                      tempTypeId = v ? type.id : null),
+                                  selectedColor: Colors.purple[100],
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 20),
+
+                            /// TIPO MASCOTA
+                            const Text(
+                              'Tipo de Mascota',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: widget.petTypes.map((type) {
+                                final isSelected = tempPetTypeId == type.id;
+                                return ChoiceChip(
+                                  label: Text(type.name),
+                                  avatar: Icon(Icons.pets,
+                                      size: 18,
+                                      color: isSelected
+                                          ? Colors.purple
+                                          : Colors.black54),
+                                  selected: isSelected,
+                                  onSelected: (v) => setState(() =>
+                                      tempPetTypeId = v ? type.id : null),
+                                  selectedColor: Colors.purple[100],
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 20),
+
+                            /// CIUDAD
+                            const Text(
+                              'Ciudad',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildCitySearch(),
+                            const SizedBox(height: 20),
+                          ],
                         ),
-                        child: const Text('Aplicar'),
+                      ),
+                    ),
+
+                    /// BOTONES STICKY
+                    Container(
+                      padding:
+                          EdgeInsets.fromLTRB(16, 10, 16, safeBottom + 12),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFEAEAEA)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _isApplying
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        tempTypeId = null;
+                                        tempPetTypeId = null;
+                                        tempCityId = null;
+                                      });
+                                    },
+                              child: const Text('Limpiar'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed:
+                                  _isApplying ? null : _applyFilters,
+                              child: _isApplying
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Aplicar'),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
+  /// APPLY
+  Future<void> _applyFilters() async {
+    setState(() => _isApplying = true);
+
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    if (!mounted) return;
+
+    widget.onApply(tempTypeId, tempPetTypeId, tempCityId);
+    Navigator.pop(context);
+  }
+
+  /// SEARCH CITY
   Widget _buildCitySearch() {
     return SearchAnchor(
-      builder: (BuildContext context, SearchController controller) {
+      builder: (context, controller) {
         final data = tempCityId != null
             ? utf8.decode(base64.decode(tempCityId!)).split(":")
             : [];
 
-        return Container(
-          decoration: BoxDecoration(
-            color: tempCityId != null ? Colors.purple[50] : Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: tempCityId != null ? Colors.purple[300]! : Colors.grey[300]!,
-              width: 1.5,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
+        return InkWell(
+          onTap: () => controller.openView(),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color:
+                  tempCityId != null ? Colors.purple[50] : Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
-              onTap: () => controller.openView(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      color: tempCityId != null ? Colors.purple : Colors.grey[600],
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        data.length == 3 ? data[2] : 'Seleccionar ciudad',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: tempCityId != null ? Colors.purple[900] : Colors.grey[600],
-                          fontWeight: tempCityId != null ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                    if (tempCityId != null)
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
-                        color: Colors.purple,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          setState(() => tempCityId = null);
-                          controller.clear();
-                        },
-                      )
-                    else
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.grey[600],
-                      ),
-                  ],
-                ),
+              border: Border.all(
+                color: tempCityId != null
+                    ? Colors.purple
+                    : Colors.grey.shade300,
               ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    data.length == 3 ? data[2] : 'Seleccionar ciudad',
+                  ),
+                ),
+                if (tempCityId != null)
+                  GestureDetector(
+                    onTap: () => setState(() => tempCityId = null),
+                    child: const Icon(Icons.clear),
+                  )
+                else
+                  const Icon(Icons.arrow_drop_down),
+              ],
             ),
           ),
         );
       },
-      suggestionsBuilder: (BuildContext context, SearchController controller) async {
+      suggestionsBuilder: (context, controller) async {
         if (controller.text.length < 2) {
-          return [
+          return const [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.grey),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Escribe al menos 2 caracteres',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
+              padding: EdgeInsets.all(16),
+              child: Text('Escribe al menos 2 caracteres'),
+            )
           ];
         }
 
-        try {
-          final cities = await PostsService.searchCities(controller.text);
-          if (cities.isEmpty) {
-            return [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search_off, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    Text(
-                      'No se encontraron ciudades',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-            ];
-          }
+        final cities =
+            await PostsService.searchCities(controller.text);
 
-          return cities.map((city) {
-            return ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.purple[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.location_city, color: Colors.purple, size: 20),
-              ),
-              title: Text(
-                city.ciudad,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text('${city.estado}, ${city.pais}'),
-              onTap: () {
-                setState(() {
-                  tempCityId = city.id;
-                });
-                controller.closeView(city.ciudad);
-              },
-            );
-          }).toList();
-        } catch (e) {
-          return [
+        if (cities.isEmpty) {
+          return const [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: const [
-                  Icon(Icons.error, color: Colors.red),
-                  SizedBox(width: 12),
-                  Text(
-                    'Error al buscar ciudades',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ],
-              ),
-            ),
+              padding: EdgeInsets.all(16),
+              child: Text('No se encontraron ciudades'),
+            )
           ];
         }
+
+        return cities.map((c) {
+          return ListTile(
+            title: Text(c.ciudad),
+            subtitle: Text('${c.estado}, ${c.pais}'),
+            onTap: () {
+              setState(() => tempCityId = c.id);
+              controller.closeView(c.ciudad);
+            },
+          );
+        }).toList();
       },
     );
   }

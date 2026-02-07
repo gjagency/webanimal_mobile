@@ -30,10 +30,6 @@ class _ModernPostCardState extends State<ModernPostCard> {
 void initState() {
   super.initState();
   liked = widget.post.reacciones.isNotEmpty;
-
-  debugPrint('🧪 POST ID: ${widget.post.id}');
-  debugPrint('🧪 imageUrls: ${widget.post.imageUrls}');
-  debugPrint('🧪 imageUrls length: ${widget.post.imageUrls.length}');
 }
 
   // ================= TIEMPO =================

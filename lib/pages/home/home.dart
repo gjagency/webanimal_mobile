@@ -87,17 +87,9 @@ Future<void> _editarPost(Post post) async {
   // Limpiar listas por si venían de otro edit
   _newImages = [];
   _deleteImageIds = [];
-debugPrint('🧪 imageIdByUrl: ${post.imageIdByUrl}');
 
 _existingImages = post.imageUrls.map((url) {
   final id = post.imageIdByUrl[url];   // 👈 USAR URL COMPLETA
-
-  if (id == null) {
-    debugPrint('⚠️ WARNING: no se encontró ID para la URL $url');
-  } else {
-    debugPrint('✅ ID encontrado para $url → $id');
-  }
-debugPrint('🧪 PARSED IMAGE → id:$id url:$url');
 
   return PostImage(id: id, url: url);
 }).toList();
@@ -158,7 +150,6 @@ debugPrint('🧪 PARSED IMAGE → id:$id url:$url');
                             // Si tiene ID real, lo agregamos a deleteImageIds
                             if (img.id != null && !_deleteImageIds.contains(img.id)) {
                               _deleteImageIds.add(img.id!);
-                              debugPrint('🗑️ DELETE IMAGE ID: ${img.id}');
                             }
                             // Removemos la imagen de la UI
                             _existingImages.remove(img);
@@ -247,10 +238,6 @@ debugPrint('🧪 PARSED IMAGE → id:$id url:$url');
           _formKey.currentState!.save();
 
           setState(() => _isSavingEdit = true);
-
-          debugPrint('IMAGES TO DELETE: $_deleteImageIds');
-          debugPrint('NEW IMAGES COUNT: ${_newImages.length}');
-
           try {
             await PostsService.updatePostWithImages(
               postId: post.id.toString(),
@@ -609,8 +596,6 @@ Future<void> _loadData() async {
   Widget build(BuildContext context) {
     final hasFilters =
         selectedTypeId != null || selectedPetTypeId != null || selectedCityId != null || selectedDateRange != null;
-debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
