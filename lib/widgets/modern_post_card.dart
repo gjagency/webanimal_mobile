@@ -12,8 +12,9 @@ import 'package:mobile_app/service/posts_service.dart';
 
 class ModernPostCard extends StatefulWidget {
   final Post post;
+  final VoidCallback? onEdit;
 
-  const ModernPostCard({super.key, required this.post});
+  const ModernPostCard({super.key, required this.post, this.onEdit});
 
   @override
   State<ModernPostCard> createState() => _ModernPostCardState();
@@ -176,107 +177,122 @@ void _openImagePopup(BuildContext context, int initialIndex) {
   );
 }
 
+Widget _buildHeader(Color color, IconData icon) {
+  return Padding(
+    padding: const EdgeInsets.all(8),
+    child: Row(
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundImage:
+              widget.post.user.imageUrl != null ? NetworkImage(widget.post.user.imageUrl!) : null,
+          child: widget.post.user.imageUrl == null ? const Icon(Icons.person) : null,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.post.user.displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('${_getTimeAgo()} - ${widget.post.location.label}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ),
+        // BOTÓN DE EDICIÓN
+        if (widget.onEdit != null)
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.black54),
+            onPressed: widget.onEdit,
+          ),
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 14),
+              const SizedBox(width: 4),
+              Text(widget.post.postType.name,
+                  style: const TextStyle(color: Colors.white, fontSize: 11)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   // ================= BUILD =================
-  @override
-  Widget build(BuildContext context) {
-    final color = Color(int.parse(widget.post.postType.color.replaceAll('#', '0xff')));
-    final icon = IconData(int.parse(widget.post.postType.icon), fontFamily: 'MaterialIcons');
+@override
+Widget build(BuildContext context) {
+  // 🔹 Manejo seguro de color
+  final rawColor = widget.post.postType.color;
+  final color = (rawColor is int)
+      ? Color(rawColor as int)
+      : Color(int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ?? 0xFFCCCCCC);
 
-    return InkWell(
-      onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
-      onDoubleTap: _toggleLike,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.pink.withOpacity(0.25), blurRadius: 15, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // HEADER
-            _buildHeader(color, icon),
+  // 🔹 Manejo seguro de icon
+  final rawIcon = widget.post.postType.icon;
+  final iconData = (rawIcon is int)
+      ? IconData(rawIcon as int, fontFamily: 'MaterialIcons')
+      : IconData(
+          int.tryParse(rawIcon ?? '0xe3af') ?? 0xe3af,
+          fontFamily: 'MaterialIcons',
+        );
 
-            // IMÁGENES
-            if (widget.post.imageUrls.isNotEmpty)
-              SizedBox(
-                height: 350,
-                child: PageView.builder(
-                  itemCount: widget.post.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    final imageUrl = widget.post.imageUrls[index];
-                    return GestureDetector(
-                      onTap: () => _openImagePopup(context, index),
-                      child: Hero(
-                        tag: '${widget.post.id}_$index',
-                        child: Image.network(imageUrl, fit: BoxFit.cover),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            // ACCIONES
-            _buildActions(),
-
-            // DESCRIPCIÓN
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(widget.post.description),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= SUBWIDGETS =================
-  Widget _buildHeader(Color color, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundImage:
-                widget.post.user.imageUrl != null ? NetworkImage(widget.post.user.imageUrl!) : null,
-            child: widget.post.user.imageUrl == null ? const Icon(Icons.person) : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.post.user.displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('${_getTimeAgo()} - ${widget.post.location.label}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: Colors.white, size: 14),
-                const SizedBox(width: 4),
-                Text(widget.post.postType.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 11)),
-              ],
-            ),
+  return InkWell(
+    onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
+    onDoubleTap: _toggleLike,
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.pink.withOpacity(0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(color, iconData),
+          if (widget.post.imageUrls.isNotEmpty)
+            SizedBox(
+              height: 350,
+              child: PageView.builder(
+                itemCount: widget.post.imageUrls.length,
+                itemBuilder: (context, index) {
+                  final imageUrl = widget.post.imageUrls[index];
+                  return GestureDetector(
+                    onTap: () => _openImagePopup(context, index),
+                    child: Hero(
+                      tag: '${widget.post.id}_$index',
+                      child: Image.network(imageUrl, fit: BoxFit.cover),
+                    ),
+                  );
+                },
+              ),
+            ),
+          _buildActions(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(widget.post.description),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    ),
+  );
+}
+
 
   Widget _buildActions() {
     return Padding(

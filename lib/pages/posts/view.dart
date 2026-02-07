@@ -104,12 +104,23 @@ class _PagePostViewState extends State<PagePostView> {
 
     final post = _post!;
 
-    final color = Color(int.parse(post.postType.color.replaceAll('#', '0xff')));
-    final colors = [color.withValues(alpha: 0.7), color];
-    final icon = IconData(
-      int.parse(post.postType.icon),
-      fontFamily: 'MaterialIcons',
-    );
+final colorHex = post.postType.color ?? '#9E9E9E'; // gris default
+
+final color = Color(
+  int.parse(colorHex.replaceAll('#', '0xff')),
+);
+
+final colors = [
+  color.withValues(alpha: 0.7),
+  color,
+];
+
+final icon = IconData(
+  int.tryParse(post.postType.icon ?? '0xe87c') ?? 0xe87c, // fallback icon
+  fontFamily: 'MaterialIcons',
+);
+
+
 
 return Scaffold(
   backgroundColor: Colors.white,

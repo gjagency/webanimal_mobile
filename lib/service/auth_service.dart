@@ -11,6 +11,7 @@ class AuthService {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
   static String? get avatarUrl => _currentUser?['avatar'];
+  static String? get currentUserId => _currentUser?['id']?.toString();
   static String get displayNameSafe => displayName;
   static Map<String, dynamic>? _currentUser;
   static Map<String, dynamic>? get currentUser => _currentUser;

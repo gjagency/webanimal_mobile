@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -9,22 +10,43 @@ class PetType {
   final String id;
   final String name;
 
-  PetType({required this.id, required this.name});
+  PetType({
+    required this.id,
+    required this.name,
+  });
+
+  factory PetType.fromJson(Map<String, dynamic> json) {
+    return PetType(
+      id: json['id'].toString(),
+      name: json['nombre'] ?? json['name'] ?? '',
+    );
+  }
 }
+
 
 class PostType {
   final String id;
   final String name;
-  final String color;
-  final String icon;
+  final String? color;
+  final String? icon;
 
   PostType({
     required this.id,
     required this.name,
-    required this.color,
-    required this.icon,
+    this.color,
+    this.icon,
   });
+
+  factory PostType.fromJson(Map<String, dynamic> json) {
+    return PostType(
+      id: json['id'].toString(),
+      name: json['nombre'] ?? json['name'] ?? '',
+      color: json['color'],
+      icon: json['icono'] ?? json['icon'],
+    );
+  }
 }
+
 
 class City {
   final String id;
@@ -178,6 +200,8 @@ class Post {
   final int likes;
   final int comments;
   final List<String> reacciones;
+  final Map<String, int> imageIdByUrl;
+
 
   Post({
     required this.id,
@@ -192,6 +216,8 @@ class Post {
     this.likes = 0,
     this.comments = 0,
     this.reacciones = const [],
+    this.imageIdByUrl = const {},
+
   });
 }
 
@@ -234,6 +260,24 @@ class Comment {
       avatar: avatar,
       text: json['body'] ?? '',
       timestamp: DateTime.parse(json['fecha_creacion']),
+    );
+  }
+}
+
+class PostImage {
+  final int? id;   // ← ahora permite null
+  final String url;
+  bool markedForDelete; // flag para marcar borrado
+  PostImage({
+    this.id,
+    required this.url,
+    this.markedForDelete = false,
+  });
+
+  factory PostImage.fromJson(Map<String, dynamic> json) {
+    return PostImage(
+      id: json['id'],
+      url: json['imagen'],
     );
   }
 }
@@ -292,7 +336,7 @@ class PostsService {
     required String petTypeId,
     required String description,
     required String telefono,
-    required String imageBase64,
+    required List<String> imagesBase64,
     required double lat,
     required double lng,
     required String locationLabel,
@@ -302,7 +346,7 @@ class PostsService {
       'mascota_tipo': petTypeId,
       'descripcion': description,
       'telefono': telefono,
-      'imagen': imageBase64,
+      'imagenes': imagesBase64,
       'ubicacion_lat': lat,
       'ubicacion_lng': lng,
       'ubicacion_label': locationLabel,
@@ -311,8 +355,69 @@ class PostsService {
     if (response.statusCode == 201) {
       return _parsePost(jsonDecode(response.body));
     }
-    throw Exception('Error al crear post: ${response.statusCode}');
+    throw Exception('Error al crear post');
   }
+
+static Future<void> updatePostWithImages({
+  
+  required String postId,
+  Map<String, String>? fields,
+  List<File>? newImages,
+  List<int>? deleteImageIds,
+}) async {
+  final token = await AuthService.getAccessToken();
+print("IMAGES TO DELETE: $deleteImageIds");
+  final uri = Uri.parse('${Config.baseUrl}/api/posteos/$postId/');
+  final request = http.MultipartRequest('PUT', uri);
+
+  request.headers['Authorization'] = 'Bearer $token';
+
+  // =========================
+  // 🔹 CAMPOS NORMALES
+  // =========================
+  if (fields != null) {
+    fields.removeWhere((k, v) => v.isEmpty); // evita mandar ""
+    request.fields.addAll(fields);
+  }
+
+  // =========================
+  // 🗑️ IDS A BORRAR
+  // =========================
+if (deleteImageIds != null && deleteImageIds.isNotEmpty) {
+  request.fields['delete_images'] = jsonEncode(deleteImageIds);
+  print("🗑️ DELETE IDS SENT: ${jsonEncode(deleteImageIds)}");
+} else {
+  // NO se manda el campo si está vacío
+  print("🗑️ DELETE IDS SENT: NONE");
+}
+
+
+  // =========================
+  // 📸 NUEVAS IMÁGENES
+  // =========================
+  if (newImages != null && newImages.isNotEmpty) {
+    for (var img in newImages) {
+      request.files.add(await http.MultipartFile.fromPath('imagenes', img.path));
+    }
+    print("📸 NEW IMAGES: ${newImages.length}");
+  } else {
+    print("📸 NEW IMAGES: 0");
+  }
+
+  // =========================
+  // 🚀 ENVIAR
+  // =========================
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+
+  print("UPDATE STATUS: ${response.statusCode}");
+  print("UPDATE BODY: ${response.body}");
+
+  if (response.statusCode != 200) {
+    throw Exception("Error update post: ${response.body}");
+  }
+}
+
 
   // PUT: Actualizar post
   static Future<Post> updatePost(
@@ -320,6 +425,10 @@ class PostsService {
     Map<String, dynamic> updates,
   ) async {
     final token = await AuthService.getAccessToken();
+
+    // 🔹 Limpiar nulls para evitar 400 del backend
+    updates.removeWhere((key, value) => value == null);
+
     final response = await http.put(
       Uri.parse('${Config.baseUrl}/api/posteos/$postId/'),
       headers: {
@@ -329,11 +438,38 @@ class PostsService {
       body: jsonEncode(updates),
     );
 
+    // 👇 DEBUG REAL — MOSTRAR ERROR DEL BACKEND
+    print("UPDATE STATUS: ${response.statusCode}");
+    print("UPDATE BODY: ${response.body}");
+
     if (response.statusCode == 200) {
       return _parsePost(jsonDecode(response.body));
     }
-    throw Exception('Error al actualizar post: ${response.statusCode}');
+
+    throw Exception('Error al actualizar post: ${response.body}');
   }
+
+  static Future<List<Post>> getMisPosts() async {
+    final token = await AuthService.getAccessToken();
+    final response = await http.get(
+      Uri.parse('${Config.baseUrl}/api/mis_posteos/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      // 🔹 Usar _parsePost en lugar de fromJson
+      return data.map((e) => _parsePost(e)).toList();
+    } else if (response.statusCode == 401) {
+      throw Exception('No autorizado. Verifica tu sesión.');
+    } else {
+      throw Exception('Error al obtener mis posts: ${response.statusCode}');
+    }
+  }
+
 
   // DELETE: Eliminar post
   static Future<bool> deletePost(String postId) async {
@@ -432,51 +568,61 @@ static Future<List<Comment>> getComments(String postId) async {
     }
     throw Exception('Error al cargar tipos de posteos');
   }
-
-  // Parser privado
 static Post _parsePost(Map<String, dynamic> json) {
-  // 🧪 DEBUG
-
-  List<String> imageUrls = [];
-
+  // ================= IMÁGENES =================
   final rawImages = json['imagenes'];
+  final List<String> imageUrls = [];
+  final Map<String, int> imageIdByUrl = {};
 
   if (rawImages != null && rawImages is List) {
-    imageUrls = rawImages
-        .whereType<String>()
-        .map((raw) {
-          if (raw.startsWith('http')) {
-            return raw;
+    for (final img in rawImages) {
+      if (img == null) continue;
+
+      String url;
+      int? id;
+
+      if (img is String) {
+        // Si la imagen viene como string
+        url = img.startsWith('http') ? img : '${Config.baseUrl}$img';
+      } else if (img is Map<String, dynamic>) {
+        // Si la imagen viene como map
+        final rawUrl = img['imagen'] ?? img['url'];
+        if (rawUrl == null || rawUrl.toString().isEmpty) continue;
+
+        url = rawUrl.toString();
+        url = url.startsWith('http') ? url : '${Config.baseUrl}$url';
+
+        // ID opcional
+        if (img.containsKey('id')) {
+          final parsedId = img['id'];
+          if (parsedId != null) {
+            id = parsedId is int ? parsedId : int.tryParse(parsedId.toString());
           }
-          if (raw.startsWith('/')) {
-            return '${Config.baseUrl}$raw';
-          }
-          return null;
-        })
-        .whereType<String>()
-        .toList();
+        }
+      } else {
+        continue;
+      }
+
+      imageUrls.add(url);
+      if (id != null) {
+        imageIdByUrl[url] = id;
+      }
+    }
   }
 
-
-  print("🧪 PARSED imageUrls: $imageUrls");
-  print("🧪 imageUrls length: ${imageUrls.length}");
-  print("🧪 POST ID: ${json['id']}");
-  print("🧪 RAW imagenes: ${json['imagenes']}");
-  print("🧪 total_reacciones: ${json['total_reacciones']}");
-  print("🧪 total_comentarios: ${json['total_comentarios']}");
-  print("🧪 reacciones: ${json['reacciones']}");
+  // ================= POST =================
   return Post(
     id: json['id'].toString(),
     user: PostUser.fromJson(json['usuario'] ?? {}),
     postType: PostType(
       id: json['posteo_tipo']['id'].toString(),
-      name: json['posteo_tipo']['nombre'],
+      name: json['posteo_tipo']['nombre'] ?? '',
       color: json['posteo_tipo']['color'],
       icon: json['posteo_tipo']['icono'],
     ),
     petType: PetType(
       id: json['mascota_tipo']['id'].toString(),
-      name: json['mascota_tipo']['nombre'],
+      name: json['mascota_tipo']['nombre'] ?? '',
     ),
     imageUrls: imageUrls,
     description: json['descripcion'] ?? '',
@@ -487,18 +633,12 @@ static Post _parsePost(Map<String, dynamic> json) {
       lng: (json['ubicacion_lng'] ?? 0).toDouble(),
       label: json['ubicacion_label'] ?? '',
     ),
-    datetime: DateTime.parse(json['fecha_creacion']),
-
-    // ✅ ESTO ES LO QUE FALTABA
-    likes: (json['total_reacciones'] ?? 0) as int,
-    comments: (json['total_comentarios'] ?? 0) as int,
-    reacciones: (json['reacciones'] is List)
-        ? List<String>.from(
-            json['reacciones'].map((e) => e.toString()),
-          )
-        : [],
+    datetime: DateTime.tryParse(json['fecha_creacion'] ?? '') ?? DateTime.now(),
+    likes: json['total_reacciones'] ?? 0,
+    comments: json['total_comentarios'] ?? 0,
+    reacciones: (json['reacciones'] as List?)?.map((e) => e.toString()).toList() ?? [],
+    imageIdByUrl: imageIdByUrl,
   );
-
 }
 
 

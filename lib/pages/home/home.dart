@@ -30,6 +30,10 @@ class _PageHomeState extends State<PageHome> {
   DateTimeRange? selectedDateRange;
   bool? esVeterinariaLogueada;
   List<PromocionesPorVeterinaria> _promocionesAgrupadas = [];
+  List<File> _newImages = [];        // imágenes nuevas elegidas
+  List<int> _deleteImageIds = [];
+  List<PostImage> _existingImages = [];    // ids de imágenes a borrar (opcional)
+  bool _isSavingEdit = false;
 
   List<Post> _posts = [];
   List<PostType> _postTypes = [];
@@ -74,52 +78,315 @@ class _PageHomeState extends State<PageHome> {
     }
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+Future<void> _editarPost(Post post) async {
+  final _formKey = GlobalKey<FormState>();
+  String description = post.description;
 
-      try {
-        if (selectedTypeId == 'promociones') {
-          List<dynamic> data = AuthService.esVeterinaria
-              ? await AuthService.getMisPromociones()
-              : await AuthService.getOfertasPromociones();
+  final ImagePicker _picker = ImagePicker();
 
+  // Limpiar listas por si venían de otro edit
+  _newImages = [];
+  _deleteImageIds = [];
+debugPrint('🧪 imageIdByUrl: ${post.imageIdByUrl}');
+
+_existingImages = post.imageUrls.map((url) {
+  final id = post.imageIdByUrl[url];   // 👈 USAR URL COMPLETA
+
+  if (id == null) {
+    debugPrint('⚠️ WARNING: no se encontró ID para la URL $url');
+  } else {
+    debugPrint('✅ ID encontrado para $url → $id');
+  }
+debugPrint('🧪 PARSED IMAGE → id:$id url:$url');
+
+  return PostImage(id: id, url: url);
+}).toList();
+
+
+
+
+
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Editar Post', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Descripción
+                TextFormField(
+                  initialValue: description,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: null,
+                  validator: (v) => v == null || v.isEmpty ? 'Ingrese una descripción' : null,
+                  onSaved: (v) => description = v ?? '',
+                ),
+                const SizedBox(height: 12),
+
+                // IMÁGENES
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    // 🔹 Existentes
+                    ..._existingImages.map((img) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              img.url,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                          setState(() {
+                            // Si tiene ID real, lo agregamos a deleteImageIds
+                            if (img.id != null && !_deleteImageIds.contains(img.id)) {
+                              _deleteImageIds.add(img.id!);
+                              debugPrint('🗑️ DELETE IMAGE ID: ${img.id}');
+                            }
+                            // Removemos la imagen de la UI
+                            _existingImages.remove(img);
+                          });
+                        },
+
+
+                              child: const Icon(Icons.cancel, color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+
+                    // 🔹 Nuevas (local)
+                    ..._newImages.map((file) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              file,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _newImages.remove(file);
+                                });
+                              },
+                              child: const Icon(Icons.cancel, color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Botón agregar imagen
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.image),
+                  label: const Text('Agregar Imagen'),
+                  onPressed: () async {
+                    final totalImages = _existingImages.length + _newImages.length;
+                    if (totalImages >= 3) {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const AlertDialog(
+                          content: Text('Solo podés agregar hasta 3 imágenes'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null) {
+                      setState(() {
+                        _newImages.add(File(picked.path));
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+         ElevatedButton(
+  onPressed: _isSavingEdit
+      ? null
+      : () async {
+          if (!_formKey.currentState!.validate()) return;
+          _formKey.currentState!.save();
+
+          setState(() => _isSavingEdit = true);
+
+          debugPrint('IMAGES TO DELETE: $_deleteImageIds');
+          debugPrint('NEW IMAGES COUNT: ${_newImages.length}');
+
+          try {
+            await PostsService.updatePostWithImages(
+              postId: post.id.toString(),
+              fields: {'body': description},
+              newImages: _newImages,
+              deleteImageIds: _deleteImageIds,
+            );
+
+            if (!context.mounted) return;
+
+            Navigator.pop(context);
+
+            // ===============================
+            // POPUP ÉXITO PRO
+            // ===============================
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, color: Colors.green, size: 48),
+                    SizedBox(height: 12),
+                    Text(
+                      'Post actualizado',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Los cambios se guardaron correctamente',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      if (Navigator.canPop(dialogContext)) {
+                        Navigator.pop(dialogContext);
+                      }
+                    },
+                    child: const Text('OK'),
+                  )
+                ],
+              ),
+            );
+
+
+            await _loadData();
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al actualizar post: $e')),
+            );
+          } finally {
+            if (mounted) setState(() => _isSavingEdit = false);
+          }
+        },
+  child: _isSavingEdit
+      ? const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : const Text('Guardar'),
+),
+
+        ],
+      ),
+    ),
+  );
+}
+
+
+Future<void> _loadData() async {
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
+
+  try {
+    // Promociones
+    if (selectedTypeId == 'promociones') {
+      List<dynamic> data = AuthService.esVeterinaria
+          ? await AuthService.getMisPromociones()
+          : await AuthService.getOfertasPromociones();
+
+      setState(() {
+        _promocionesAgrupadas =
+            data.map((e) => PromocionesPorVeterinaria.fromJson(e)).toList();
+        _posts = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Mis Posts
+        if (selectedTypeId == 'mis_posts') {
+          final results = await PostsService.getMisPosts(); // nuevo método
           setState(() {
-            _promocionesAgrupadas =
-                data.map((e) => PromocionesPorVeterinaria.fromJson(e)).toList();
-            _posts = [];
+            _posts = results;
+            _promocionesAgrupadas = [];
             _isLoading = false;
           });
           return;
         }
 
-      final results = await Future.wait([
-        PostsService.getPosts(
-          postType: selectedTypeId,
-          petType: selectedPetTypeId,
-          cityId: selectedCityId,
-          lat: _currentPosition?.latitude,
-          lng: _currentPosition?.longitude,
-        ),
-        PostsService.getPostTypes(),
-        PostsService.getPetTypes(),
-      ]);
+    // Solo para tipos de posts numéricos
+    final results = await Future.wait([
+      PostsService.getPosts(
+        postType: selectedTypeId,// <- aquí solo irán IDs numéricos
+        petType: selectedPetTypeId,
+        cityId: selectedCityId,
+        lat: _currentPosition?.latitude,
+        lng: _currentPosition?.longitude,
+      ),
+      PostsService.getPostTypes(),
+      PostsService.getPetTypes(),
+    ]);
 
-      setState(() {
-        _posts = results[0] as List<Post>;
-        _postTypes = results[1] as List<PostType>;
-        _petTypes = results[2] as List<PetType>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      _posts = results[0] as List<Post>;
+      _postTypes = results[1] as List<PostType>;
+      _petTypes = results[2] as List<PetType>;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _error = e.toString();
+      _isLoading = false;
+    });
   }
+}
 
   void _mostrarCrearPromocionDialog() {
     showDialog(
@@ -419,6 +686,18 @@ debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
                           },
                         ),
                         const SizedBox(width: 8),
+                        // NUEVO CHIP "Mis Post"
+                        if (AuthService.currentUser != null)
+                          QuickFilterChip(
+                            label: 'Mis Post',
+                            icon: Icons.person, // puedes cambiar el icono
+                            isSelected: selectedTypeId == 'mis_posts',
+                            onTap: () {
+                              setState(() => selectedTypeId = 'mis_posts');
+                              _loadData();
+                            },
+                          ),
+                        const SizedBox(width: 8),
                         ..._postTypes.take(3).map(
                           (type) => Padding(
                             padding: const EdgeInsets.only(right: 8),
@@ -435,6 +714,7 @@ debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
                         ),
                       ],
                     ),
+
                   ),
                 ),
                 IconButton(
@@ -486,7 +766,9 @@ debugPrint('PROMOS AGRUPADAS: ${_promocionesAgrupadas.length}');
                         error: _error,
                         selectedTypeId: selectedTypeId,
                         onRefresh: _loadData,
+                        onEditPost: _editarPost, // 🔥 ACÁ
                       ),
+
           ),
 
         ],
@@ -506,6 +788,7 @@ floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 }
+
 
 /// -------------------------
 /// SPEEDDIAL CON TU DISEÑO
@@ -644,4 +927,5 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
       ),
     );
   }
+  
 }
