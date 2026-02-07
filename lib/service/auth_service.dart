@@ -22,6 +22,22 @@ class AuthService {
     serverClientId:
         '824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com',
   );
+/// 👤 PERFIL DE OTRO USUARIO POR ID
+static Future<Map<String, dynamic>?> getUserById(String userId) async {
+  try {
+    final response = await getWithToken('/api/users/$userId/');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+
+    debugPrint('Error getUserById: ${response.statusCode}');
+    return null;
+  } catch (e) {
+    debugPrint('Exception getUserById: $e');
+    return null;
+  }
+}
 
   static Future<void> loadCurrentUser() async {
     try {

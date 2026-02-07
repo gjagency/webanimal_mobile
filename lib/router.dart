@@ -28,6 +28,7 @@ import 'package:mobile_app/pages/posts/view.dart';
 // PROFILES
 import 'package:mobile_app/pages/profiles/public.dart';
 import 'package:mobile_app/service/page_auth_register_vet.dart';
+import 'package:mobile_app/service/user_profile_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -69,6 +70,13 @@ final router = GoRouter(
       path: '/auth/otp',
       builder: (context, state) => const PageAuthOTP(),
     ),
+    GoRoute(
+  path: '/user-posts/:userId',
+  builder: (context, state) {
+    final userId = state.pathParameters['userId']!;
+    return UserPostsPage(userId: userId);
+  },
+),
 
     // 🔐 RESET PASSWORD (con uid + token)
     GoRoute(

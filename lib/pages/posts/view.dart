@@ -59,22 +59,25 @@ class _PagePostViewState extends State<PagePostView> {
     await _loadPost();
   }
 
-  Future<void> _addComment() async {
-    if (_commentController.text.isEmpty) return;
+Future<void> _addComment() async {
+  if (_commentController.text.isEmpty) return;
 
-    try {
-      await PostsService.addComment(widget.postId, _commentController.text);
-      _commentController.clear();
-      _loadPost();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Comentario agregado')));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al comentar')));
-    }
+  try {
+    await PostsService.addComment(widget.postId, _commentController.text);
+    _commentController.clear();
+    FocusScope.of(context).unfocus(); // 👈 cierra teclado
+    _loadPost();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Comentario agregado')),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error al comentar')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -230,25 +233,49 @@ return Scaffold(
 
             // Acciones
             Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: _toggleLike,
-                    child: Row(
-                      children: [
-                        post.reacciones.isNotEmpty
-                            ? Icon(Icons.favorite, size: 28, color: Colors.red)
-                            : Icon(Icons.favorite_border, size: 28),
-                        SizedBox(width: 4),
-                        Text('${post.likes}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 20),
-                ],
+  padding: EdgeInsets.all(16),
+  child: Row(
+    children: [
+      /// ❤️ LIKE
+      GestureDetector(
+        onTap: _toggleLike,
+        child: Row(
+          children: [
+            post.reacciones.isNotEmpty
+                ? Icon(Icons.favorite, size: 28, color: Colors.red)
+                : Icon(Icons.favorite_border, size: 28),
+            SizedBox(width: 4),
+            Text(
+              '${post.likes}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
+          ],
+        ),
+      ),
+
+      SizedBox(width: 20),
+
+      /// 💬 COMENTARIOS
+      Row(
+        children: [
+          Icon(Icons.chat_bubble_outline, size: 26, color: Colors.grey[700]),
+          SizedBox(width: 4),
+          Text(
+            '${post.comments ?? _comments.length}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+),
+
 
             // Descripción
             Padding(
@@ -290,28 +317,36 @@ return Scaffold(
             SizedBox(height: 80), // para que no quede pegado al bottom
           ],
         ),
-        bottomNavigationBar: Container(
-        padding: EdgeInsets.all(16),
-        color: Colors.white,
-        child: SafeArea(
-          child: Row(
-            children: [
-              /// 👇 ESTE AVATAR
-              CircleAvatar(
+        bottomNavigationBar: AnimatedPadding(
+  duration: const Duration(milliseconds: 150),
+  padding: EdgeInsets.only(
+    bottom: MediaQuery.of(context).viewInsets.bottom,
+  ),
+  child: Container(
+    padding: const EdgeInsets.all(12),
+    color: Colors.white,
+    child: SafeArea(
+      top: false,
+      child: Row(
+        children: [
+          CircleAvatar(
             radius: 22,
-            backgroundImage: post.user.imageUrl != null
-                ? NetworkImage(post.user.imageUrl!)
+            backgroundImage: _post?.user.imageUrl != null
+                ? NetworkImage(_post!.user.imageUrl!)
                 : null,
             backgroundColor: Colors.grey[300],
-            child: post.user.imageUrl == null
-                ? Icon(Icons.person, color: Colors.white)
+            child: _post?.user.imageUrl == null
+                ? const Icon(Icons.person, color: Colors.white)
                 : null,
           ),
 
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
+
           Expanded(
             child: TextField(
               controller: _commentController,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _addComment(),
               decoration: InputDecoration(
                 hintText: 'Escribe un comentario...',
                 border: OutlineInputBorder(
@@ -320,18 +355,25 @@ return Scaffold(
                 ),
                 filled: true,
                 fillColor: Colors.grey[100],
-                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
             ),
           ),
-          SizedBox(width: 8),
+
+          const SizedBox(width: 8),
+
           Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.purple, Colors.pink]),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.purple, Colors.pink],
+              ),
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: Icon(Icons.send, color: Colors.white),
+              icon: const Icon(Icons.send, color: Colors.white),
               onPressed: _addComment,
             ),
           ),
@@ -339,6 +381,8 @@ return Scaffold(
       ),
     ),
   ),
+),
+
 );
 
   }

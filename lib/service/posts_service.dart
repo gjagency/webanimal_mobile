@@ -665,4 +665,18 @@ static Post _parsePost(Map<String, dynamic> json) {
     }
     throw Exception('Error al buscar ciudades');
   }
+
+  static Future<List<Post>> getPostsByUser(String userId) async {
+  final response = await AuthService.getWithToken(
+    '/api/posteos/?usuario=$userId',
+  );
+
+  if (response.statusCode == 200) {
+    final List data = jsonDecode(response.body);
+    return data.map((e) => _parsePost(e)).toList(); // ✅ usar TU parser real
+  }
+
+  throw Exception('Error cargando posts del usuario: ${response.statusCode}');
+}
+
 }
