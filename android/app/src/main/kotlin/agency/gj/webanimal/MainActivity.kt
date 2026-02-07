@@ -1,4 +1,4 @@
-package com.example.mobile_app
+package agency.gj.webanimal
 
 import android.content.Intent
 import android.net.Uri
