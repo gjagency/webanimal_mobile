@@ -67,20 +67,62 @@ class _UserPostsPageState extends State<UserPostsPage> {
       );
     }
 
-    final avatar = _profile?['avatar'];
-    final displayName =
-        "${_profile?['first_name'] ?? ''} ${_profile?['last_name'] ?? ''}"
-            .trim()
-            .isNotEmpty
-        ? "${_profile?['first_name'] ?? ''} ${_profile?['last_name'] ?? ''}"
-        : _profile?['username'] ?? "Perfil";
-final avatarUrl = _profile?['avatar'];
+    final avatarUrl = _profile?['avatar'];
+    final bio = _profile?['bio'] ?? "";
+
+    final bool isVet = _profile?['es_veterinaria'] == true;
+    final String nombreComercial = _profile?['nombre_comercial'] ?? "";
+
+    final String displayName =
+        (_profile?['display_name'] ?? "").toString().isNotEmpty
+            ? _profile!['display_name']
+            : _profile?['username'] ?? "Perfil";
+
+    final String nombreFinal =
+        isVet && nombreComercial.isNotEmpty ? nombreComercial : displayName;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(displayName),
-        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('WebAnimal',
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+            if (AuthService.currentUser != null)
+              Text(
+                'Hola ${AuthService.displayName}',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 12,
+                ),
+              ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+              onPressed: () => GoRouter.of(context).push('/account/notifications')),
+          IconButton(
+              icon: const Icon(Icons.person_2_rounded, color: Colors.black),
+              onPressed: () => GoRouter.of(context).push('/account/settings')),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -90,40 +132,77 @@ final avatarUrl = _profile?['avatar'];
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// AVATAR
-CircleAvatar(
-  radius: 40,
-  backgroundColor: Colors.grey[300],
-  backgroundImage: avatarUrl != null && avatarUrl.toString().isNotEmpty
-      ? NetworkImage(avatarUrl)
-      : null,
-  child: (avatarUrl == null || avatarUrl.toString().isEmpty)
-      ? const Icon(Icons.person, color: Colors.white, size: 40)
-      : null,
-),
+                    Row(
+                      children: [
+                        /// AVATAR
+                        CircleAvatar(
+                          radius: 42,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage:
+                              avatarUrl != null && avatarUrl.toString().isNotEmpty
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                          child: (avatarUrl == null || avatarUrl.toString().isEmpty)
+                              ? const Icon(Icons.person,
+                                  color: Colors.white, size: 40)
+                              : null,
+                        ),
 
-           
+                        const SizedBox(width: 20),
 
-
-                    const SizedBox(width: 20),
-
-                    /// STATS
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _stat(_posts.length.toString(), "Posts"),
-                          _stat(
-                              (_profile?['followers'] ?? 0).toString(),
-                              "Seguidores"),
-                          _stat(
-                              (_profile?['following'] ?? 0).toString(),
-                              "Siguiendo"),
-                        ],
-                      ),
+                        /// STATS
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _stat(
+                                  _profile?['posts_count']?.toString() ?? "0",
+                                  "Posts"),
+                              _stat(
+                                  _profile?['followers_count']?.toString() ??
+                                      "0",
+                                  "Seguidores"),
+                              _stat(
+                                  _profile?['following_count']?.toString() ??
+                                      "0",
+                                  "Siguiendo"),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+
+                    const SizedBox(height: 12),
+
+                    /// NOMBRE + BADGE
+                    Row(
+                      children: [
+                        Text(
+                          nombreFinal,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (isVet) ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.verified,
+                              color: Colors.blue, size: 18),
+                        ],
+                      ],
+                    ),
+
+                    /// BIO
+                    if (bio.toString().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        bio,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -140,7 +219,7 @@ CircleAvatar(
                       : "https://via.placeholder.com/300";
 
                   return GestureDetector(
-                    onTap: () => context.push('/post/${post.id}'),
+                    onTap: () => _openImageViewer(post, imageUrl),
                     child: Hero(
                       tag: 'post_${post.id}',
                       child: Image.network(
@@ -148,12 +227,12 @@ CircleAvatar(
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: Colors.grey[200],
-                          child:
-                              const Icon(Icons.pets, color: Colors.grey),
+                          child: const Icon(Icons.pets, color: Colors.grey),
                         ),
                       ),
                     ),
                   );
+
                 },
                 childCount: _posts.length,
               ),
@@ -175,15 +254,61 @@ CircleAvatar(
       children: [
         Text(
           value,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 16),
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         Text(
           label,
-          style: const TextStyle(
-              fontSize: 12, color: Colors.grey),
+          style:
+              const TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
     );
   }
+  
+void _openImageViewer(Post post, String imageUrl) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black,
+    builder: (_) {
+      return GestureDetector(
+        onVerticalDragUpdate: (details) {
+          if (details.primaryDelta != null && details.primaryDelta! > 10) {
+            Navigator.pop(context);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Center(
+                child: Hero(
+                  tag: 'post_${post.id}',
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+
+              /// BOTON CERRAR
+              Positioned(
+                top: 40,
+                right: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 }

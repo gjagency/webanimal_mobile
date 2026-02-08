@@ -383,22 +383,35 @@ static Future<bool> registerVeterinaria({
   /* ==========================================================
      GET PROFILE
      ========================================================== */
-  static Future<Map<String, dynamic>> getProfile() async {
-    try {
-      final response = await getWithToken('/api/auth/profile/');
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      } else {
-        debugPrint(
-          'Error al obtener perfil: ${response.statusCode} ${response.body}',
-        );
-        return {};
-      }
-    } catch (e) {
-      debugPrint('Excepción en getProfile: $e');
-      return {};
+static Future<Map<String, dynamic>> getProfile() async {
+  try {
+    final response = await getWithToken('/api/auth/profile/');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      /// 🔥 GUARDAMOS EL USUARIO GLOBAL
+      _currentUser = data;
+
+      debugPrint('👤 PROFILE LOADED');
+      debugPrint('ID: ${data['id']}');
+      debugPrint('NAME: ${data['display_name']}');
+      debugPrint('AVATAR: ${data['avatar']}');
+      debugPrint('VET: ${data['es_veterinaria']}');
+
+      return data;
     }
+
+    debugPrint(
+      'Error al obtener perfil: ${response.statusCode} ${response.body}',
+    );
+    return {};
+  } catch (e) {
+    debugPrint('Excepción en getProfile: $e');
+    return {};
   }
+}
+
 /* ==========================================================
    PROMOCIONES DE MI VETERINARIA
    ========================================================== */
