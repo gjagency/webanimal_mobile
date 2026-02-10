@@ -16,13 +16,14 @@ class ModernPostCard extends StatefulWidget {
 
   const ModernPostCard({super.key, required this.post, this.onEdit});
 
+
   @override
   State<ModernPostCard> createState() => _ModernPostCardState();
 }
 
 class _ModernPostCardState extends State<ModernPostCard> {
   static const _channel = MethodChannel('share_to_facebook');
-
+int _currentImageIndex = 0;
   bool liked = false;
   int likesIncrement = 0;
 
@@ -131,26 +132,26 @@ void initState() {
 void _openImagePopup(BuildContext context, int initialIndex) {
   showDialog(
     context: context,
-    barrierDismissible: true,
-    barrierColor: Colors.black.withOpacity(0.7),
+    barrierDismissible: true, // permite cerrar tocando fuera
+    barrierColor: Colors.black.withOpacity(0.8),
     builder: (context) {
-              return GestureDetector(
-                  behavior: HitTestBehavior.opaque, // 👈 CLAVE
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () {}, // no cierra al tocar imagen
-                        child: Dialog(
-
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).pop(), // 👈 tap fuera = cerrar
+        child: Material(
+          color: Colors.transparent,
+          child: Center(
+            child: GestureDetector(
+              onTap: () {}, // 👈 evita que tocar la imagen cierre
+              child: Dialog(
                 backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.all(16),
+                insetPadding: const EdgeInsets.all(12),
                 child: PageView.builder(
                   controller: PageController(initialPage: initialIndex),
                   itemCount: widget.post.imageUrls.length,
                   itemBuilder: (context, index) {
                     final imageUrl = widget.post.imageUrls[index];
+
                     return InteractiveViewer(
                       minScale: 1,
                       maxScale: 3,
@@ -172,6 +173,7 @@ void _openImagePopup(BuildContext context, int initialIndex) {
     },
   );
 }
+
 
 Widget _buildHeader(Color color, IconData icon) {
   return Padding(
@@ -273,23 +275,108 @@ Widget build(BuildContext context) {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(color, iconData),
-          if (widget.post.imageUrls.isNotEmpty)
-            SizedBox(
-              height: 350,
-              child: PageView.builder(
-                itemCount: widget.post.imageUrls.length,
-                itemBuilder: (context, index) {
-                  final imageUrl = widget.post.imageUrls[index];
-                  return GestureDetector(
-                    onTap: () => _openImagePopup(context, index),
-                    child: Hero(
-                      tag: '${widget.post.id}_$index',
-                      child: Image.network(imageUrl, fit: BoxFit.cover),
-                    ),
-                  );
-                },
+         if (widget.post.imageUrls.isNotEmpty)
+  SizedBox(
+    height: 350,
+    child: Stack(
+      children: [
+        /// ================= PAGEVIEW =================
+        PageView.builder(
+          itemCount: widget.post.imageUrls.length,
+          onPageChanged: (i) {
+            setState(() => _currentImageIndex = i);
+          },
+          itemBuilder: (context, index) {
+            final imageUrl = widget.post.imageUrls[index];
+
+            return GestureDetector(
+              onTap: () => _openImagePopup(context, index),
+              onDoubleTap: _toggleLike,
+              child: Hero(
+                tag: '${widget.post.id}_$index',
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              ),
+            );
+          },
+        ),
+
+        /// ================= +X (SOLO PRIMERA IMAGEN) =================
+        if (widget.post.imageUrls.length > 1 && _currentImageIndex == 0)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.65),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '+${widget.post.imageUrls.length - 1}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+          ),
+
+        /// ================= CONTADOR =================
+        if (widget.post.imageUrls.length > 1)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+
+        /// ================= DOTS =================
+        if (widget.post.imageUrls.length > 1)
+          Positioned(
+            bottom: 12,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                widget.post.imageUrls.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _currentImageIndex ? 8 : 6,
+                  height: i == _currentImageIndex ? 8 : 6,
+                  decoration: BoxDecoration(
+                    color: i == _currentImageIndex
+                        ? Colors.white
+                        : Colors.white38,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  ),
+
+
           _buildActions(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -174,10 +174,19 @@ return Scaffold(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post.user.displayName,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        GestureDetector(
+                          onTap: () {
+                            context.push('/user-posts/${post.user.id}');
+                          },
+                          child: Text(
+                            post.user.displayName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
+
                         Text(
                           "${_getTimeAgo(post.datetime)} - ${post.location.label}",
                           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -440,13 +449,21 @@ class CommentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        comment.displayName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                      GestureDetector(
+                        onTap: () {
+                          if (comment.userId != null) {
+                            context.push('/user-posts/${comment.userId}');
+                          }
+                        },
+                        child: Text(
+                          comment.displayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
+
                       SizedBox(height: 4),
                       Text(comment.text, style: TextStyle(fontSize: 14)),
                     ],

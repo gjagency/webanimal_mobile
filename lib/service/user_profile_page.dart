@@ -219,19 +219,45 @@ class _UserPostsPageState extends State<UserPostsPage> {
                       : "https://via.placeholder.com/300";
 
                   return GestureDetector(
-                    onTap: () => _openImageViewer(post, imageUrl),
-                    child: Hero(
-                      tag: 'post_${post.id}',
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.pets, color: Colors.grey),
+                    onTap: () => _openImageViewer(post, 0),
+                    child: Stack(
+                      children: [
+                        /// IMAGEN
+                        Positioned.fill(
+                          child: Hero(
+                            tag: '${post.id}_0',
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
-                      ),
+
+                        /// OVERLAY +X IMAGENES
+                        if (post.imageUrls.length > 1)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.65),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '+${post.imageUrls.length - 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   );
+
 
                 },
                 childCount: _posts.length,
@@ -266,49 +292,135 @@ class _UserPostsPageState extends State<UserPostsPage> {
     );
   }
   
-void _openImageViewer(Post post, String imageUrl) {
+void _openImageViewer(Post post, int initialIndex) {
+  final PageController controller = PageController(initialPage: initialIndex);
+  int currentIndex = initialIndex;
+  bool showHeart = false;
+
+  /// PRECARGA IMAGENES (ULTRA SMOOTH)
+  for (var url in post.imageUrls) {
+    precacheImage(NetworkImage(url), context);
+  }
+
   showDialog(
     context: context,
     barrierColor: Colors.black,
     builder: (_) {
-      return GestureDetector(
-        onVerticalDragUpdate: (details) {
-          if (details.primaryDelta != null && details.primaryDelta! > 10) {
-            Navigator.pop(context);
-          }
-        },
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: Stack(
-            children: [
-              Center(
-                child: Hero(
-                  tag: 'post_${post.id}',
-                  child: InteractiveViewer(
-                    minScale: 1,
-                    maxScale: 4,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return GestureDetector(
+            onVerticalDragUpdate: (details) {
+              if (details.primaryDelta != null && details.primaryDelta! > 12) {
+                Navigator.pop(context);
+              }
+            },
+            child: Scaffold(
+              backgroundColor: Colors.black,
+              body: Stack(
+                children: [
+                  /// ================= PAGEVIEW =================
+                  PageView.builder(
+                    controller: controller,
+                    itemCount: post.imageUrls.length,
+                    onPageChanged: (i) =>
+                        setState(() => currentIndex = i),
+                    itemBuilder: (context, index) {
+                      final imageUrl = post.imageUrls[index];
+
+                      return GestureDetector(
+                        onDoubleTap: () async {
+                          setState(() => showHeart = true);
+                          await Future.delayed(
+                              const Duration(milliseconds: 700));
+                          if (mounted) setState(() => showHeart = false);
+                        },
+                        child: Center(
+                          child: Hero(
+                            tag: '${post.id}_$index',
+                            child: InteractiveViewer(
+                              minScale: 1,
+                              maxScale: 4,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 250),
+                                opacity: 1,
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  /// ================= HEART ANIMATION =================
+                  if (showHeart)
+                    Center(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.4, end: 1.0),
+                        duration: const Duration(milliseconds: 400),
+                        builder: (context, scale, child) {
+                          return Transform.scale(
+                            scale: scale,
+                            child: const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 110,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  /// ================= CLOSE =================
+                  Positioned(
+                    top: 40,
+                    right: 20,
+                    child: IconButton(
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 28),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                ),
-              ),
 
-              /// BOTON CERRAR
-              Positioned(
-                top: 40,
-                right: 20,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                  onPressed: () => Navigator.pop(context),
-                ),
+                  /// ================= DOTS =================
+                  if (post.imageUrls.length > 1)
+                    Positioned(
+                      bottom: 35,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          post.imageUrls.length,
+                          (i) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            margin:
+                                const EdgeInsets.symmetric(horizontal: 3),
+                            width: i == currentIndex ? 10 : 6,
+                            height: i == currentIndex ? 10 : 6,
+                            decoration: BoxDecoration(
+                              color: i == currentIndex
+                                  ? Colors.white
+                                  : Colors.white38,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     },
   );
 }
+
+
+
 }

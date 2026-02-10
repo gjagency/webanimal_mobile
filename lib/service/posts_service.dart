@@ -223,6 +223,7 @@ class Post {
 
 class Comment {
   final String id;
+  final String? userId;
   final String username;
   final String displayName;
   final String? avatar;
@@ -231,6 +232,7 @@ class Comment {
 
   Comment({
     required this.id,
+    required this.userId,
     required this.username,
     required this.displayName,
     required this.avatar,
@@ -255,6 +257,7 @@ class Comment {
 
     return Comment(
       id: json['id'].toString(),
+      userId: json['user_id']?.toString(),
       username: user['username'] ?? 'unknown',
       displayName: json['display_name'] ?? user['username'], // ✅ aquí usamos directamente el display_name del backend
       avatar: avatar,
