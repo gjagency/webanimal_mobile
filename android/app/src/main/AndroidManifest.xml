@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="mobile_app"
+        android:label="WebAnimal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -38,10 +38,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="myapp" android:host="reset-password"/>
             </intent-filter>
 
             <intent-filter>
