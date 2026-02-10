@@ -304,27 +304,7 @@ Widget build(BuildContext context) {
           },
         ),
 
-        /// ================= +X (SOLO PRIMERA IMAGEN) =================
-        if (widget.post.imageUrls.length > 1 && _currentImageIndex == 0)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.65),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '+${widget.post.imageUrls.length - 1}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
+       
 
         /// ================= CONTADOR =================
         if (widget.post.imageUrls.length > 1)
