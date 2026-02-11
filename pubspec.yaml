@@ -2,7 +2,7 @@ name: mobile_app
 description: "Webanimal mobile app"
 publish_to: 'none'
 
-version: 1.0.2+3
+version: 1.0.5+5
 
 environment:
   sdk: ^3.10.4
@@ -28,10 +28,12 @@ dependencies:
   intl: ^0.18.1
   share_plus: ^12.0.1
   app_links: ^7.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -39,3 +41,7 @@ flutter:
     - assets/
     - .env
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
