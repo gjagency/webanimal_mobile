@@ -3,14 +3,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="WebAnimal"
+        android:label="mobile_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-
-        <!-- 🔑 GOOGLE SIGN-IN (OBLIGATORIO) -->
-        <meta-data
-            android:name="com.google.android.gms.auth.api.signin.CLIENT_ID"
-            android:value="824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -35,21 +30,21 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
 
+            <!-- ✅ SOLO LAUNCHER -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
-
             </intent-filter>
 
+            <!-- ✅ DEEP LINK 1 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="myapp" android:host="reset-password"/>
-
             </intent-filter>
 
-
+            <!-- ✅ DEEP LINK 2 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

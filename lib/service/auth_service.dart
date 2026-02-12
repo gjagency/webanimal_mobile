@@ -20,7 +20,7 @@ class AuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     serverClientId:
-        '824173925704-911j6uatk6hqj9rsv07dr4opud7ar4kl.apps.googleusercontent.com',
+        '824173925704-i58f7kng6ibl35dph0dk35a2ops2ulil.apps.googleusercontent.com',
   );
 /// 👤 PERFIL DE OTRO USUARIO POR ID
 static Future<Map<String, dynamic>?> getUserById(String userId) async {

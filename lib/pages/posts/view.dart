@@ -118,10 +118,23 @@ final colors = [
   color,
 ];
 
-final icon = IconData(
-  int.tryParse(post.postType.icon ?? '0xe87c') ?? 0xe87c, // fallback icon
-  fontFamily: 'MaterialIcons',
-);
+IconData _mapIcon(String? iconCode) {
+  switch (iconCode) {
+    case '0xe87c':
+      return Icons.pets;
+    case '0xe7fd':
+      return Icons.person;
+    case '0xe87d':
+      return Icons.favorite;
+    case '0xe0b7':
+      return Icons.chat;
+    default:
+      return Icons.pets;
+  }
+}
+
+final icon = _mapIcon(post.postType.icon);
+
 
 
 

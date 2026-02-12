@@ -246,14 +246,24 @@ Widget build(BuildContext context) {
       ? Color(rawColor as int)
       : Color(int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ?? 0xFFCCCCCC);
 
-  // 🔹 Manejo seguro de icon
-  final rawIcon = widget.post.postType.icon;
-  final iconData = (rawIcon is int)
-      ? IconData(rawIcon as int, fontFamily: 'MaterialIcons')
-      : IconData(
-          int.tryParse(rawIcon ?? '0xe3af') ?? 0xe3af,
-          fontFamily: 'MaterialIcons',
-        );
+IconData _mapIcon(String? iconCode) {
+  switch (iconCode) {
+    case '0xe87c':
+      return Icons.pets;
+    case '0xe7fd':
+      return Icons.person;
+    case '0xe87d':
+      return Icons.favorite;
+    case '0xe0b7':
+      return Icons.chat;
+    case '0xe3af':
+      return Icons.image;
+    default:
+      return Icons.pets;
+  }
+}
+final rawIcon = widget.post.postType.icon;
+final iconData = _mapIcon(rawIcon);
 
   return InkWell(
     onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
