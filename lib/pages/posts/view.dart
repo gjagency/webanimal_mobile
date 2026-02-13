@@ -142,17 +142,39 @@ return Scaffold(
   backgroundColor: Colors.white,
   resizeToAvoidBottomInset: true,
   appBar: AppBar(
-    backgroundColor: Colors.white,
-    elevation: 0,
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back, color: Colors.black),
-      onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-    ),
-    title: Text(
-      'Publicación',
-      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-    ),
-  ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.pets, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('WebAnimal',
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+           
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+              onPressed: () => GoRouter.of(context).push('/account/notifications')),
+          IconButton(
+              icon: const Icon(Icons.person_2_rounded, color: Colors.black),
+              onPressed: () => GoRouter.of(context).push('/account/settings')),
+          const SizedBox(width: 8),
+        ],
+      ),
   body: _isLoading
       ? Center(child: CircularProgressIndicator())
       : ListView(

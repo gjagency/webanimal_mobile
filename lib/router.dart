@@ -28,6 +28,7 @@ import 'package:mobile_app/pages/posts/view.dart';
 // PROFILES
 import 'package:mobile_app/pages/profiles/public.dart';
 import 'package:mobile_app/service/page_auth_register_vet.dart';
+import 'package:mobile_app/service/search_users_page.dart';
 import 'package:mobile_app/service/user_profile_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -77,6 +78,10 @@ final router = GoRouter(
     return UserPostsPage(userId: userId);
   },
 ),
+  GoRoute(
+    path: '/search/users',
+    builder: (context, state) => const SearchUsersPage(),
+  ),
 
     // 🔐 RESET PASSWORD (con uid + token)
     GoRoute(
@@ -132,7 +137,14 @@ final router = GoRouter(
         return PageProfilesPublic(username: username);
       },
     ),
-
+    GoRoute(
+      name: 'publicProfile',
+      path: '/profiles/:username',
+      builder: (context, state) {
+        final username = state.pathParameters['username']!;
+        return PageProfilesPublic(username: username);
+      },
+    ),
     /* =========================
        POSTS
        ========================= */

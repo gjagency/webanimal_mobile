@@ -132,43 +132,78 @@ void initState() {
 void _openImagePopup(BuildContext context, int initialIndex) {
   showDialog(
     context: context,
-    barrierDismissible: true, // permite cerrar tocando fuera
-    barrierColor: Colors.black.withOpacity(0.8),
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.9),
     builder: (context) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.of(context).pop(), // 👈 tap fuera = cerrar
-        child: Material(
-          color: Colors.transparent,
-          child: Center(
-            child: GestureDetector(
-              onTap: () {}, // 👈 evita que tocar la imagen cierre
-              child: Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.all(12),
-                child: PageView.builder(
-                  controller: PageController(initialPage: initialIndex),
-                  itemCount: widget.post.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    final imageUrl = widget.post.imageUrls[index];
+      double dragOffset = 0;
 
-                    return InteractiveViewer(
-                      minScale: 1,
-                      maxScale: 3,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.contain,
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                /// Fondo
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+
+                /// Contenido con swipe
+                GestureDetector(
+                  onVerticalDragUpdate: (details) {
+                    setState(() {
+                      dragOffset += details.delta.dy;
+                    });
+                  },
+                  onVerticalDragEnd: (details) {
+                    if (dragOffset > 150) {
+                      Navigator.pop(context); // 👈 cerrar
+                    } else {
+                      setState(() {
+                        dragOffset = 0; // vuelve a posición original
+                      });
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    transform: Matrix4.translationValues(0, dragOffset, 0),
+                    child: Center(
+                      child: Dialog(
+                        backgroundColor: Colors.transparent,
+                        insetPadding: const EdgeInsets.all(12),
+                        child: PageView.builder(
+                          controller:
+                              PageController(initialPage: initialIndex),
+                          itemCount: widget.post.imageUrls.length,
+                          itemBuilder: (context, index) {
+                            final imageUrl =
+                                widget.post.imageUrls[index];
+
+                            return InteractiveViewer(
+                              minScale: 1,
+                              maxScale: 3,
+                              child: ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(16),
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ),
-        ),
+          );
+        },
       );
     },
   );

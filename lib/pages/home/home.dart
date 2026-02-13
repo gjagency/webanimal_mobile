@@ -598,47 +598,54 @@ Future<void> _loadData() async {
         selectedTypeId != null || selectedPetTypeId != null || selectedCityId != null || selectedDateRange != null;
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('WebAnimal',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-            if (AuthService.currentUser != null)
-              Text(
-                'Hola ${AuthService.displayName}',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                ),
-              ),
-              ],
-            ),
-          ],
+appBar: AppBar(
+  title: Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.purple, Colors.pink],
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-              onPressed: () => GoRouter.of(context).push('/account/notifications')),
-          IconButton(
-              icon: const Icon(Icons.person_2_rounded, color: Colors.black),
-              onPressed: () => GoRouter.of(context).push('/account/settings')),
-          const SizedBox(width: 8),
-        ],
+        child: const Icon(
+          Icons.pets,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
+      const SizedBox(width: 10),
+      const Text(
+        'WebAnimal',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    ],
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: () {
+        context.push('/search/users');
+      },
+    ),
+    IconButton(
+      icon: const Icon(Icons.notifications_outlined),
+      onPressed: () {
+        context.push('/account/notifications');
+      },
+    ),
+    IconButton(
+      icon: const Icon(Icons.person_2_rounded),
+      onPressed: () {
+        context.push('/account/settings');
+      },
+    ),
+    const SizedBox(width: 8),
+  ],
+),
+
+
       body: Column(
         children: [
           Container(
@@ -758,16 +765,17 @@ Future<void> _loadData() async {
 
         ],
       ),
-    floatingActionButton: Padding(
-  padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
-  child: SpeedDialCustom(
-    onCrearPromocion: AuthService.esVeterinaria
-        ? _mostrarCrearPromocionDialog
-        : () {}, // función vacía evita que haga algo
-    onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
-  ),
-),
-floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
+          child: SpeedDialCustom(
+            onCrearPromocion: AuthService.esVeterinaria
+            ? _mostrarCrearPromocionDialog
+            : null,
+        // función vacía evita que haga algo
+            onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
 
     );

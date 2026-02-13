@@ -472,6 +472,37 @@ if (deleteImageIds != null && deleteImageIds.isNotEmpty) {
       throw Exception('Error al obtener mis posts: ${response.statusCode}');
     }
   }
+static Future<List<PostUser>> searchUsers(String query) async {
+  final response = await AuthService.getWithToken(
+    '/api/usuarios/?q=${Uri.encodeComponent(query)}',
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body);
+
+    return data
+        .map<PostUser>((json) =>
+            PostUser.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  throw Exception('Error al buscar usuarios');
+}
+
+static Future<List<PostUser>> getUsers() async {
+  final response = await AuthService.getWithToken('/api/usuarios/');
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body);
+
+    return data
+        .map<PostUser>((json) =>
+            PostUser.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  throw Exception('Error al cargar usuarios');
+}
 
 
   // DELETE: Eliminar post
