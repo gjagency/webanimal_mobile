@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "772314253451",
-    "project_id": "webanimal-97715",
-    "storage_bucket": "webanimal-97715.firebasestorage.app"
+    "project_number": "1091938534164",
+    "project_id": "webanimal-mobileapp",
+    "storage_bucket": "webanimal-mobileapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:772314253451:android:31f817260360d7515dac8e",
+        "mobilesdk_app_id": "1:1091938534164:android:7029829eab99949002f801",
         "android_client_info": {
           "package_name": "agency.gj.webanimal"
         }
       },
       "oauth_client": [
         {
-          "client_id": "772314253451-rq112nt5k8tnfnctb8n0n7nt8quhcj13.apps.googleusercontent.com",
+          "client_id": "1091938534164-kpmh09e2ukq3gkcfbvdsn7cm5opq2enc.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "agency.gj.webanimal",
-            "certificate_hash": "133177b58e9238fab4b4ba8340e433eeb9ec2f7e"
+            "certificate_hash": "2818c1f4ccb140aa3edae8110c638b75c3b53b2a"
           }
         },
         {
-          "client_id": "772314253451-26o53a2ka514618gfpdlu8ldvv13t3ro.apps.googleusercontent.com",
+          "client_id": "1091938534164-1sgt4sdg5pfpjkmksfmieehckolir2ra.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDsK37XCxxmNsVUB2RH9etyYFNaj8KOxOs"
+          "current_key": "AIzaSyCCi59_ApbHhnkk9_oktkL5-kHsuDsqwOI"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "772314253451-26o53a2ka514618gfpdlu8ldvv13t3ro.apps.googleusercontent.com",
+              "client_id": "1091938534164-1sgt4sdg5pfpjkmksfmieehckolir2ra.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

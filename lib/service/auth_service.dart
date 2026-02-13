@@ -20,24 +20,25 @@ class AuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     serverClientId:
-        '824173925704-i58f7kng6ibl35dph0dk35a2ops2ulil.apps.googleusercontent.com',
+        '1091938534164-1sgt4sdg5pfpjkmksfmieehckolir2ra.apps.googleusercontent.com',
   );
-/// 👤 PERFIL DE OTRO USUARIO POR ID
-static Future<Map<String, dynamic>?> getUserById(String userId) async {
-  try {
-    final response = await getWithToken('/api/users/$userId/');
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+  /// 👤 PERFIL DE OTRO USUARIO POR ID
+  static Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final response = await getWithToken('/api/users/$userId/');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+
+      debugPrint('Error getUserById: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      debugPrint('Exception getUserById: $e');
+      return null;
     }
-
-    debugPrint('Error getUserById: ${response.statusCode}');
-    return null;
-  } catch (e) {
-    debugPrint('Exception getUserById: $e');
-    return null;
   }
-}
 
   static Future<void> loadCurrentUser() async {
     try {
@@ -132,25 +133,29 @@ static Future<Map<String, dynamic>?> getUserById(String userId) async {
       return false;
     }
   }
-/* ==========================================================
+
+  /* ==========================================================
    TODAS LAS OFERTAS / PROMOCIONES ACTIVAS
    ========================================================== */
-static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
-  try {
-    final response = await getWithToken('/api/veterinarias/promociones/ofertas/');
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.cast<Map<String, dynamic>>();
-    } else {
-      debugPrint('Error al obtener ofertas: ${response.statusCode} ${response.body}');
+  static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
+    try {
+      final response = await getWithToken(
+        '/api/veterinarias/promociones/ofertas/',
+      );
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        debugPrint(
+          'Error al obtener ofertas: ${response.statusCode} ${response.body}',
+        );
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Excepción en getOfertasPromociones: $e');
       return [];
     }
-  } catch (e) {
-    debugPrint('Excepción en getOfertasPromociones: $e');
-    return [];
   }
-}
-
 
   /* ==========================================================
      LOGIN CON GOOGLE
@@ -213,26 +218,24 @@ static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_accessTokenKey);
   }
-static String get displayName {
-  final user = _currentUser;
-  if (user == null) return '';
 
-  final bool esVeterinaria = user['es_veterinaria'] == true;
+  static String get displayName {
+    final user = _currentUser;
+    if (user == null) return '';
 
-  final String fullName =
-      ('${user['first_name'] ?? ''} ${user['last_name'] ?? ''}')
-              .trim()
-              .isNotEmpty
-          ? '${user['first_name']} ${user['last_name']}'.trim()
-          : user['username'] ?? '';
+    final bool esVeterinaria = user['es_veterinaria'] == true;
 
-  final String? nombreComercial = user['nombre_comercial'];
+    final String fullName =
+        ('${user['first_name'] ?? ''} ${user['last_name'] ?? ''}')
+            .trim()
+            .isNotEmpty
+        ? '${user['first_name']} ${user['last_name']}'.trim()
+        : user['username'] ?? '';
 
-  return esVeterinaria
-      ? (nombreComercial ?? fullName)
-      : fullName;
-}
+    final String? nombreComercial = user['nombre_comercial'];
 
+    return esVeterinaria ? (nombreComercial ?? fullName) : fullName;
+  }
 
   static Future<String?> getRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -324,117 +327,113 @@ static String get displayName {
     );
   }
 
+  static Future<bool> registerVeterinaria({
+    required String email,
+    required String password,
+    required String nombreComercial,
+    String? telefono,
+    String? direccion,
+    File? imagen,
+    String? ubicacionLabel,
+    double? lat,
+    double? lng,
+  }) async {
+    try {
+      final uri = Uri.parse('${Config.baseUrl}/auth/register-vet/');
+      final request = http.MultipartRequest('POST', uri);
 
-static Future<bool> registerVeterinaria({
-  required String email,
-  required String password,
-  required String nombreComercial,
-  String? telefono,
-  String? direccion,
-  File? imagen,
-  String? ubicacionLabel,
-  double? lat,
-  double? lng,
-}) async {
-  try {
-    final uri = Uri.parse('${Config.baseUrl}/auth/register-vet/');
-    final request = http.MultipartRequest('POST', uri);
+      request.fields['email'] = email;
+      request.fields['password'] = password;
+      request.fields['nombre_comercial'] = nombreComercial;
+      request.fields['telefono'] = telefono ?? '';
+      request.fields['direccion'] = direccion ?? '';
+      request.fields['ubicacion_label'] = ubicacionLabel ?? '';
+      request.fields['ubicacion_lat'] = lat?.toString() ?? '';
+      request.fields['ubicacion_lng'] = lng?.toString() ?? '';
 
-    request.fields['email'] = email;
-    request.fields['password'] = password;
-    request.fields['nombre_comercial'] = nombreComercial;
-    request.fields['telefono'] = telefono ?? '';
-    request.fields['direccion'] = direccion ?? '';
-    request.fields['ubicacion_label'] = ubicacionLabel ?? '';
-    request.fields['ubicacion_lat'] = lat?.toString() ?? '';
-    request.fields['ubicacion_lng'] = lng?.toString() ?? '';
+      if (imagen != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'imagen',
+            imagen.path,
+            filename: imagen.path.split('/').last,
+          ),
+        );
+      }
 
-    if (imagen != null) {
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'imagen',
-          imagen.path,
-          filename: imagen.path.split('/').last,
-        ),
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+
+      debugPrint(
+        'Register vet response: ${streamedResponse.statusCode} $responseBody',
       );
+
+      if (streamedResponse.statusCode == 201) {
+        return true;
+      } else {
+        final data = jsonDecode(responseBody);
+        final message = data['message'] ?? 'Error al registrar veterinaria';
+        throw Exception(message);
+      }
+    } catch (e) {
+      debugPrint('Register vet error: $e');
+      return false;
     }
-
-    final streamedResponse = await request.send();
-    final responseBody = await streamedResponse.stream.bytesToString();
-
-    debugPrint(
-      'Register vet response: ${streamedResponse.statusCode} $responseBody',
-    );
-
-    if (streamedResponse.statusCode == 201) {
-      return true;
-    } else {
-      final data = jsonDecode(responseBody);
-      final message = data['message'] ?? 'Error al registrar veterinaria';
-      throw Exception(message);
-    }
-  } catch (e) {
-    debugPrint('Register vet error: $e');
-    return false;
   }
-}
-
 
   /* ==========================================================
      GET PROFILE
      ========================================================== */
-static Future<Map<String, dynamic>> getProfile() async {
-  try {
-    final response = await getWithToken('/api/auth/profile/');
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final response = await getWithToken('/api/auth/profile/');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      /// 🔥 GUARDAMOS EL USUARIO GLOBAL
-      _currentUser = data;
+        /// 🔥 GUARDAMOS EL USUARIO GLOBAL
+        _currentUser = data;
 
-      debugPrint('👤 PROFILE LOADED');
-      debugPrint('ID: ${data['id']}');
-      debugPrint('NAME: ${data['display_name']}');
-      debugPrint('AVATAR: ${data['avatar']}');
-      debugPrint('VET: ${data['es_veterinaria']}');
+        debugPrint('👤 PROFILE LOADED');
+        debugPrint('ID: ${data['id']}');
+        debugPrint('NAME: ${data['display_name']}');
+        debugPrint('AVATAR: ${data['avatar']}');
+        debugPrint('VET: ${data['es_veterinaria']}');
 
-      return data;
+        return data;
+      }
+
+      debugPrint(
+        'Error al obtener perfil: ${response.statusCode} ${response.body}',
+      );
+      return {};
+    } catch (e) {
+      debugPrint('Excepción en getProfile: $e');
+      return {};
     }
-
-    debugPrint(
-      'Error al obtener perfil: ${response.statusCode} ${response.body}',
-    );
-    return {};
-  } catch (e) {
-    debugPrint('Excepción en getProfile: $e');
-    return {};
   }
-}
 
-/* ==========================================================
+  /* ==========================================================
    PROMOCIONES DE MI VETERINARIA
    ========================================================== */
-static Future<List<Map<String, dynamic>>> getMisPromociones() async {
-  try {
-    final response = await getWithToken(
-      '/veterinarias/promociones/mias/',
-    );
+  static Future<List<Map<String, dynamic>>> getMisPromociones() async {
+    try {
+      final response = await getWithToken('/veterinarias/promociones/mias/');
 
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.cast<Map<String, dynamic>>();
-    } else {
-      debugPrint(
-        'Error al obtener promociones: ${response.statusCode} ${response.body}',
-      );
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        debugPrint(
+          'Error al obtener promociones: ${response.statusCode} ${response.body}',
+        );
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Excepción en getMisPromociones: $e');
       return [];
     }
-  } catch (e) {
-    debugPrint('Excepción en getMisPromociones: $e');
-    return [];
   }
-}
 
   static Future<bool> updateProfile({
     required String name,
@@ -486,9 +485,7 @@ static Future<List<Map<String, dynamic>>> getMisPromociones() async {
 
     return response.statusCode == 200;
   }
-  
 }
-
 
 class PromocionesService {
   static Future<bool> crearPromocion({
@@ -506,7 +503,9 @@ class PromocionesService {
         return false;
       }
 
-      final uri = Uri.parse('${Config.baseUrl}/api/veterinarias/promociones/cargar/');
+      final uri = Uri.parse(
+        '${Config.baseUrl}/api/veterinarias/promociones/cargar/',
+      );
       final request = http.MultipartRequest('POST', uri);
 
       request.headers['Authorization'] = 'Bearer $token';

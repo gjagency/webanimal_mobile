@@ -2,7 +2,7 @@ name: mobile_app
 description: "Webanimal mobile app"
 publish_to: 'none'
 
-version: 1.0.5+5
+version: 1.0.7+7
 
 environment:
   sdk: ^3.10.4
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_sign_in: ^6.0.0
+  google_sign_in: ^6.2.1
   cupertino_icons: ^1.0.8
   go_router: ^17.0.1
   image_picker: ^1.2.1
@@ -21,7 +21,6 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   geocoding: ^2.0.5
   firebase_core: ^3.15.2
-  firebase_dynamic_links: ^6.1.10
   geolocator: ^10.1.0
   url_launcher: ^6.1.12
   font_awesome_flutter: ^10.4.0
