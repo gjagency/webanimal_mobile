@@ -17,6 +17,8 @@ class _UserPostsPageState extends State<UserPostsPage> {
 
   bool _loading = true;
   String? _error;
+  
+  bool loadingProfile = true;
 
   @override
   void initState() {
@@ -83,47 +85,105 @@ class _UserPostsPageState extends State<UserPostsPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('WebAnimal',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-            if (AuthService.currentUser != null)
-              Text(
-                'Hola ${AuthService.displayName}',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                ),
-              ),
-              ],
-            ),
-          ],
+   appBar: AppBar(
+  titleSpacing: 8,
+  title: Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.purple, Colors.pink],
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-              onPressed: () => GoRouter.of(context).push('/account/notifications')),
-          IconButton(
-              icon: const Icon(Icons.person_2_rounded, color: Colors.black),
-              onPressed: () => GoRouter.of(context).push('/account/settings')),
-          const SizedBox(width: 8),
-        ],
+        child: const Icon(
+          Icons.pets,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
+      const SizedBox(width: 8),
+
+      Expanded(
+        child: const Text(
+          'WebAnimal',
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+      ),
+    ],
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: () {
+        context.push('/search/users');
+      },
+    ),
+    IconButton(
+      icon: const Icon(Icons.notifications_outlined),
+      onPressed: () {
+        context.push('/account/notifications');
+      },
+    ),
+
+    // ir a perfil
+    IconButton(
+      onPressed: () {
+        context.push('/user-posts/${AuthService.currentUserId}');
+      },
+      icon: loadingProfile
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.grey.shade200,
+              backgroundImage: avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl.isEmpty
+                  ? const Icon(
+                      Icons.person,
+                      size: 16,
+                      color: Colors.grey,
+                    )
+                  : null,
+            ),
+    ),
+
+
+    // configuraciones 3 puntitos
+    PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert),
+      onSelected: (value) {
+        if (value == 'settings') {
+          context.push('/account/settings');
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings, size: 20),
+              SizedBox(width: 8),
+              Text('Configuración'),
+            ],
+          ),
+        ),
+      ],
+    ),
+
+    const SizedBox(width: 4),
+  ],
+),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(

@@ -191,7 +191,7 @@ Widget build(BuildContext context) {
             TextButton(
               onPressed: () => GoRouter.of(context).go('/auth/register-vet'),
               child: const Text(
-                'Registrar Veterinaria',
+                'Registrar Veterinaria\nEspacio de mascotas',
                 style: TextStyle(
                   color: Colors.purple,
                   fontWeight: FontWeight.bold,

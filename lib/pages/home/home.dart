@@ -40,12 +40,14 @@ class _PageHomeState extends State<PageHome> {
   List<PetType> _petTypes = [];
   bool _isLoading = true;
   String? _error;
-
+  String avatarUrl = '';
+  bool loadingProfile = true;
   @override
   void initState() {
     super.initState();
     _init();
     _getCurrentLocation();
+    _loadProfile();
   }
 
   Future<void> _init() async {
@@ -77,6 +79,25 @@ class _PageHomeState extends State<PageHome> {
       await _loadData();
     }
   }
+
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await AuthService.getProfile();
+
+      setState(() {
+        avatarUrl =
+            profile['avatar'] ?? 'https://i.pravatar.cc/150?img=10';
+        loadingProfile = false;
+      });
+    } catch (e) {
+      debugPrint('Error cargando perfil: $e');
+      setState(() {
+        loadingProfile = false;
+      });
+    }
+  }
+
 
 Future<void> _editarPost(Post post) async {
   final _formKey = GlobalKey<FormState>();
@@ -599,6 +620,7 @@ Future<void> _loadData() async {
     return Scaffold(
       backgroundColor: Colors.grey[50],
 appBar: AppBar(
+  titleSpacing: 8,
   title: Row(
     children: [
       Container(
@@ -615,10 +637,17 @@ appBar: AppBar(
           size: 20,
         ),
       ),
-      const SizedBox(width: 10),
-      const Text(
-        'WebAnimal',
-        style: TextStyle(fontWeight: FontWeight.bold),
+      const SizedBox(width: 8),
+
+      Expanded(
+        child: const Text(
+          'WebAnimal',
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
     ],
   ),
@@ -635,17 +664,59 @@ appBar: AppBar(
         context.push('/account/notifications');
       },
     ),
+
+    // ir a perfil
     IconButton(
-      icon: const Icon(Icons.person_2_rounded),
       onPressed: () {
-        context.push('/account/settings');
+        context.push('/user-posts/${AuthService.currentUserId}');
       },
+      icon: loadingProfile
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.grey.shade200,
+              backgroundImage: avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl.isEmpty
+                  ? const Icon(
+                      Icons.person,
+                      size: 16,
+                      color: Colors.grey,
+                    )
+                  : null,
+            ),
     ),
-    const SizedBox(width: 8),
+
+    // configuraciones 3 puntitos
+    PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert),
+      onSelected: (value) {
+        if (value == 'settings') {
+          context.push('/account/settings');
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings, size: 20),
+              SizedBox(width: 8),
+              Text('Configuración'),
+            ],
+          ),
+        ),
+      ],
+    ),
+
+    const SizedBox(width: 4),
   ],
 ),
-
-
       body: Column(
         children: [
           Container(

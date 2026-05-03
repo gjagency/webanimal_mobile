@@ -20,7 +20,7 @@ class AuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     serverClientId:
-        '1091938534164-1sgt4sdg5pfpjkmksfmieehckolir2ra.apps.googleusercontent.com',
+        '472691331964-c55775j6obsbcnugcfo4ac6d9nsf2s6r.apps.googleusercontent.com',
   );
 
   /// 👤 PERFIL DE OTRO USUARIO POR ID
