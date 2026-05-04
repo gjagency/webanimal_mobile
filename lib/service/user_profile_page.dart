@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/service/auth_service.dart';
 
@@ -14,7 +17,10 @@ class UserPostsPage extends StatefulWidget {
 class _UserPostsPageState extends State<UserPostsPage> {
   List<Post> _posts = [];
   Map<String, dynamic>? _profile;
-
+  List<File> _newImages = [];
+  List<int> _deleteImageIds = [];
+  List<PostImage> _existingImages = [];
+  bool _isSavingEdit = false;
   bool _loading = true;
   String? _error;
   
@@ -46,6 +52,8 @@ class _UserPostsPageState extends State<UserPostsPage> {
         _loading = false;
       });
     }
+
+    
   }
 
   Future<void> _refresh() async {
@@ -61,7 +69,8 @@ class _UserPostsPageState extends State<UserPostsPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
+  final bool isMyProfile =
+      widget.userId.toString() == AuthService.currentUserId.toString();
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Perfil')),
@@ -279,44 +288,131 @@ class _UserPostsPageState extends State<UserPostsPage> {
                       : "https://via.placeholder.com/300";
 
                   return GestureDetector(
-                    onTap: () => _openImageViewer(post, 0),
-                    child: Stack(
-                      children: [
-                        /// IMAGEN
-                        Positioned.fill(
-                          child: Hero(
-                            tag: '${post.id}_0',
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
+               onTap: () => _openImageViewer(post, 0),
+
+                      child: Stack(
+                        children: [
+                          /// IMAGEN
+                          Positioned.fill(
+                            child: Hero(
+                              tag: '${post.id}_0',
+                              child: Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ),
 
-                        /// OVERLAY +X IMAGENES
-                        if (post.imageUrls.length > 1)
-                          Positioned(
-                            top: 6,
-                            right: 6,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.65),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '+${post.imageUrls.length - 1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                          /// +X imágenes
+                          if (post.imageUrls.length > 1)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '+${post.imageUrls.length - 1}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  );
+
+                          /// 3 puntitos editar/eliminar
+                          if (isMyProfile)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.55),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: PopupMenuButton<String>(
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  color: Colors.white,
+                                  onSelected: (value) async {
+                                    if (value == 'edit') {
+                                      // reutilizá tu método de editar
+                                      // _editarPost(post);
+                                    }
+
+                                    if (value == 'delete') {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: const Text('Eliminar post'),
+                                          content: const Text(
+                                            '¿Seguro que querés eliminar este post?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Eliminar'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm == true) {
+                                        await PostsService.deletePost(post.id.toString());
+                                        _refresh();
+                                      }
+                                    }
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, size: 18),
+                                          SizedBox(width: 8),
+                                          Text('Editar'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete,
+                                              size: 18, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Eliminar',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
 
 
                 },
@@ -351,13 +447,244 @@ class _UserPostsPageState extends State<UserPostsPage> {
       ],
     );
   }
-  
+  Future<void> _editarPost(Post post) async {
+  final _formKey = GlobalKey<FormState>();
+  String description = post.description;
+
+  final ImagePicker _picker = ImagePicker();
+
+  // Limpiar listas por si venían de otro edit
+  _newImages = [];
+  _deleteImageIds = [];
+
+_existingImages = post.imageUrls.map((url) {
+  final id = post.imageIdByUrl[url];   // 👈 USAR URL COMPLETA
+
+  return PostImage(id: id, url: url);
+}).toList();
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Editar Post', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Descripción
+                TextFormField(
+                  initialValue: description,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: null,
+                  validator: (v) => v == null || v.isEmpty ? 'Ingrese una descripción' : null,
+                  onSaved: (v) => description = v ?? '',
+                ),
+                const SizedBox(height: 12),
+
+                // IMÁGENES
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    // 🔹 Existentes
+                    ..._existingImages.map((img) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              img.url,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                          setState(() {
+                            // Si tiene ID real, lo agregamos a deleteImageIds
+                            if (img.id != null && !_deleteImageIds.contains(img.id)) {
+                              _deleteImageIds.add(img.id!);
+                            }
+                            // Removemos la imagen de la UI
+                            _existingImages.remove(img);
+                          });
+                        },
+
+
+                              child: const Icon(Icons.cancel, color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+
+                    // 🔹 Nuevas (local)
+                    ..._newImages.map((file) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              file,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _newImages.remove(file);
+                                });
+                              },
+                              child: const Icon(Icons.cancel, color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Botón agregar imagen
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.image),
+                  label: const Text('Agregar Imagen'),
+                  onPressed: () async {
+                    final totalImages = _existingImages.length + _newImages.length;
+                    if (totalImages >= 3) {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const AlertDialog(
+                          content: Text('Solo podés agregar hasta 3 imágenes'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null) {
+                      setState(() {
+                        _newImages.add(File(picked.path));
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+         ElevatedButton(
+  onPressed: _isSavingEdit
+      ? null
+      : () async {
+          if (!_formKey.currentState!.validate()) return;
+          _formKey.currentState!.save();
+
+          setState(() => _isSavingEdit = true);
+          try {
+            await PostsService.updatePostWithImages(
+              postId: post.id.toString(),
+              fields: {'body': description},
+              newImages: _newImages,
+              deleteImageIds: _deleteImageIds,
+            );
+
+            if (!context.mounted) return;
+
+            Navigator.pop(context);
+
+            // ===============================
+            // POPUP ÉXITO PRO
+            // ===============================
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, color: Colors.green, size: 48),
+                    SizedBox(height: 12),
+                    Text(
+                      'Post actualizado',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Los cambios se guardaron correctamente',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },            
+                    child: const Text('OK'),
+                  )
+                ],
+              ),
+            );
+
+
+            await _refresh();
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al actualizar post: $e')),
+            );
+          } finally {
+            if (mounted) setState(() => _isSavingEdit = false);
+          }
+        },
+  child: _isSavingEdit
+      ? const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : const Text('Guardar'),
+),
+
+        ],
+      ),
+    ),
+  );
+}
+
 void _openImageViewer(Post post, int initialIndex) {
-  final PageController controller = PageController(initialPage: initialIndex);
+  final bool isMyPost =
+      widget.userId.toString() == AuthService.currentUserId.toString();
+
+  final PageController controller =
+      PageController(initialPage: initialIndex);
+
   int currentIndex = initialIndex;
   bool showHeart = false;
 
-  /// PRECARGA IMAGENES (ULTRA SMOOTH)
   for (var url in post.imageUrls) {
     precacheImage(NetworkImage(url), context);
   }
@@ -366,11 +693,15 @@ void _openImageViewer(Post post, int initialIndex) {
     context: context,
     barrierColor: Colors.black,
     builder: (_) {
+      bool isAlive = true;
+
       return StatefulBuilder(
         builder: (context, setState) {
           return GestureDetector(
             onVerticalDragUpdate: (details) {
-              if (details.primaryDelta != null && details.primaryDelta! > 12) {
+              if (details.primaryDelta != null &&
+                  details.primaryDelta! > 12) {
+                isAlive = false;
                 Navigator.pop(context);
               }
             },
@@ -378,35 +709,37 @@ void _openImageViewer(Post post, int initialIndex) {
               backgroundColor: Colors.black,
               body: Stack(
                 children: [
-                  /// ================= PAGEVIEW =================
                   PageView.builder(
                     controller: controller,
                     itemCount: post.imageUrls.length,
-                    onPageChanged: (i) =>
-                        setState(() => currentIndex = i),
+                    onPageChanged: (i) {
+  if (!isAlive) return;
+  setState(() => currentIndex = i);
+},
                     itemBuilder: (context, index) {
                       final imageUrl = post.imageUrls[index];
 
                       return GestureDetector(
                         onDoubleTap: () async {
-                          setState(() => showHeart = true);
-                          await Future.delayed(
-                              const Duration(milliseconds: 700));
-                          if (mounted) setState(() => showHeart = false);
-                        },
+  if (!isAlive) return;
+
+  setState(() => showHeart = true);
+
+  await Future.delayed(const Duration(milliseconds: 700));
+
+  if (!isAlive || !context.mounted) return;
+
+  setState(() => showHeart = false);
+},
                         child: Center(
                           child: Hero(
                             tag: '${post.id}_$index',
                             child: InteractiveViewer(
                               minScale: 1,
                               maxScale: 4,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 250),
-                                opacity: 1,
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.contain,
-                                ),
+                              child: Image.network(
+                                imageUrl,
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ),
@@ -415,62 +748,82 @@ void _openImageViewer(Post post, int initialIndex) {
                     },
                   ),
 
-                  /// ================= HEART ANIMATION =================
                   if (showHeart)
-                    Center(
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.4, end: 1.0),
-                        duration: const Duration(milliseconds: 400),
-                        builder: (context, scale, child) {
-                          return Transform.scale(
-                            scale: scale,
-                            child: const Icon(
-                              Icons.favorite,
-                              color: Colors.white,
-                              size: 110,
-                            ),
-                          );
-                        },
+                    const Center(
+                      child: Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 110,
                       ),
                     ),
 
-                  /// ================= CLOSE =================
                   Positioned(
                     top: 40,
-                    right: 20,
-                    child: IconButton(
-                      icon: const Icon(Icons.close,
-                          color: Colors.white, size: 28),
-                      onPressed: () => Navigator.pop(context),
+                    right: 12,
+                    child: Row(
+                      children: [
+                        if (isMyPost)
+                          PopupMenuButton<String>(
+                            color: Colors.white,
+                            icon: const Icon(Icons.more_vert,
+                                color: Colors.white),
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                isAlive = false;
+                                Navigator.pop(context);
+                                _editarPost(post);
+                              }
+
+                              if (value == 'delete') {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: const Text('Eliminar post'),
+                                    content: const Text(
+                                        '¿Seguro que querés eliminar este post?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text('Eliminar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  Navigator.pop(context);
+                                  await PostsService.deletePost(
+                                      post.id.toString());
+                                  _refresh();
+                                }
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Editar'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Eliminar'),
+                              ),
+                            ],
+                          ),
+
+                        IconButton(
+                          icon: const Icon(Icons.close,
+                              color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
                   ),
-
-                  /// ================= DOTS =================
-                  if (post.imageUrls.length > 1)
-                    Positioned(
-                      bottom: 35,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          post.imageUrls.length,
-                          (i) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 3),
-                            width: i == currentIndex ? 10 : 6,
-                            height: i == currentIndex ? 10 : 6,
-                            decoration: BoxDecoration(
-                              color: i == currentIndex
-                                  ? Colors.white
-                                  : Colors.white38,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -480,6 +833,7 @@ void _openImageViewer(Post post, int initialIndex) {
     },
   );
 }
+
 
 
 
