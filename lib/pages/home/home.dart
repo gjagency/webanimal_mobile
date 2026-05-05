@@ -751,15 +751,7 @@ appBar: AppBar(
                         const SizedBox(width: 8),
                         // NUEVO CHIP "Mis Post"
                         if (AuthService.currentUser != null)
-                          QuickFilterChip(
-                            label: 'Mis Post',
-                            icon: Icons.person, // puedes cambiar el icono
-                            isSelected: selectedTypeId == 'mis_posts',
-                            onTap: () {
-                              setState(() => selectedTypeId = 'mis_posts');
-                              _loadData();
-                            },
-                          ),
+                          
                         const SizedBox(width: 8),
                         ..._postTypes.take(3).map(
                           (type) => Padding(
