@@ -33,13 +33,14 @@ class _PageEditProfileState extends State<PageEditProfile> {
     final profile = await AuthService.getProfile();
 
     setState(() {
-      _nameCtrl.text = profile['first_name'] ?? '';
-      _lastNameCtrl.text = profile['last_name'] ?? '';
-      _emailCtrl.text = profile['email'] ?? '';
-      _bioCtrl.text = profile['bio'] ?? '';
-      _avatarUrl = profile['avatar'] ?? '';
-      _loading = false;
-    });
+    _nameCtrl.text = profile['first_name'] ?? '';
+    _lastNameCtrl.text = profile['last_name'] ?? '';
+    _emailCtrl.text = profile['email'] ?? '';
+    _bioCtrl.text = profile['bio'] ?? '';
+    _avatarUrl =
+        '${profile['avatar']}?t=${DateTime.now().millisecondsSinceEpoch}';
+    _loading = false;
+  });
   }
 
   /// 🖼️ Elegir imagen
@@ -65,6 +66,7 @@ class _PageEditProfileState extends State<PageEditProfile> {
       lastName: _lastNameCtrl.text,
       bio: _bioCtrl.text,
       email: _emailCtrl.text,
+      avatar: _avatarFile,
     );
 
     setState(() => _saving = false);
