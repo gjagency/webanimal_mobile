@@ -737,15 +737,18 @@ Future<void> _loadData() async {
                           },
                         ),
                         const SizedBox(width: 8),
-                        QuickFilterChip(
-                          label: AuthService.esVeterinaria ? 'Mis Descuentos' : 'Descuentos',
-                          icon: AuthService.esVeterinaria ? Icons.local_offer_rounded : Icons.local_fire_department,
-                          isSelected: selectedTypeId == 'promociones',
-                          onTap: () {
-                            setState(() => selectedTypeId = 'promociones');
-                            _loadData();
-                          },
-                        ),
+                        if (AuthService.esVeterinaria) ...[
+                          QuickFilterChip(
+                            label: 'Mis Descuentos',
+                            icon: Icons.local_offer_rounded,
+                            isSelected: selectedTypeId == 'promociones',
+                            onTap: () {
+                              setState(() => selectedTypeId = 'promociones');
+                              _loadData();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         const SizedBox(width: 8),
                         // NUEVO CHIP "Mis Post"
                         if (AuthService.currentUser != null)
@@ -805,43 +808,125 @@ Future<void> _loadData() async {
                 ],
               ),
             ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : selectedTypeId == 'promociones'
-                    ? PromocionesPorVeterinariaList(
-                        grupos: _promocionesAgrupadas,
-                      )
-                    : PostsFeed(
-                        posts: filteredPosts,
-                        promociones: const [],
-                        isLoading: false,
-                        error: _error,
-                        selectedTypeId: selectedTypeId,
-                        onRefresh: _loadData,
-                        onEditPost: _editarPost, // 🔥 ACÁ
+            const SizedBox(height: 8),
+            if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
+              const SizedBox(height: 8),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => selectedTypeId = 'promociones');
+                    _loadData();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.purple, Colors.pink],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.purple.withOpacity(0.18),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_offer_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Descuentos',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Mirá promociones y ofertas disponibles',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 10),
+
+                      Expanded(
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : selectedTypeId == 'promociones'
+                                ? PromocionesPorVeterinariaList(
+                                    grupos: _promocionesAgrupadas,
+                                  )
+                                : PostsFeed(
+                                    posts: filteredPosts,
+                                    promociones: const [],
+                                    isLoading: false,
+                                    error: _error,
+                                    selectedTypeId: selectedTypeId,
+                                    onRefresh: _loadData,
+                                    onEditPost: _editarPost, // 🔥 ACÁ
+                                  ),
+
                       ),
 
-          ),
-
-        ],
-      ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
-          child: SpeedDialCustom(
-            onCrearPromocion: AuthService.esVeterinaria
-            ? _mostrarCrearPromocionDialog
-            : null,
-        // función vacía evita que haga algo
-            onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+                    ],
+                  ),
+                    floatingActionButton: Padding(
+                      padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
+                      child: SpeedDialCustom(
+                        onCrearPromocion: AuthService.esVeterinaria
+                        ? _mostrarCrearPromocionDialog
+                        : null,
+                    // función vacía evita que haga algo
+                        onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
+                      ),
+                    ),
+                    floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
 
-    );
-  }
-}
+                );
+              }
+            }
 
 
 /// -------------------------
