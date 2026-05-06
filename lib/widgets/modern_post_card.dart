@@ -172,31 +172,43 @@ void _openImagePopup(BuildContext context, int initialIndex) {
                     transform: Matrix4.translationValues(0, dragOffset, 0),
                     child: Center(
                       child: Dialog(
-                        backgroundColor: Colors.transparent,
-                        insetPadding: const EdgeInsets.all(12),
-                        child: PageView.builder(
-                          controller:
-                              PageController(initialPage: initialIndex),
-                          itemCount: widget.post.imageUrls.length,
-                          itemBuilder: (context, index) {
-                            final imageUrl =
-                                widget.post.imageUrls[index];
+                    backgroundColor: Colors.transparent,
+                    insetPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 40,
+                    ),
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.9,
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      child: PageView.builder(
+                        controller: PageController(initialPage: initialIndex),
+                        itemCount: widget.post.imageUrls.length,
+                        itemBuilder: (context, index) {
+                          final imageUrl = widget.post.imageUrls[index];
 
-                            return InteractiveViewer(
-                              minScale: 1,
-                              maxScale: 3,
-                              child: ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(16),
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            );
-                          },
+                          return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(18),
                         ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          ),
+                        ),
+                      );
+                        },
                       ),
+                    ),
+                  ),
                     ),
                   ),
                 ),
@@ -320,9 +332,9 @@ final iconData = _mapIcon(rawIcon);
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(color, iconData),
-         if (widget.post.imageUrls.isNotEmpty)
-  SizedBox(
-    height: 350,
+        if (widget.post.imageUrls.isNotEmpty)
+  AspectRatio(
+    aspectRatio: 4 / 5,
     child: Stack(
       children: [
         /// ================= PAGEVIEW =================
@@ -338,13 +350,17 @@ final iconData = _mapIcon(rawIcon);
               onTap: () => _openImagePopup(context, index),
               onDoubleTap: _toggleLike,
               child: Hero(
-                tag: '${widget.post.id}_$index',
+              tag: '${widget.post.id}_$index',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
                 child: Image.network(
                   imageUrl,
-                  fit: BoxFit.cover,
                   width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
                 ),
               ),
+            ),
             );
           },
         ),
