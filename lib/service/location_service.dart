@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/config.dart';
 
@@ -46,6 +47,12 @@ class LocationService {
 
   static Future<String> reverseGeocode(double lat, double lng) async {
     try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        return '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
+      }
+
       final url = Uri.parse('${Config.baseUrl}/api/locations/reverse/').replace(
         queryParameters: {'lat': lat.toString(), 'lng': lng.toString()},
       );
