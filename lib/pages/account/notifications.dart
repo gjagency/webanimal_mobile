@@ -33,57 +33,7 @@ class PageAccountNotifications extends StatefulWidget {
 
 class _PageAccountNotificationsState extends State<PageAccountNotifications> {
   final List<NotificationItem> notifications = [
-    NotificationItem(
-      username: 'maria_rodriguez',
-      userAvatar: 'https://i.pravatar.cc/150?img=1',
-      type: NotificationType.comment,
-      message: 'comentó en tu publicación sobre Max',
-      timestamp: DateTime.now().subtract(Duration(minutes: 5)),
-      isRead: false,
-      postImage: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
-    ),
-    NotificationItem(
-      username: 'refugio_patitas',
-      userAvatar: 'https://i.pravatar.cc/150?img=2',
-      type: NotificationType.like,
-      message: 'le gustó tu publicación',
-      timestamp: DateTime.now().subtract(Duration(hours: 1)),
-      isRead: false,
-      postImage: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e',
-    ),
-    NotificationItem(
-      username: 'carlos_mendez',
-      userAvatar: 'https://i.pravatar.cc/150?img=3',
-      type: NotificationType.follow,
-      message: 'comenzó a seguirte',
-      timestamp: DateTime.now().subtract(Duration(hours: 3)),
-      isRead: false,
-    ),
-    NotificationItem(
-      username: 'vet_saludable',
-      userAvatar: 'https://i.pravatar.cc/150?img=4',
-      type: NotificationType.adoption,
-      message: 'está interesado en adoptar a Luna',
-      timestamp: DateTime.now().subtract(Duration(hours: 5)),
-      isRead: true,
-    ),
-    NotificationItem(
-      username: 'ana_garcia',
-      userAvatar: 'https://i.pravatar.cc/150?img=5',
-      type: NotificationType.comment,
-      message: 'comentó: "Hermoso gatito! 😍"',
-      timestamp: DateTime.now().subtract(Duration(days: 1)),
-      isRead: true,
-      postImage: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba',
-    ),
-    NotificationItem(
-      username: 'hogar_perruno',
-      userAvatar: 'https://i.pravatar.cc/150?img=6',
-      type: NotificationType.report,
-      message: 'agradeció tu reporte de maltrato',
-      timestamp: DateTime.now().subtract(Duration(days: 2)),
-      isRead: true,
-    ),
+
   ];
 
   void _markAsRead(int index) {

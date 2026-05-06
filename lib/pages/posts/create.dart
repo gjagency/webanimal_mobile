@@ -129,20 +129,21 @@ class _PagePostCreateState extends State<PagePostCreate> {
     }
   }
 
-  Future<void> _openLocationSearch() async {
-    final result = await Navigator.push<LocationResult>(
-      context,
-      MaterialPageRoute(builder: (context) => LocationSearchPage()),
-    );
+Future<void> _openLocationSearch() async {
+  final result = await Navigator.push<LocationResult>(
+    context,
+    MaterialPageRoute(builder: (context) => LocationSearchPage()),
+  );
 
-    if (result != null && mounted) {
-      setState(() {
-        _locationController.text = result.displayName;
-        _currentLat = result.lat;
-        _currentLng = result.lng;
-      });
-    }
+  if (result != null && mounted) {
+    setState(() {
+    _locationController.text = result.displayName;
+
+      _currentLat = result.lat;
+      _currentLng = result.lng;
+    });
   }
+}
 Future<void> _pickImage() async {
   final picker = ImagePicker();
 

@@ -5,68 +5,121 @@ import 'package:mobile_app/config.dart';
 
 class LocationResult {
   final String displayName;
+  final String city;
+  final String state;
+  final String country;
   final double lat;
   final double lng;
 
   LocationResult({
     required this.displayName,
+    required this.city,
+    required this.state,
+    required this.country,
     required this.lat,
     required this.lng,
   });
 
-  factory LocationResult.fromJson(Map<String, dynamic> json) {
-    return LocationResult(
-      displayName: json['display_name'] ?? '',
-      lat: double.parse(json['lat'] ?? '0'),
-      lng: double.parse(json['lon'] ?? '0'),
-    );
-  }
-}
+factory LocationResult.fromJson(Map<String, dynamic> json) {
+  final address = json['address'] ?? {};
 
+  String city = address['city'] ??
+      address['town'] ??
+      address['village'] ??
+      '';
+
+  final state = address['state'] ?? '';
+  final country = address['country'] ?? '';
+
+  city = city
+      .replaceAll('Municipio de ', '')
+      .replaceAll('Municipality of ', '')
+      .trim();
+
+  return LocationResult(
+    displayName: '$city, $state, $country',
+    city: city,
+    state: state,
+    country: country,
+    lat: double.parse(json['lat'].toString()),
+    lng: double.parse(json['lon'].toString()),
+  );
+}
+}
 class LocationService {
   static Future<List<LocationResult>> searchLocation(String query) async {
-    if (query.isEmpty) return [];
-
     try {
       final url = Uri.parse(
-        '${Config.baseUrl}/api/locations/search/',
-      ).replace(queryParameters: {'q': query});
+        'https://nominatim.openstreetmap.org/search'
+        '?q=$query'
+        '&format=jsonv2'
+        '&addressdetails=1'
+        '&limit=10',
+      );
 
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'webanimal-app',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => LocationResult.fromJson(json)).toList();
+        final List data = jsonDecode(response.body);
+
+        return data
+            .map((item) => LocationResult.fromJson(item))
+            .toList();
       }
+
       return [];
     } catch (e) {
-      print('Error searching location: $e');
       return [];
     }
   }
 
-  static Future<String> reverseGeocode(double lat, double lng) async {
+  static Future<String> reverseGeocode(
+    double lat,
+    double lng,
+  ) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        return '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
-      }
-
-      final url = Uri.parse('${Config.baseUrl}/api/locations/reverse/').replace(
-        queryParameters: {'lat': lat.toString(), 'lng': lng.toString()},
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=$lat'
+        '&lon=$lng'
+        '&format=jsonv2'
+        '&addressdetails=1',
       );
 
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'webanimal-app',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['display_name'] ?? 'Ubicación desconocida';
+        final data = jsonDecode(response.body);
+        final address = data['address'] ?? {};
+
+        final city = (address['city'] ??
+                address['town'] ??
+                address['village'] ??
+                '')
+            .toString()
+            .replaceAll('Municipio de ', '')
+            .replaceAll('Municipality of ', '')
+            .trim();
+
+        final state = address['state'] ?? '';
+        final country = address['country'] ?? '';
+
+        return '$city, $state, $country';
       }
-      return 'Ubicación desconocida';
+
+      return 'Ubicación no disponible';
     } catch (e) {
-      print('Error reverse geocoding: $e');
-      return 'Error obteniendo ubicación';
+      return 'Ubicación no disponible';
     }
   }
 }

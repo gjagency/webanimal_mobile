@@ -372,12 +372,10 @@ Future<void> _loadData() async {
     // Solo para tipos de posts numéricos
     final results = await Future.wait([
       PostsService.getPosts(
-        postType: selectedTypeId,// <- aquí solo irán IDs numéricos
-        petType: selectedPetTypeId,
-        cityId: selectedCityId,
-        lat: _currentPosition?.latitude,
-        lng: _currentPosition?.longitude,
-      ),
+      postType: selectedTypeId,
+      petType: selectedPetTypeId,
+      cityId: selectedCityId,
+    ),
       PostsService.getPostTypes(),
       PostsService.getPetTypes(),
     ]);
@@ -619,104 +617,104 @@ Future<void> _loadData() async {
         selectedTypeId != null || selectedPetTypeId != null || selectedCityId != null || selectedDateRange != null;
     return Scaffold(
       backgroundColor: Colors.grey[50],
-appBar: AppBar(
-  titleSpacing: 8,
-  title: Row(
-    children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Colors.purple, Colors.pink],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(
-          Icons.pets,
-          color: Colors.white,
-          size: 20,
-        ),
-      ),
-      const SizedBox(width: 8),
-
-      Expanded(
-        child: const Text(
-          'WebAnimal',
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-      ),
-    ],
-  ),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.search),
-      onPressed: () {
-        context.push('/search/users');
-      },
-    ),
-    IconButton(
-      icon: const Icon(Icons.notifications_outlined),
-      onPressed: () {
-        context.push('/account/notifications');
-      },
-    ),
-
-    // ir a perfil
-    IconButton(
-      onPressed: () {
-        context.push('/user-posts/${AuthService.currentUserId}');
-      },
-      icon: loadingProfile
-          ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.grey.shade200,
-              backgroundImage: avatarUrl.isNotEmpty
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl.isEmpty
-                  ? const Icon(
-                      Icons.person,
-                      size: 16,
-                      color: Colors.grey,
-                    )
-                  : null,
+      appBar: AppBar(
+        titleSpacing: 8,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.pets,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-    ),
+            const SizedBox(width: 8),
 
-    // configuraciones 3 puntitos
-    PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
-      onSelected: (value) {
-        if (value == 'settings') {
-          context.push('/account/settings');
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              Icon(Icons.settings, size: 20),
-              SizedBox(width: 8),
-              Text('Configuración'),
+            Expanded(
+              child: const Text(
+                'WebAnimal',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              context.push('/search/users');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {
+              context.push('/account/notifications');
+            },
+          ),
+
+          // ir a perfil
+          IconButton(
+            onPressed: () {
+              context.push('/user-posts/${AuthService.currentUserId}');
+            },
+            icon: loadingProfile
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: avatarUrl.isNotEmpty
+                        ? NetworkImage(avatarUrl)
+                        : null,
+                    child: avatarUrl.isEmpty
+                        ? const Icon(
+                            Icons.person,
+                            size: 16,
+                            color: Colors.grey,
+                          )
+                        : null,
+                  ),
+          ),
+
+          // configuraciones 3 puntitos
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'settings') {
+                context.push('/account/settings');
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, size: 20),
+                    SizedBox(width: 8),
+                    Text('Configuración'),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    ),
 
-    const SizedBox(width: 4),
-  ],
-),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: Column(
         children: [
           Container(
@@ -740,7 +738,7 @@ appBar: AppBar(
                         ),
                         const SizedBox(width: 8),
                         QuickFilterChip(
-                          label: AuthService.esVeterinaria ? 'Mis Promociones' : 'Promociones',
+                          label: AuthService.esVeterinaria ? 'Mis Descuentos' : 'Descuentos',
                           icon: AuthService.esVeterinaria ? Icons.local_offer_rounded : Icons.local_fire_department,
                           isSelected: selectedTypeId == 'promociones',
                           onTap: () {
