@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -361,19 +362,19 @@ class _PageHomeState extends State<PageHome> {
     try {
       // Promociones
       if (selectedTypeId == 'promociones') {
-        List<dynamic> data = AuthService.esVeterinaria
-            ? await AuthService.getMisPromociones()
-            : await AuthService.getOfertasPromociones();
+  final data = await AuthService.getMisPromociones();
 
-        setState(() {
-          _promocionesAgrupadas = data
-              .map((e) => PromocionesPorVeterinaria.fromJson(e))
-              .toList();
-          _posts = [];
-          _isLoading = false;
-        });
-        return;
-      }
+  debugPrint('MIS PROMOS: $data');
+
+  setState(() {
+    _promocionesAgrupadas = data
+        .map((e) => PromocionesPorVeterinaria.fromJson(e))
+        .toList();
+    _posts = [];
+    _isLoading = false;
+  });
+  return;
+}
 
       // Mis Posts
       if (selectedTypeId == 'mis_posts') {
@@ -467,16 +468,19 @@ class _PageHomeState extends State<PageHome> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Título',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Ingrese un título' : null,
-                      onSaved: (v) => _titulo = v,
+                    maxLength: 20,
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      border: OutlineInputBorder(),
+                      counterText: '', // opcional: oculta el contador 0/20
                     ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Ingrese un título' : null,
+                    onSaved: (v) => _titulo = v,
+                  ),
                     const SizedBox(height: 8),
                     TextFormField(
+                      maxLength: 20,
                       decoration: const InputDecoration(
                         labelText: 'Descripción',
                         border: OutlineInputBorder(),
@@ -488,13 +492,22 @@ class _PageHomeState extends State<PageHome> {
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Precio',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onSaved: (v) => _precio = v,
+                    decoration: const InputDecoration(
+                      labelText: 'Precio',
+                      hintText: '\$ 0.00',
+                      prefixIcon: Icon(Icons.attach_money),
+                      border: OutlineInputBorder(),
                     ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+                    ],
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Ingrese un precio';
+                      return null;
+                    },
+                    onSaved: (v) => _precio = v?.replaceAll(',', '.'),
+                  ),
                     const SizedBox(height: 8),
                     Row(
                       children: [

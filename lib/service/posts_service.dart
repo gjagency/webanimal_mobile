@@ -112,21 +112,24 @@ class PostUser {
 class PromocionesPorVeterinaria {
   final int veterinariaId;
   final String nombreComercio;
-  final String? precio;
+  final String? avatar;
   final List<Promocion> promociones;
+  final int userId;
 
   PromocionesPorVeterinaria({
     required this.veterinariaId,
     required this.nombreComercio,
     required this.promociones,
-    required this.precio,
+    this.avatar,
+    required this.userId,
   });
 
   factory PromocionesPorVeterinaria.fromJson(Map<String, dynamic> json) {
     return PromocionesPorVeterinaria(
       veterinariaId: json['veterinaria_id'],
       nombreComercio: json['nombreComercio'],
-      precio: json['precio']?.toString(),
+      avatar: json['avatar'], 
+      userId: json['user_id'],
       promociones: (json['promociones'] as List)
           .map((e) => Promocion.fromJson(e))
           .toList(),

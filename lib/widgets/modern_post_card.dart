@@ -235,27 +235,27 @@ Widget _buildHeader(Color color, IconData icon) {
         ),
         const SizedBox(width: 12),
        Expanded(
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      GestureDetector(
-        onTap: () {
-          context.push('/user-posts/${widget.post.user.id}');
-        },
-        child: Text(
-          widget.post.user.displayName,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () {
+                context.push('/user-posts/${widget.post.user.id}');
+              },
+              child: Text(
+                widget.post.user.displayName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Text(
+              '${_getTimeAgo()} - ${widget.post.location.label}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
         ),
       ),
-      Text(
-        '${_getTimeAgo()} - ${widget.post.location.label}',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      ),
-    ],
-  ),
-),
 
         // BOTÓN DE EDICIÓN
         if (widget.onEdit != null)

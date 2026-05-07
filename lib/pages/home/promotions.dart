@@ -117,7 +117,9 @@ class _PagePromotionsState extends State<PagePromotions> {
           const SizedBox(width: 4),
         ],
       ),
-      body: RefreshIndicator(
+        body: SafeArea(
+        bottom: true,
+        child: RefreshIndicator(
         onRefresh: _onRefresh,
         color: Colors.purple,
         child: FutureBuilder<List<PromocionesPorVeterinaria>>(
@@ -134,23 +136,27 @@ class _PagePromotionsState extends State<PagePromotions> {
               return const _EmptyView();
             }
             return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                const SliverToBoxAdapter(child: _HeroBanner()),
-                const SliverToBoxAdapter(child: _SectionDivider()),
-                SliverList.separated(
-                  itemCount: data.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) =>
-                      _VeterinariaSection(data: data[i]),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(child: _HeroBanner()),
+              const SliverToBoxAdapter(child: _SectionDivider()),
+              SliverList.separated(
+                itemCount: data.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, i) =>
+                    _VeterinariaSection(data: data[i]),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).padding.bottom + 90,
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              ],
-            );
+              ),
+            ],
+          );
           },
         ),
       ),
-    );
+      ),);
   }
 }
 
@@ -205,19 +211,15 @@ class _HeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Cuidá a tu mascota\ncon descuentos únicos',
+                  'Cuidá a tu mascota con descuentos únicos',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    height: 1.2,
+                    height: 0.0,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Promociones exclusivas en veterinarias',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
+               
               ],
             ),
           ),
@@ -239,6 +241,7 @@ class _HeroBanner extends StatelessWidget {
 // ============ SECCIÓN POR VETERINARIA ============
 class _VeterinariaSection extends StatelessWidget {
   final PromocionesPorVeterinaria data;
+  
   const _VeterinariaSection({required this.data});
 
   @override
@@ -251,33 +254,52 @@ class _VeterinariaSection extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.storefront,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
+  width: 42,
+  height: 42,
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(12),
+    gradient: data.avatar == null || data.avatar!.isEmpty
+        ? const LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          )
+        : null,
+    color: Colors.grey.shade200,
+  ),
+  clipBehavior: Clip.antiAlias,
+  child: data.avatar != null && data.avatar!.isNotEmpty
+      ? Image.network(
+          'https://webanimal.com.ar${data.avatar}',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.storefront,
+            color: Colors.white,
+            size: 22,
+          ),
+        )
+      : const Icon(
+          Icons.storefront,
+          color: Colors.white,
+          size: 22,
+        ),
+),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      data.nombreComercio,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  GestureDetector(
+                  onTap: () {
+                    context.push('/user-posts/${data.userId}');
+                  },
+                  child: Text(
+                    data.nombreComercio,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -300,7 +322,7 @@ class _VeterinariaSection extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/user-posts/${data.veterinariaId}'),
+                onTap: () => context.push('/user-posts/${data.userId}'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -357,6 +379,10 @@ class _PromocionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = promocion.imagen != null &&
+          promocion.imagen!.isNotEmpty
+    ? 'https://webanimal.com.ar${promocion.imagen}'
+    : null;
     return GestureDetector(
       onTap: () {
         // navegar al detalle si tenés ruta
@@ -388,64 +414,58 @@ class _PromocionCard extends StatelessWidget {
                   child: SizedBox(
                     height: 120,
                     width: double.infinity,
-                    child:
-                        promocion.imagen != null && promocion.imagen!.isNotEmpty
-                        ? Image.network(
-                            promocion.imagen!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholderImage(),
-                            loadingBuilder: (_, child, progress) {
-                              if (progress == null) return child;
-                              return Container(
-                                color: Colors.grey[100],
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : _placeholderImage(),
+                    child: imageUrl != null
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, error, stackTrace) {
+                          debugPrint('Error cargando imagen: $imageUrl');
+                          return _placeholderImage();
+                        },
+                        loadingBuilder: (_, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            color: Colors.grey[100],
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        },
+                      )
+                    : _placeholderImage(),
                   ),
                 ),
                 if (promocion.precio != null && promocion.precio!.isNotEmpty)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.pink, Colors.purple],
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.local_fire_department,
-                            size: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'OFERTA',
+                          style: TextStyle(
                             color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
                           ),
-                          const SizedBox(width: 2),
-                          Text(
-                            'OFERTA',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+
+                      
+                    ],
                   ),
+                ),
               ],
             ),
             // contenido
