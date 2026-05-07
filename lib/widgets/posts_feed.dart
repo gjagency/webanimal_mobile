@@ -8,23 +8,25 @@ class PostsFeed extends StatelessWidget {
   final List<Post> posts;
   final List<Promocion> promociones;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
   final String? selectedTypeId;
   final Future<void> Function() onRefresh;
-  final void Function(Post post)? onEditPost; 
+  final void Function(Post post)? onEditPost;
+  final ScrollController? controller;
 
   const PostsFeed({
     super.key,
     required this.posts,
     required this.promociones,
     required this.isLoading,
+    required this.isLoadingMore,
     required this.error,
     required this.selectedTypeId,
     required this.onRefresh,
     this.onEditPost,
+    this.controller,
   });
-
-  @override
 
   @override
   Widget build(BuildContext context) {
@@ -76,25 +78,33 @@ class PostsFeed extends StatelessWidget {
 return RefreshIndicator(
   onRefresh: onRefresh,
   child: ListView.builder(
-    padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
-    itemCount: posts.length,
+    controller: controller,
+    padding: const EdgeInsets.only(
+      left: 16,
+      right: 16,
+      top: 16,
+      bottom: 80,
+    ),
+    itemCount: posts.length + (isLoadingMore ? 1 : 0),
     itemBuilder: (context, index) {
+      if (index >= posts.length) {
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
       final post = posts[index];
-      // Solo permitir editar si estamos en "Mis Posts" y es tu post
-      final canEdit = selectedTypeId == 'mis_posts' &&
-                      post.user.id == AuthService.currentUserId;
 
       return ModernPostCard(
         post: post,
-        onEdit: canEdit
-            ? () {
-                if (onEditPost != null) onEditPost!(post);
-              }
+        onEdit: onEditPost != null
+            ? () => onEditPost!(post)
             : null,
       );
-    }, 
+    },
   ),
 );
-
-  }
-}
+}}

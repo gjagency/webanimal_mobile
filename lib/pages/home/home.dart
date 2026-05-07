@@ -24,6 +24,11 @@ class PageHome extends StatefulWidget {
 }
 
 class _PageHomeState extends State<PageHome> {
+  final ScrollController _scrollController = ScrollController();
+
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
   String? selectedTypeId;
   String? selectedPetTypeId;
   String? selectedCityId;
@@ -49,8 +54,14 @@ class _PageHomeState extends State<PageHome> {
     _init();
     _getCurrentLocation();
     _loadProfile();
-  }
 
+    _scrollController.addListener(_onScroll);
+  }
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
   Future<void> _init() async {
     await AuthService.loadCurrentUser();
     setState(() {
@@ -354,6 +365,8 @@ class _PageHomeState extends State<PageHome> {
   }
 
   Future<void> _loadData() async {
+    _currentPage = 1;
+    _hasMore = true;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -648,6 +661,15 @@ class _PageHomeState extends State<PageHome> {
   }
 
   List<Post> get filteredPosts => _posts.toList();
+  
+void _onScroll() {
+  if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300 &&
+      !_isLoadingMore &&
+      _hasMore) {
+    _loadMorePosts();
+  }
+}
 
   void _clearFilters() {
     setState(() {
@@ -827,9 +849,7 @@ class _PageHomeState extends State<PageHome> {
                           const SizedBox(width: 8),
                         ],
                         const SizedBox(width: 8),
-                        // NUEVO CHIP "Mis Post"
-                        if (AuthService.currentUser != null)
-                          const SizedBox(width: 8),
+                       
                         ..._postTypes
                             .take(3)
                             .map(
@@ -986,14 +1006,16 @@ class _PageHomeState extends State<PageHome> {
                 : selectedTypeId == 'promociones'
                 ? PromocionesPorVeterinariaList(grupos: _promocionesAgrupadas)
                 : PostsFeed(
-                    posts: filteredPosts,
-                    promociones: const [],
-                    isLoading: false,
-                    error: _error,
-                    selectedTypeId: selectedTypeId,
-                    onRefresh: _loadData,
-                    onEditPost: _editarPost, // 🔥 ACÁ
-                  ),
+              controller: _scrollController,
+              posts: filteredPosts,
+              promociones: const [],
+              isLoading: false,
+              error: _error,
+              selectedTypeId: selectedTypeId,
+              onRefresh: _loadData,
+              onEditPost: _editarPost,
+              isLoadingMore: _isLoadingMore,
+            ),
           ),
         ],
       ),
@@ -1013,6 +1035,40 @@ class _PageHomeState extends State<PageHome> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
+Future<void> _loadMorePosts() async {
+  if (_isLoadingMore || !_hasMore) return;
+
+  setState(() => _isLoadingMore = true);
+
+  try {
+    final newPosts = await PostsService.getPosts(
+      postType: selectedTypeId,
+      petType: selectedPetTypeId,
+      cityId: selectedCityId,
+      page: _currentPage + 1,
+    );
+
+    setState(() {
+      _currentPage++;
+
+      if (newPosts.isEmpty || newPosts.length < 10) {
+        _hasMore = false;
+      }
+
+final existingIds = _posts.map((e) => e.id).toSet();
+
+final uniquePosts = newPosts
+    .where((post) => !existingIds.contains(post.id))
+    .toList();
+
+_posts.addAll(uniquePosts);
+    });
+  } catch (e) {
+    debugPrint('Error load more: $e');
+  } finally {
+    setState(() => _isLoadingMore = false);
+  }
+}
 }
 
 /// -------------------------

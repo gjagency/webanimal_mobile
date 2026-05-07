@@ -292,39 +292,52 @@ class PostImage {
 
 class PostsService {
   // GET: Lista de posts
-  static Future<List<Post>> getPosts({
-    String? postType,
-    String? petType,
-    String? userId,
-    String? esVeterinaria,
-    String? vet,
-    double? lat,
-    double? lng,
-    String? cityId,
-  }) async {
-    final Map<String, String> queryParams = {};
-    if (postType != null) queryParams['posteo_tipo'] = postType;
-    if (petType != null) queryParams['mascota_tipo'] = petType;
-    if (esVeterinaria != null) queryParams['usuario__veterinaria'] = esVeterinaria;
-    if (userId != null) queryParams['usuario'] = userId;
-    if (lat != null) queryParams['lat'] = lat.toString();
-    if (lng != null) queryParams['lng'] = lng.toString();
-    if (cityId != null) queryParams['ciudad_id'] = cityId.toString();
+static Future<List<Post>> getPosts({
+  String? postType,
+  String? petType,
+  String? userId,
+  String? esVeterinaria,
+  String? vet,
+  double? lat,
+  double? lng,
+  String? cityId,
+  int page = 1,
+}) async {
+  final Map<String, String> queryParams = {};
 
-    final uri = Uri.parse(
-      '${Config.baseUrl}/api/posteos/',
-    ).replace(queryParameters: queryParams);
-
-    final response = await AuthService.getWithToken(
-      '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
-    );
-
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((json) => _parsePost(json)).toList();
-    }
-    throw Exception('Error al cargar posts: ${response.statusCode}');
+  if (postType != null) queryParams['posteo_tipo'] = postType;
+  if (petType != null) queryParams['mascota_tipo'] = petType;
+  if (esVeterinaria != null) {
+    queryParams['usuario__veterinaria'] = esVeterinaria;
   }
+  if (userId != null) queryParams['usuario'] = userId;
+  if (lat != null) queryParams['lat'] = lat.toString();
+  if (lng != null) queryParams['lng'] = lng.toString();
+  if (cityId != null) queryParams['ciudad_id'] = cityId;
+  queryParams['page'] = page.toString();
+
+  // 🔥 paginación
+  queryParams['page'] = page.toString();
+
+  final uri = Uri.parse(
+    '${Config.baseUrl}/api/posteos/',
+  ).replace(queryParameters: queryParams);
+
+  final response = await AuthService.getWithToken(
+    '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
+  );
+
+  if (response.statusCode == 200) {
+    final decoded = jsonDecode(response.body);
+
+    // si django devuelve paginado
+    final List data = decoded is Map ? decoded['results'] : decoded;
+
+    return data.map<Post>((json) => _parsePost(json)).toList();
+  }
+
+  throw Exception('Error al cargar posts: ${response.statusCode}');
+}
 
   // GET: Post individual
   static Future<Post> getPost(String postId) async {
