@@ -30,9 +30,9 @@ class _PageHomeState extends State<PageHome> {
   DateTimeRange? selectedDateRange;
   bool? esVeterinariaLogueada;
   List<PromocionesPorVeterinaria> _promocionesAgrupadas = [];
-  List<File> _newImages = [];        // imágenes nuevas elegidas
+  List<File> _newImages = []; // imágenes nuevas elegidas
   List<int> _deleteImageIds = [];
-  List<PostImage> _existingImages = [];    // ids de imágenes a borrar (opcional)
+  List<PostImage> _existingImages = []; // ids de imágenes a borrar (opcional)
   bool _isSavingEdit = false;
 
   List<Post> _posts = [];
@@ -80,14 +80,12 @@ class _PageHomeState extends State<PageHome> {
     }
   }
 
-
   Future<void> _loadProfile() async {
     try {
       final profile = await AuthService.getProfile();
 
       setState(() {
-        avatarUrl =
-            profile['avatar'] ?? 'https://i.pravatar.cc/150?img=10';
+        avatarUrl = profile['avatar'] ?? 'https://i.pravatar.cc/150?img=10';
         loadingProfile = false;
       });
     } catch (e) {
@@ -98,301 +96,320 @@ class _PageHomeState extends State<PageHome> {
     }
   }
 
+  Future<void> _editarPost(Post post) async {
+    final _formKey = GlobalKey<FormState>();
+    String description = post.description;
 
-Future<void> _editarPost(Post post) async {
-  final _formKey = GlobalKey<FormState>();
-  String description = post.description;
+    final ImagePicker _picker = ImagePicker();
 
-  final ImagePicker _picker = ImagePicker();
+    // Limpiar listas por si venían de otro edit
+    _newImages = [];
+    _deleteImageIds = [];
 
-  // Limpiar listas por si venían de otro edit
-  _newImages = [];
-  _deleteImageIds = [];
+    _existingImages = post.imageUrls.map((url) {
+      final id = post.imageIdByUrl[url]; // 👈 USAR URL COMPLETA
 
-_existingImages = post.imageUrls.map((url) {
-  final id = post.imageIdByUrl[url];   // 👈 USAR URL COMPLETA
+      return PostImage(id: id, url: url);
+    }).toList();
 
-  return PostImage(id: id, url: url);
-}).toList();
-
-
-
-
-
-
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Editar Post', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                // Descripción
-                TextFormField(
-                  initialValue: description,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    border: OutlineInputBorder(),
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Editar Post',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Descripción
+                  TextFormField(
+                    initialValue: description,
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: null,
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Ingrese una descripción'
+                        : null,
+                    onSaved: (v) => description = v ?? '',
                   ),
-                  maxLines: null,
-                  validator: (v) => v == null || v.isEmpty ? 'Ingrese una descripción' : null,
-                  onSaved: (v) => description = v ?? '',
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // IMÁGENES
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    // 🔹 Existentes
-                    ..._existingImages.map((img) {
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              img.url,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
+                  // IMÁGENES
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      // 🔹 Existentes
+                      ..._existingImages.map((img) {
+                        return Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                img.url,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    // Si tiene ID real, lo agregamos a deleteImageIds
+                                    if (img.id != null &&
+                                        !_deleteImageIds.contains(img.id)) {
+                                      _deleteImageIds.add(img.id!);
+                                    }
+                                    // Removemos la imagen de la UI
+                                    _existingImages.remove(img);
+                                  });
+                                },
+
+                                child: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+
+                      // 🔹 Nuevas (local)
+                      ..._newImages.map((file) {
+                        return Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                file,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _newImages.remove(file);
+                                  });
+                                },
+                                child: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Botón agregar imagen
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.image),
+                    label: const Text('Agregar Imagen'),
+                    onPressed: () async {
+                      final totalImages =
+                          _existingImages.length + _newImages.length;
+                      if (totalImages >= 3) {
+                        showDialog(
+                          context: context,
+                          builder: (_) => const AlertDialog(
+                            content: Text(
+                              'Solo podés agregar hasta 3 imágenes',
                             ),
                           ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                          setState(() {
-                            // Si tiene ID real, lo agregamos a deleteImageIds
-                            if (img.id != null && !_deleteImageIds.contains(img.id)) {
-                              _deleteImageIds.add(img.id!);
-                            }
-                            // Removemos la imagen de la UI
-                            _existingImages.remove(img);
-                          });
-                        },
+                        );
+                        return;
+                      }
 
-
-                              child: const Icon(Icons.cancel, color: Colors.red),
-                            ),
-                          ),
-                        ],
+                      final XFile? picked = await _picker.pickImage(
+                        source: ImageSource.gallery,
                       );
-                    }).toList(),
-
-                    // 🔹 Nuevas (local)
-                    ..._newImages.map((file) {
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              file,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _newImages.remove(file);
-                                });
-                              },
-                              child: const Icon(Icons.cancel, color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Botón agregar imagen
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.image),
-                  label: const Text('Agregar Imagen'),
-                  onPressed: () async {
-                    final totalImages = _existingImages.length + _newImages.length;
-                    if (totalImages >= 3) {
-                      showDialog(
-                        context: context,
-                        builder: (_) => const AlertDialog(
-                          content: Text('Solo podés agregar hasta 3 imágenes'),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
-                    if (picked != null) {
-                      setState(() {
-                        _newImages.add(File(picked.path));
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-         ElevatedButton(
-  onPressed: _isSavingEdit
-      ? null
-      : () async {
-          if (!_formKey.currentState!.validate()) return;
-          _formKey.currentState!.save();
-
-          setState(() => _isSavingEdit = true);
-          try {
-            await PostsService.updatePostWithImages(
-              postId: post.id.toString(),
-              fields: {'body': description},
-              newImages: _newImages,
-              deleteImageIds: _deleteImageIds,
-            );
-
-            if (!context.mounted) return;
-
-            Navigator.pop(context);
-
-            // ===============================
-            // POPUP ÉXITO PRO
-            // ===============================
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogContext) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.check_circle, color: Colors.green, size: 48),
-                    SizedBox(height: 12),
-                    Text(
-                      'Post actualizado',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Los cambios se guardaron correctamente',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      if (Navigator.canPop(dialogContext)) {
-                        Navigator.pop(dialogContext);
+                      if (picked != null) {
+                        setState(() {
+                          _newImages.add(File(picked.path));
+                        });
                       }
                     },
-                    child: const Text('OK'),
-                  )
+                  ),
                 ],
               ),
-            );
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: _isSavingEdit
+                  ? null
+                  : () async {
+                      if (!_formKey.currentState!.validate()) return;
+                      _formKey.currentState!.save();
 
+                      setState(() => _isSavingEdit = true);
+                      try {
+                        await PostsService.updatePostWithImages(
+                          postId: post.id.toString(),
+                          fields: {'body': description},
+                          newImages: _newImages,
+                          deleteImageIds: _deleteImageIds,
+                        );
 
-            await _loadData();
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al actualizar post: $e')),
-            );
-          } finally {
-            if (mounted) setState(() => _isSavingEdit = false);
-          }
-        },
-  child: _isSavingEdit
-      ? const SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
-      : const Text('Guardar'),
-),
+                        if (!context.mounted) return;
 
-        ],
+                        Navigator.pop(context);
+
+                        // ===============================
+                        // POPUP ÉXITO PRO
+                        // ===============================
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (dialogContext) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 48,
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Post actualizado',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Los cambios se guardaron correctamente',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  if (Navigator.canPop(dialogContext)) {
+                                    Navigator.pop(dialogContext);
+                                  }
+                                },
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        await _loadData();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error al actualizar post: $e'),
+                          ),
+                        );
+                      } finally {
+                        if (mounted) setState(() => _isSavingEdit = false);
+                      }
+                    },
+              child: _isSavingEdit
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-Future<void> _loadData() async {
-  setState(() {
-    _isLoading = true;
-    _error = null;
-  });
+    try {
+      // Promociones
+      if (selectedTypeId == 'promociones') {
+        List<dynamic> data = AuthService.esVeterinaria
+            ? await AuthService.getMisPromociones()
+            : await AuthService.getOfertasPromociones();
 
-  try {
-    // Promociones
-    if (selectedTypeId == 'promociones') {
-      List<dynamic> data = AuthService.esVeterinaria
-          ? await AuthService.getMisPromociones()
-          : await AuthService.getOfertasPromociones();
+        setState(() {
+          _promocionesAgrupadas = data
+              .map((e) => PromocionesPorVeterinaria.fromJson(e))
+              .toList();
+          _posts = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Mis Posts
+      if (selectedTypeId == 'mis_posts') {
+        final results = await PostsService.getMisPosts(); // nuevo método
+        setState(() {
+          _posts = results;
+          _promocionesAgrupadas = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Solo para tipos de posts numéricos
+      final results = await Future.wait([
+        PostsService.getPosts(
+          postType: selectedTypeId,
+          petType: selectedPetTypeId,
+          cityId: selectedCityId,
+        ),
+        PostsService.getPostTypes(),
+        PostsService.getPetTypes(),
+      ]);
 
       setState(() {
-        _promocionesAgrupadas =
-            data.map((e) => PromocionesPorVeterinaria.fromJson(e)).toList();
-        _posts = [];
+        _posts = results[0] as List<Post>;
+        _postTypes = results[1] as List<PostType>;
+        _petTypes = results[2] as List<PetType>;
         _isLoading = false;
       });
-      return;
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
-
-    // Mis Posts
-        if (selectedTypeId == 'mis_posts') {
-          final results = await PostsService.getMisPosts(); // nuevo método
-          setState(() {
-            _posts = results;
-            _promocionesAgrupadas = [];
-            _isLoading = false;
-          });
-          return;
-        }
-
-    // Solo para tipos de posts numéricos
-    final results = await Future.wait([
-      PostsService.getPosts(
-      postType: selectedTypeId,
-      petType: selectedPetTypeId,
-      cityId: selectedCityId,
-    ),
-      PostsService.getPostTypes(),
-      PostsService.getPetTypes(),
-    ]);
-
-    setState(() {
-      _posts = results[0] as List<Post>;
-      _postTypes = results[1] as List<PostType>;
-      _petTypes = results[2] as List<PetType>;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _error = e.toString();
-      _isLoading = false;
-    });
   }
-}
 
   void _mostrarCrearPromocionDialog() {
     showDialog(
@@ -408,11 +425,16 @@ Future<void> _loadData() async {
         final ImagePicker _picker = ImagePicker();
 
         Future<void> _pickImage(void Function(void Function()) setState) async {
-          final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+          final XFile? picked = await _picker.pickImage(
+            source: ImageSource.gallery,
+          );
           if (picked != null) setState(() => _imagen = File(picked.path));
         }
 
-        Future<void> _pickDate({required bool desde, required void Function(void Function()) setState}) async {
+        Future<void> _pickDate({
+          required bool desde,
+          required void Function(void Function()) setState,
+        }) async {
           final picked = await showDatePicker(
             context: context,
             initialDate: DateTime.now(),
@@ -421,16 +443,23 @@ Future<void> _loadData() async {
           );
           if (picked != null) {
             setState(() {
-              if (desde) _fechaDesde = picked;
-              else _fechaHasta = picked;
+              if (desde)
+                _fechaDesde = picked;
+              else
+                _fechaHasta = picked;
             });
           }
         }
 
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Crear Promoción', style: TextStyle(fontWeight: FontWeight.bold)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Crear Promoción',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: SingleChildScrollView(
               child: Form(
                 key: _formKey,
@@ -438,19 +467,31 @@ Future<void> _loadData() async {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
-                      decoration: const InputDecoration(labelText: 'Título', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.isEmpty ? 'Ingrese un título' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Título',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Ingrese un título' : null,
                       onSaved: (v) => _titulo = v,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
-                      decoration: const InputDecoration(labelText: 'Descripción', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.isEmpty ? 'Ingrese una descripción' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Descripción',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Ingrese una descripción'
+                          : null,
                       onSaved: (v) => _descripcion = v,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
-                      decoration: const InputDecoration(labelText: 'Precio', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: TextInputType.number,
                       onSaved: (v) => _precio = v,
                     ),
@@ -459,26 +500,39 @@ Future<void> _loadData() async {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _pickDate(desde: true, setState: setState),
-                            child: Text(_fechaDesde != null
-                                ? 'Desde: ${DateFormat('dd/MM/yyyy').format(_fechaDesde!)}'
-                                : 'Seleccionar fecha desde'),
+                            onPressed: () =>
+                                _pickDate(desde: true, setState: setState),
+                            child: Text(
+                              _fechaDesde != null
+                                  ? 'Desde: ${DateFormat('dd/MM/yyyy').format(_fechaDesde!)}'
+                                  : 'Seleccionar fecha desde',
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _pickDate(desde: false, setState: setState),
-                            child: Text(_fechaHasta != null
-                                ? 'Hasta: ${DateFormat('dd/MM/yyyy').format(_fechaHasta!)}'
-                                : 'Seleccionar fecha hasta'),
+                            onPressed: () =>
+                                _pickDate(desde: false, setState: setState),
+                            child: Text(
+                              _fechaHasta != null
+                                  ? 'Hasta: ${DateFormat('dd/MM/yyyy').format(_fechaHasta!)}'
+                                  : 'Seleccionar fecha hasta',
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     _imagen != null
-                        ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imagen!, height: 120, fit: BoxFit.cover))
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              _imagen!,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          )
                         : const SizedBox(height: 120),
                     const SizedBox(height: 8),
                     ElevatedButton.icon(
@@ -491,7 +545,10 @@ Future<void> _loadData() async {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
@@ -513,7 +570,9 @@ Future<void> _loadData() async {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       title: Text(success ? 'Éxito' : 'Error'),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -523,15 +582,28 @@ Future<void> _loadData() async {
                             Padding(
                               padding: const EdgeInsets.only(top: 16),
                               child: IconButton(
-                                icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 32),
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.whatsapp,
+                                  color: Colors.green,
+                                  size: 32,
+                                ),
                                 onPressed: () async {
                                   final Uri whatsappUrl = Uri.parse(
-                                      "https://wa.me/5492920601338?text=Hola%20WebAnimal%20quiero%20aumentar%20el%20límite%20de%20promociones");
+                                    "https://wa.me/5492920601338?text=Hola%20WebAnimal%20quiero%20aumentar%20el%20límite%20de%20promociones",
+                                  );
                                   try {
-                                    await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+                                    await launchUrl(
+                                      whatsappUrl,
+                                      mode: LaunchMode.externalApplication,
+                                    );
                                   } catch (_) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(content: Text('No se pudo abrir WhatsApp')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No se pudo abrir WhatsApp',
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                               ),
@@ -614,7 +686,10 @@ Future<void> _loadData() async {
   @override
   Widget build(BuildContext context) {
     final hasFilters =
-        selectedTypeId != null || selectedPetTypeId != null || selectedCityId != null || selectedDateRange != null;
+        selectedTypeId != null ||
+        selectedPetTypeId != null ||
+        selectedCityId != null ||
+        selectedDateRange != null;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -629,11 +704,7 @@ Future<void> _loadData() async {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.pets,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.pets, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 8),
 
@@ -641,10 +712,7 @@ Future<void> _loadData() async {
               child: const Text(
                 'WebAnimal',
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
             ),
           ],
@@ -681,11 +749,7 @@ Future<void> _loadData() async {
                         ? NetworkImage(avatarUrl)
                         : null,
                     child: avatarUrl.isEmpty
-                        ? const Icon(
-                            Icons.person,
-                            size: 16,
-                            color: Colors.grey,
-                          )
+                        ? const Icon(Icons.person, size: 16, color: Colors.grey)
                         : null,
                   ),
           ),
@@ -752,31 +816,33 @@ Future<void> _loadData() async {
                         const SizedBox(width: 8),
                         // NUEVO CHIP "Mis Post"
                         if (AuthService.currentUser != null)
-                          
-                        const SizedBox(width: 8),
-                        ..._postTypes.take(3).map(
-                          (type) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: QuickFilterChip(
-                              label: type.name,
-                              icon: _getIconForType(type.name),
-                              isSelected: selectedTypeId == type.id,
-                              onTap: () {
-                                setState(() => selectedTypeId = type.id);
-                                _loadData();
-                              },
+                          const SizedBox(width: 8),
+                        ..._postTypes
+                            .take(3)
+                            .map(
+                              (type) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: QuickFilterChip(
+                                  label: type.name,
+                                  icon: _getIconForType(type.name),
+                                  isSelected: selectedTypeId == type.id,
+                                  onTap: () {
+                                    setState(() => selectedTypeId = type.id);
+                                    _loadData();
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
                       ],
                     ),
-
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.tune_rounded),
                   onPressed: _showFilterBottomSheet,
-                  style: IconButton.styleFrom(backgroundColor: Colors.grey[100]),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.grey[100],
+                  ),
                 ),
               ],
             ),
@@ -792,142 +858,149 @@ Future<void> _loadData() async {
                 children: [
                   if (selectedPetTypeId != null)
                     ActiveFilterChip(
-                        label: _petTypes.firstWhere((p) => p.id == selectedPetTypeId).name,
-                        onRemove: () {
-                          setState(() => selectedPetTypeId = null);
-                          _loadData();
-                        }),
+                      label: _petTypes
+                          .firstWhere((p) => p.id == selectedPetTypeId)
+                          .name,
+                      onRemove: () {
+                        setState(() => selectedPetTypeId = null);
+                        _loadData();
+                      },
+                    ),
                   if (selectedDateRange != null)
-                    ActiveFilterChip(label: 'Rango de fecha', onRemove: () => setState(() => selectedDateRange = null)),
+                    ActiveFilterChip(
+                      label: 'Rango de fecha',
+                      onRemove: () => setState(() => selectedDateRange = null),
+                    ),
                   TextButton.icon(
                     onPressed: _clearFilters,
                     icon: const Icon(Icons.clear_all, size: 16),
                     label: const Text('Limpiar filtros'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
+          const SizedBox(height: 8),
+          if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
             const SizedBox(height: 8),
-            if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
-              const SizedBox(height: 8),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => selectedTypeId = 'promociones');
-                    _loadData();
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.purple, Colors.pink],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () {
+                  context.push('/home/promotions');
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.purple, Colors.pink],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.withOpacity(0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.purple.withOpacity(0.18),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          shape: BoxShape.circle,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_offer_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Descuentos',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Mirá promociones y ofertas disponibles',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
+                        child: const Icon(
+                          Icons.local_offer_rounded,
                           color: Colors.white,
-                          size: 18,
+                          size: 24,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 14),
+
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Descuentos',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Mirá promociones y ofertas disponibles',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 10),
-            ],
             const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 10),
 
-                      Expanded(
-                        child: _isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : selectedTypeId == 'promociones'
-                                ? PromocionesPorVeterinariaList(
-                                    grupos: _promocionesAgrupadas,
-                                  )
-                                : PostsFeed(
-                                    posts: filteredPosts,
-                                    promociones: const [],
-                                    isLoading: false,
-                                    error: _error,
-                                    selectedTypeId: selectedTypeId,
-                                    onRefresh: _loadData,
-                                    onEditPost: _editarPost, // 🔥 ACÁ
-                                  ),
-
-                      ),
-
-                    ],
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : selectedTypeId == 'promociones'
+                ? PromocionesPorVeterinariaList(grupos: _promocionesAgrupadas)
+                : PostsFeed(
+                    posts: filteredPosts,
+                    promociones: const [],
+                    isLoading: false,
+                    error: _error,
+                    selectedTypeId: selectedTypeId,
+                    onRefresh: _loadData,
+                    onEditPost: _editarPost, // 🔥 ACÁ
                   ),
-                    floatingActionButton: Padding(
-                      padding: const EdgeInsets.only(bottom: 1, right: 0), // ajusta al borde inferior y derecho
-                      child: SpeedDialCustom(
-                        onCrearPromocion: AuthService.esVeterinaria
-                        ? _mostrarCrearPromocionDialog
-                        : null,
-                    // función vacía evita que haga algo
-                        onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
-                      ),
-                    ),
-                    floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-
-
-                );
-              }
-            }
-
+          ),
+        ],
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(
+          bottom: 1,
+          right: 0,
+        ), // ajusta al borde inferior y derecho
+        child: SpeedDialCustom(
+          onCrearPromocion: AuthService.esVeterinaria
+              ? _mostrarCrearPromocionDialog
+              : null,
+          // función vacía evita que haga algo
+          onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+    );
+  }
+}
 
 /// -------------------------
 /// SPEEDDIAL CON TU DISEÑO
@@ -941,7 +1014,9 @@ class SpeedDialCustom extends StatefulWidget {
   @override
   State<SpeedDialCustom> createState() => _SpeedDialCustomState();
 }
-class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProviderStateMixin {
+
+class _SpeedDialCustomState extends State<SpeedDialCustom>
+    with SingleTickerProviderStateMixin {
   bool _isOpen = false;
 
   void _toggleMenu() => setState(() => _isOpen = !_isOpen);
@@ -952,25 +1027,29 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
     List<Widget> buttons = [];
 
     if (widget.onCrearPromocion != null) {
-      buttons.add(_buildActionButton(
-        icon: Icons.local_offer_rounded,
-        label: 'Crear promoción',
-        onTap: () {
-          _closeMenu();
-          widget.onCrearPromocion!();
-        },
-      ));
+      buttons.add(
+        _buildActionButton(
+          icon: Icons.local_offer_rounded,
+          label: 'Crear promoción',
+          onTap: () {
+            _closeMenu();
+            widget.onCrearPromocion!();
+          },
+        ),
+      );
     }
 
     if (widget.onCrearPost != null) {
-      buttons.add(_buildActionButton(
-        icon: Icons.post_add,
-        label: 'Crear Post',
-        onTap: () {
-          _closeMenu();
-          widget.onCrearPost!();
-        },
-      ));
+      buttons.add(
+        _buildActionButton(
+          icon: Icons.post_add,
+          label: 'Crear Post',
+          onTap: () {
+            _closeMenu();
+            widget.onCrearPost!();
+          },
+        ),
+      );
     }
 
     return Stack(
@@ -986,30 +1065,34 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
             ),
           ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 16, right: 16), // pegado al borde
+          padding: const EdgeInsets.only(
+            bottom: 16,
+            right: 16,
+          ), // pegado al borde
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               // Botones secundarios animados
-              ...buttons.reversed.map((btn) => AnimatedSlide(
-                    offset: _isOpen ? Offset.zero : const Offset(0, 0.2),
+              ...buttons.reversed.map(
+                (btn) => AnimatedSlide(
+                  offset: _isOpen ? Offset.zero : const Offset(0, 0.2),
+                  duration: const Duration(milliseconds: 200),
+                  child: AnimatedOpacity(
+                    opacity: _isOpen ? 1 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: AnimatedOpacity(
-                      opacity: _isOpen ? 1 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: IgnorePointer(
-                        ignoring: !_isOpen,
-                        child: btn,
-                      ),
-                    ),
-                  )),
+                    child: IgnorePointer(ignoring: !_isOpen, child: btn),
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               // Botón principal
               _fab(
                 icon: _isOpen ? Icons.close : Icons.add,
                 onTap: _toggleMenu,
-                gradient: const LinearGradient(colors: [Colors.purple, Colors.pink]),
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
                 isMain: true,
               ),
             ],
@@ -1034,27 +1117,52 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
         ),
         _fab(
           icon: icon,
           onTap: onTap,
-          gradient: LinearGradient(colors: [Colors.purple.shade200, Colors.pink.shade200]),
+          gradient: LinearGradient(
+            colors: [Colors.purple.shade200, Colors.pink.shade200],
+          ),
         ),
       ],
     );
   }
 
-  Widget _fab({required IconData icon, required VoidCallback onTap, required Gradient gradient, bool isMain = false}) {
+  Widget _fab({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Gradient gradient,
+    bool isMain = false,
+  }) {
     return Container(
       width: 60,
       height: 60,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: gradient,
-        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1066,5 +1174,4 @@ class _SpeedDialCustomState extends State<SpeedDialCustom> with SingleTickerProv
       ),
     );
   }
-  
 }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_app/pages/account/veterinaria_create.dart';
 import 'package:mobile_app/pages/account/veterinaria_modify.dart';
 import 'package:mobile_app/pages/auth/PageEditProfile.dart';
+import 'package:mobile_app/pages/home/promotions.dart';
 
 import 'package:mobile_app/service/auth_service.dart';
 
@@ -55,6 +56,10 @@ final router = GoRouter(
        HOME
        ========================= */
     GoRoute(path: '/home', builder: (context, state) => const PageHome()),
+    GoRoute(
+      path: '/home/promotions',
+      builder: (context, state) => const PagePromotions(),
+    ),
 
     /* =========================
        AUTH
@@ -72,16 +77,16 @@ final router = GoRouter(
       builder: (context, state) => const PageAuthOTP(),
     ),
     GoRoute(
-  path: '/user-posts/:userId',
-  builder: (context, state) {
-    final userId = state.pathParameters['userId']!;
-    return UserPostsPage(userId: userId);
-  },
-),
-  GoRoute(
-    path: '/search/users',
-    builder: (context, state) => const SearchUsersPage(),
-  ),
+      path: '/user-posts/:userId',
+      builder: (context, state) {
+        final userId = state.pathParameters['userId']!;
+        return UserPostsPage(userId: userId);
+      },
+    ),
+    GoRoute(
+      path: '/search/users',
+      builder: (context, state) => const SearchUsersPage(),
+    ),
 
     // 🔐 RESET PASSWORD (con uid + token)
     GoRoute(
