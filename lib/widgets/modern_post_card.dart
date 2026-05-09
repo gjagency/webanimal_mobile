@@ -257,12 +257,7 @@ Widget _buildHeader(Color color, IconData icon) {
         ),
       ),
 
-        // BOTÓN DE EDICIÓN
-        if (widget.onEdit != null)
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.black54),
-            onPressed: widget.onEdit,
-          ),
+   
 
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
