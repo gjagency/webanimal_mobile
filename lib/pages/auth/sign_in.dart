@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});
 
@@ -84,122 +84,457 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  @override
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    backgroundColor: Colors.grey[50],
-    body: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.pets, size: 80, color: Colors.purple),
-            const SizedBox(height: 16),
+    body: Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF9B4DCC), // violeta
+      Color(0xFFE0528D), // rosa rojizo más visible
+    ],
+  ),
+),
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // LOGO
+                SizedBox(
+                  width: 280,
+                  height: 140,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // huellas fondo
+                      Positioned(
+                        top: 10,
+                        left: 20,
+                        child: Transform.rotate(
+                          angle: -0.3,
+                          child: Icon(
+                            Icons.pets,
+                            size: 70,
+                            color: Colors.white.withOpacity(0.06),
+                          ),
+                        ),
+                      ),
 
-            const Text(
-              'WeBaNiMaL',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple,
-              ),
-            ),
+                      Positioned(
+                        top: 50,
+                        right: 20,
+                        child: Transform.rotate(
+                          angle: 0.2,
+                          child: Icon(
+                            Icons.pets,
+                            size: 55,
+                            color: Colors.white.withOpacity(0.05),
+                          ),
+                        ),
+                      ),
 
-            const SizedBox(height: 32),
+                      // W
+                      Positioned(
+                        left: 75,
+                        top: 1,
+                        child: Transform.rotate(
+                          angle: -0.00,
+                          child: Text(
+                            'W',
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white,
+                              fontSize: 100,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w700,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8,
+                                  offset: Offset(3, 3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
 
-            // Usuario
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Usuario o Email',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Password
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Contraseña',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // 🔹 Recuperar contraseña
-            TextButton(
-              onPressed: () => GoRouter.of(context).go('/auth/recover'),
-              child: const Text(
-                '¿Olvidaste tu contraseña?',
-                style: TextStyle(color: Colors.purple),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Botón login
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 212, 67, 238),
+                      // A
+                      Positioned(
+                        left: 120,
+                        top: 20,
+                        child: Transform.rotate(
+                          angle: -0.00,
+                          child: Text(
+                            'A',
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white,
+                              fontSize: 100,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w700,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8,
+                                  offset: Offset(3, 3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Ingresar', style: TextStyle(fontSize: 16,color: Colors.white)),
-              ),
-            ),
 
-            const SizedBox(height: 16),
 
-            // Divider
-            Row(
-              children: const [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('o'),
+                                // CARD LOGIN
+                // reemplazá TODO el Container del login por esto:
+
+                Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // BOTÓN VETERINARIA
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF6A1B9A),
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(30),
+                                  ),
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Acceso Veterinaria',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 24),
+
+                                      TextField(
+                                        controller: _usernameController,
+                                        style: const TextStyle(color: Colors.white),
+                                        decoration: InputDecoration(
+                                          hintText: 'Usuario o Email',
+                                          hintStyle: TextStyle(
+                                            color: Colors.white.withOpacity(0.7),
+                                          ),
+                                          prefixIcon: const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.white.withOpacity(0.10),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(18),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 16),
+
+                                      TextField(
+                                        controller: _passwordController,
+                                        obscureText: true,
+                                        style: const TextStyle(color: Colors.white),
+                                        decoration: InputDecoration(
+                                          hintText: 'Contraseña',
+                                          hintStyle: TextStyle(
+                                            color: Colors.white.withOpacity(0.7),
+                                          ),
+                                          prefixIcon: const Icon(
+                                            Icons.lock,
+                                            color: Colors.white,
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.white.withOpacity(0.10),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(18),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 22),
+
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 54,
+                                        child: ElevatedButton(
+                                          onPressed: _loading ? null : _login,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.purple,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(18),
+                                            ),
+                                          ),
+                                          child: _loading
+                                              ? const CircularProgressIndicator()
+                                              : const Text(
+                                                  'Ingresar',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 20),
+                                    ],
+                                  ),
+                                ),
+                                
+                                
+                              ),
+                            );
+                          },
+                        );
+                          },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.purple,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        icon: const Icon(Icons.local_hospital),
+                        label: const Text(
+                          'Acceso Veterinaria',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                             ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                          // BOTÓN ESPACIO ANIMAL
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (_) {
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(24),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF6A1B9A),
+                                          borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(30),
+                                          ),
+                                        ),
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text(
+                                                'Acceso Espacio Animal',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+
+                                              const SizedBox(height: 24),
+
+                                              TextField(
+                                                controller: _usernameController,
+                                                style: const TextStyle(color: Colors.white),
+                                                decoration: InputDecoration(
+                                                  hintText: 'Usuario o Email',
+                                                  hintStyle: TextStyle(
+                                                    color: Colors.white70,
+                                                  ),
+                                                  prefixIcon: const Icon(
+                                                    Icons.person,
+                                                    color: Colors.white,
+                                                  ),
+                                                  filled: true,
+                                                  fillColor: Colors.white24,
+                                                  border: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(18),
+                                                    borderSide: BorderSide.none,
+                                                  ),
+                                                ),
+                                              ),
+
+                                              const SizedBox(height: 16),
+
+                                              TextField(
+                                                controller: _passwordController,
+                                                obscureText: true,
+                                                style: const TextStyle(color: Colors.white),
+                                                decoration: InputDecoration(
+                                                  hintText: 'Contraseña',
+                                                  hintStyle: const TextStyle(
+                                                    color: Colors.white70,
+                                                  ),
+                                                  prefixIcon: const Icon(
+                                                    Icons.lock,
+                                                    color: Colors.white,
+                                                  ),
+                                                  filled: true,
+                                                  fillColor: Colors.white24,
+                                                  border: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(18),
+                                                    borderSide: BorderSide.none,
+                                                  ),
+                                                ),
+                                              ),
+
+                                              const SizedBox(height: 22),
+
+                                              SizedBox(
+                                                width: double.infinity,
+                                                height: 54,
+                                                child: ElevatedButton(
+                                                  onPressed: _loading ? null : _login,
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.white,
+                                                    foregroundColor: Colors.purple,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(18),
+                                                    ),
+                                                  ),
+                                                  child: _loading
+                                                      ? const CircularProgressIndicator()
+                                                      : const Text(
+                                                          'Ingresar',
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                ),
+                                              ),
+
+                                              const SizedBox(height: 20),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.15),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              icon: const Icon(Icons.pets),
+                              label: const Text(
+                                'Acceso Espacio Animal',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // BOTÓN GOOGLE
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              icon: const FaIcon(
+                                FontAwesomeIcons.google,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Ingresar con Google',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onPressed: _loading ? null : _loginWithGoogle,
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                const SizedBox(height: 24),
+
+                TextButton(
+                  onPressed: () => GoRouter.of(context)
+                      .go('/auth/register-vet'),
+                  child: const Text(
+                    'Registrar\nVeterinaria\nEspacio de mascotas',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-                Expanded(child: Divider()),
               ],
             ),
-
-            const SizedBox(height: 16),
-
-            // Botón Google
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.g_mobiledata, size: 32),
-                label: const Text('Ingresar con Google'),
-                onPressed: _loading ? null : _loginWithGoogle,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 🔹 Registrar veterinaria
-            TextButton(
-              onPressed: () => GoRouter.of(context).go('/auth/register-vet'),
-              child: const Text(
-                'Registrar Veterinaria\nEspacio de mascotas',
-                style: TextStyle(
-                  color: Colors.purple,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     ),

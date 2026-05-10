@@ -20,7 +20,7 @@ class _SplashPageState extends State<SplashPage> {
   Future<void> _checkLogin() async {
     try {
       // Esperamos un momento para simular splash/loading
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 2000));
 
       final loggedIn = await AuthService.isLoggedIn();
 
@@ -45,16 +45,16 @@ return Scaffold(
   body: Container(
     width: double.infinity,
     height: double.infinity,
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.purple,
-          Colors.pink,
-        ],
-      ),
-    ),
+     decoration: const BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF9B4DCC), // violeta
+      Color(0xFFE0528D), // rosa rojizo más visible
+    ],
+  ),
+),
     child: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -70,7 +70,7 @@ return Scaffold(
                   top: 10,
                   left: 20,
                   child: Transform.rotate(
-                    angle: -0.3,
+                    angle: -0.00,
                     child: Icon(
                       Icons.pets,
                       size: 70,
@@ -84,7 +84,7 @@ return Scaffold(
                   top: 50,
                   right: 20,
                   child: Transform.rotate(
-                    angle: 0.2,
+                    angle: 0.00,
                     child: Icon(
                       Icons.pets,
                       size: 55,
@@ -98,7 +98,7 @@ return Scaffold(
                   bottom: 10,
                   left: 60,
                   child: Transform.rotate(
-                    angle: -0.4,
+                    angle: -0.00,
                     child: Text(
                       'U',
                       style: TextStyle(
@@ -115,7 +115,7 @@ return Scaffold(
                   left: 25,
                   top: 10,
                   child: Transform.rotate(
-                    angle: -0.08,
+                    angle: -0.00,
                     child: Text(
                       'W',
                       style: GoogleFonts.cormorantGaramond(
@@ -140,7 +140,7 @@ return Scaffold(
                   left: 110,
                   top: 62,
                   child: Transform.rotate(
-                    angle: -0.08,
+                    angle: -0.00,
                     child: Text(
                       'A',
                       style: GoogleFonts.cormorantGaramond(
