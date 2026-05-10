@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mobile_app/service/auth_service.dart';
+import 'package:mobile_app/service/location_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 
 class PagePromotions extends StatefulWidget {
@@ -11,29 +13,88 @@ class PagePromotions extends StatefulWidget {
 }
 
 class _PagePromotionsState extends State<PagePromotions> {
-  Future<Map<String, dynamic>>? futureProfile;
-  Future<List<PromocionesPorVeterinaria>>? futurePromotions;
+  bool loading = true;
+  bool fetching = false;
+  List<PromocionesPorVeterinaria> promotions = [];
+
+  double? _lat;
+  double? _lng;
+  String _locationLabel = 'Mi ubicación';
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+
+    _initLocation();
   }
 
-  void _loadData() {
-    setState(() {
-      futureProfile = AuthService.getProfile();
-      futurePromotions = AuthService.getOfertasPromociones().then(
-        (value) => value
-            .map((row) => PromocionesPorVeterinaria.fromJson(row))
-            .toList(),
+  Future<void> _initLocation() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+
+      final address = await LocationService.reverseGeocodeLocation(
+        _lat!,
+        _lng!,
       );
+      if (address != null) {
+        setState(() => _locationLabel = address.city);
+      }
+    } catch (_) {
+      // sin permiso o error, carga sin coords
+    }
+
+    await _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      fetching = true;
     });
+
+    List<Map<String, dynamic>> result = [];
+
+    try {
+      result = await AuthService.getOfertasPromociones(lat: _lat, lng: _lng);
+    } finally {
+      setState(() {
+        fetching = false;
+        loading = false;
+        promotions = result
+            .map((row) => PromocionesPorVeterinaria.fromJson(row))
+            .toList();
+      });
+    }
   }
 
   Future<void> _onRefresh() async {
-    _loadData();
-    await futurePromotions;
+    await _loadData();
+  }
+
+  void _showChangeLocationSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LocationPickerSheet(
+        currentLat: _lat,
+        currentLng: _lng,
+        currentLabel: _locationLabel,
+        onLocationSelected: (lat, lng, label) {
+          setState(() {
+            _lat = lat;
+            _lng = lng;
+            _locationLabel = label;
+          });
+          _loadData();
+        },
+      ),
+    );
   }
 
   @override
@@ -41,109 +102,243 @@ class _PagePromotionsState extends State<PagePromotions> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        titleSpacing: 8,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.pink],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Promociones',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              ),
-            ),
-          ],
+        titleSpacing: 0,
+        title: Text(
+          'Promos',
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => context.push('/search/users'),
-          ),
-          IconButton(
-            onPressed: () =>
-                context.push('/user-posts/${AuthService.currentUserId}'),
-            icon: FutureBuilder(
-              future: futureProfile,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  );
-                }
-                final avatarUrl = snapshot.data?['avatar'] ?? "";
-                return CircleAvatar(
-                  radius: 14,
-                  backgroundColor: Colors.grey.shade200,
-                  backgroundImage: avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl.isEmpty
-                      ? const Icon(Icons.person, size: 16, color: Colors.grey)
-                      : null,
-                );
-              },
+          GestureDetector(
+            onTap: _showChangeLocationSheet,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 6,
+                children: [
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: Colors.purple,
+                  ),
+                  Flexible(
+                    child: Text(
+                      _locationLabel,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.location_on, color: Colors.purple, size: 22),
+                ],
+              ),
             ),
           ),
-             IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                context.push('/account/settings');
-              },
-            ),          
         ],
       ),
-        body: SafeArea(
+      body: SafeArea(
         bottom: true,
         child: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: Colors.purple,
-        child: FutureBuilder<List<PromocionesPorVeterinaria>>(
-          future: futurePromotions,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingView();
-            }
-            if (snapshot.hasError) {
-              return _ErrorView(onRetry: _loadData);
-            }
-            final data = snapshot.data ?? [];
-            if (data.isEmpty) {
-              return const _EmptyView();
-            }
-            return CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              const SliverToBoxAdapter(child: _HeroBanner()),
-              const SliverToBoxAdapter(child: _SectionDivider()),
-              SliverList.separated(
-                itemCount: data.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) =>
-                    _VeterinariaSection(data: data[i]),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: MediaQuery.of(context).padding.bottom + 90,
+          onRefresh: _onRefresh,
+          color: Colors.purple,
+          child: loading
+              ? _LoadingView()
+              : CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    const SliverToBoxAdapter(child: _HeroBanner()),
+                    const SliverToBoxAdapter(child: _SectionDivider()),
+                    SliverList.separated(
+                      itemCount: promotions.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) =>
+                          _VeterinariaSection(data: promotions[i]),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 90,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          );
-          },
         ),
       ),
-      ),);
+    );
+  }
+}
+
+// ============ LOCATION PICKER SHEET ============
+class _LocationPickerSheet extends StatefulWidget {
+  final double? currentLat;
+  final double? currentLng;
+  final String currentLabel;
+  final void Function(double lat, double lng, String label) onLocationSelected;
+
+  const _LocationPickerSheet({
+    required this.currentLat,
+    required this.currentLng,
+    required this.currentLabel,
+    required this.onLocationSelected,
+  });
+
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+  final _controller = TextEditingController();
+  bool _searching = false;
+  String? _error;
+  List<LocationResult> _results = [];
+
+  Future<void> _search(String query) async {
+    if (query.trim().isEmpty) return;
+    setState(() {
+      _searching = true;
+      _error = null;
+      _results = [];
+    });
+    final results = await LocationService.searchLocation(query);
+    setState(() {
+      _results = results;
+      _searching = false;
+      if (results.isEmpty) _error = 'No se encontraron resultados';
+    });
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _searching = true);
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      final address = await LocationService.reverseGeocodeLocation(
+        pos.latitude,
+        pos.longitude,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onLocationSelected(
+          pos.latitude,
+          pos.longitude,
+          address?.city ?? "Ubicacion",
+        );
+      }
+    } catch (_) {
+      setState(() {
+        _error = 'No se pudo obtener la ubicación';
+        _searching = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Cambiar ubicación',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          // usar ubicación actual
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.my_location, color: Colors.purple),
+            ),
+            title: const Text('Usar mi ubicación actual'),
+            onTap: _useCurrentLocation,
+          ),
+          const Divider(),
+          const SizedBox(height: 8),
+          // búsqueda manual
+          TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: 'Buscar ciudad o barrio...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onSubmitted: _search,
+            textInputAction: TextInputAction.search,
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: Colors.red)),
+          ],
+          if (_results.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ..._results.asMap().entries.map((e) {
+              final p = e.value;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(
+                  Icons.location_on_outlined,
+                  color: Colors.purple,
+                ),
+                title: Text(p.displayName.isNotEmpty ? p.displayName : '-'),
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onLocationSelected(p.lat, p.lng, p.city);
+                },
+              );
+            }),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              "No se encontraron resultados",
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
 }
 
@@ -154,7 +349,7 @@ class _HeroBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -206,7 +401,6 @@ class _HeroBanner extends StatelessWidget {
                     height: 0.0,
                   ),
                 ),
-               
               ],
             ),
           ),
@@ -228,7 +422,7 @@ class _HeroBanner extends StatelessWidget {
 // ============ SECCIÓN POR VETERINARIA ============
 class _VeterinariaSection extends StatelessWidget {
   final PromocionesPorVeterinaria data;
-  
+
   const _VeterinariaSection({required this.data});
 
   @override
@@ -241,52 +435,52 @@ class _VeterinariaSection extends StatelessWidget {
           child: Row(
             children: [
               Container(
-  width: 42,
-  height: 42,
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(12),
-    gradient: data.avatar == null || data.avatar!.isEmpty
-        ? const LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          )
-        : null,
-    color: Colors.grey.shade200,
-  ),
-  clipBehavior: Clip.antiAlias,
-  child: data.avatar != null && data.avatar!.isNotEmpty
-      ? Image.network(
-          'https://webanimal.com.ar${data.avatar}',
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(
-            Icons.storefront,
-            color: Colors.white,
-            size: 22,
-          ),
-        )
-      : const Icon(
-          Icons.storefront,
-          color: Colors.white,
-          size: 22,
-        ),
-),
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: data.avatar == null || data.avatar!.isEmpty
+                      ? const LinearGradient(
+                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        )
+                      : null,
+                  color: Colors.grey.shade200,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: data.avatar != null && data.avatar!.isNotEmpty
+                    ? Image.network(
+                        'https://webanimal.com.ar${data.avatar}',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.storefront,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.storefront,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  GestureDetector(
-                  onTap: () {
-                    context.push('/user-posts/${data.userId}');
-                  },
-                  child: Text(
-                    data.nombreComercio,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/user-posts/${data.userId}');
+                      },
+                      child: Text(
+                        data.nombreComercio,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -366,10 +560,9 @@ class _PromocionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = promocion.imagen != null &&
-          promocion.imagen!.isNotEmpty
-    ? 'https://webanimal.com.ar${promocion.imagen}'
-    : null;
+    final imageUrl = promocion.imagen != null && promocion.imagen!.isNotEmpty
+        ? 'https://webanimal.com.ar${promocion.imagen}'
+        : null;
     return GestureDetector(
       onTap: () {
         // navegar al detalle si tenés ruta
@@ -402,57 +595,57 @@ class _PromocionCard extends StatelessWidget {
                     height: 120,
                     width: double.infinity,
                     child: imageUrl != null
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, error, stackTrace) {
-                          debugPrint('Error cargando imagen: $imageUrl');
-                          return _placeholderImage();
-                        },
-                        loadingBuilder: (_, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            color: Colors.grey[100],
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          );
-                        },
-                      )
-                    : _placeholderImage(),
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, error, stackTrace) {
+                              debugPrint('Error cargando imagen: $imageUrl');
+                              return _placeholderImage();
+                            },
+                            loadingBuilder: (_, child, progress) {
+                              if (progress == null) return child;
+                              return Container(
+                                color: Colors.grey[100],
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : _placeholderImage(),
                   ),
                 ),
                 if (promocion.precio != null && promocion.precio!.isNotEmpty)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'OFERTA',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                            letterSpacing: 0.5,
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'OFERTA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
-                      ),
-
-                      
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
             // contenido

@@ -137,10 +137,17 @@ class AuthService {
   /* ==========================================================
    TODAS LAS OFERTAS / PROMOCIONES ACTIVAS
    ========================================================== */
-  static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
+  static Future<List<Map<String, dynamic>>> getOfertasPromociones({
+    double? lat,
+    double? lng,
+  }) async {
     try {
-      final response = await getWithToken(
-        '/api/veterinarias/promociones/ofertas/',
+      String filter = "?";
+
+      if (lat != null && lng != null) filter += "lat=$lat&lng=$lng";
+
+      final response = await AuthService.getWithToken(
+        '/api/veterinarias/promociones/ofertas/$filter',
       );
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);

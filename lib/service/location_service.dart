@@ -20,32 +20,31 @@ class LocationResult {
     required this.lng,
   });
 
-factory LocationResult.fromJson(Map<String, dynamic> json) {
-  final address = json['address'] ?? {};
+  factory LocationResult.fromJson(Map<String, dynamic> json) {
+    final address = json['address'] ?? {};
 
-  String city = address['city'] ??
-      address['town'] ??
-      address['village'] ??
-      '';
+    String city =
+        address['city'] ?? address['town'] ?? address['village'] ?? '';
 
-  final state = address['state'] ?? '';
-  final country = address['country'] ?? '';
+    final state = address['state'] ?? '';
+    final country = address['country'] ?? '';
 
-  city = city
-      .replaceAll('Municipio de ', '')
-      .replaceAll('Municipality of ', '')
-      .trim();
+    city = city
+        .replaceAll('Municipio de ', '')
+        .replaceAll('Municipality of ', '')
+        .trim();
 
-  return LocationResult(
-    displayName: '$city, $state, $country',
-    city: city,
-    state: state,
-    country: country,
-    lat: double.parse(json['lat'].toString()),
-    lng: double.parse(json['lon'].toString()),
-  );
+    return LocationResult(
+      displayName: '$city, $state, $country',
+      city: city,
+      state: state,
+      country: country,
+      lat: double.parse(json['lat'].toString()),
+      lng: double.parse(json['lon'].toString()),
+    );
+  }
 }
-}
+
 class LocationService {
   static Future<List<LocationResult>> searchLocation(String query) async {
     try {
@@ -59,17 +58,13 @@ class LocationService {
 
       final response = await http.get(
         url,
-        headers: {
-          'User-Agent': 'webanimal-app',
-        },
+        headers: {'User-Agent': 'webanimal-app'},
       );
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
 
-        return data
-            .map((item) => LocationResult.fromJson(item))
-            .toList();
+        return data.map((item) => LocationResult.fromJson(item)).toList();
       }
 
       return [];
@@ -78,7 +73,45 @@ class LocationService {
     }
   }
 
-  static Future<String> reverseGeocode(
+  static Future<String> reverseGeocode(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=$lat'
+        '&lon=$lng'
+        '&format=jsonv2'
+        '&addressdetails=1',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'webanimal-app'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final address = data['address'] ?? {};
+
+        final city =
+            (address['city'] ?? address['town'] ?? address['village'] ?? '')
+                .toString()
+                .replaceAll('Municipio de ', '')
+                .replaceAll('Municipality of ', '')
+                .trim();
+
+        final state = address['state'] ?? '';
+        final country = address['country'] ?? '';
+
+        return '$city, $state, $country';
+      }
+
+      return 'Ubicación no disponible';
+    } catch (e) {
+      return 'Ubicación no disponible';
+    }
+  }
+
+  static Future<LocationResult?> reverseGeocodeLocation(
     double lat,
     double lng,
   ) async {
@@ -93,33 +126,30 @@ class LocationService {
 
       final response = await http.get(
         url,
-        headers: {
-          'User-Agent': 'webanimal-app',
-        },
+        headers: {'User-Agent': 'webanimal-app'},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final address = data['address'] ?? {};
 
-        final city = (address['city'] ??
-                address['town'] ??
-                address['village'] ??
-                '')
-            .toString()
-            .replaceAll('Municipio de ', '')
-            .replaceAll('Municipality of ', '')
-            .trim();
-
-        final state = address['state'] ?? '';
-        final country = address['country'] ?? '';
-
-        return '$city, $state, $country';
+        return LocationResult(
+          displayName: '',
+          city: (address['city'] ?? address['town'] ?? address['village'] ?? '')
+              .toString()
+              .replaceAll('Municipio de ', '')
+              .replaceAll('Municipality of ', '')
+              .trim(),
+          state: address['state'] ?? '',
+          country: address['country'] ?? "",
+          lat: lat,
+          lng: lng,
+        );
       }
 
-      return 'Ubicación no disponible';
+      return null;
     } catch (e) {
-      return 'Ubicación no disponible';
+      return null;
     }
   }
 }
