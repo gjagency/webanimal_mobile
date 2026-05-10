@@ -96,25 +96,12 @@ class _PagePromotionsState extends State<PagePromotions> {
               },
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'settings') context.push('/account/settings');
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, size: 20),
-                    SizedBox(width: 8),
-                    Text('Configuración'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
+             IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                context.push('/account/settings');
+              },
+            ),          
         ],
       ),
         body: SafeArea(

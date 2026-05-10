@@ -149,12 +149,7 @@ Future<void> _load() async {
         context.push('/search/users');
       },
     ),
-    IconButton(
-      icon: const Icon(Icons.notifications_outlined),
-      onPressed: () {
-        context.push('/account/notifications');
-      },
-    ),
+   
 
     // ir a perfil
        IconButton(
@@ -184,27 +179,14 @@ Future<void> _load() async {
     ),
 
 
-    // configuraciones 3 puntitos
-    PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
-      onSelected: (value) {
-        if (value == 'settings') {
-          context.push('/account/settings');
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              Icon(Icons.settings, size: 20),
-              SizedBox(width: 8),
-              Text('Configuración'),
-            ],
-          ),
-        ),
-      ],
-    ),
+    
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    context.push('/account/settings');
+                  },
+                ),
+
 
     const SizedBox(width: 4),
   ],

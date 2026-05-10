@@ -759,13 +759,6 @@ void _onScroll() {
               context.push('/search/users');
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              context.push('/account/notifications');
-            },
-          ),
-
           // ir a perfil
           IconButton(
             onPressed: () {
@@ -789,12 +782,12 @@ void _onScroll() {
                   ),
           ),
 
-         IconButton(
-  icon: const Icon(Icons.settings),
-  onPressed: () {
-    context.push('/account/settings');
-  },
-),
+                IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                context.push('/account/settings');
+              },
+            ),
 
           const SizedBox(width: 4),
         ],
