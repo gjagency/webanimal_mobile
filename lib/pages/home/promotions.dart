@@ -103,10 +103,18 @@ class _PagePromotionsState extends State<PagePromotions> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         titleSpacing: 0,
-        title: Text(
-          'Promos',
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          title: Row(
+          children: [
+            Expanded(
+              child: const Text(
+                'WebAnimal',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,  ),
+              ),
+            ),
+          ],
         ),
         actions: [
           GestureDetector(

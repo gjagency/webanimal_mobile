@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
-
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:mobile_app/utils/share_post_helper.dart';
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -33,6 +38,109 @@ void initState() {
     _commentController.dispose();
     super.dispose();
   }
+
+Future<File> _createImageWithTexts({
+  required String imageUrl,
+  required String topText,
+  required String watermarkText,
+}) async {
+  final response = await http.get(Uri.parse(imageUrl));
+  final bytes = response.bodyBytes;
+
+  final codec = await ui.instantiateImageCodec(bytes);
+  final frame = await codec.getNextFrame();
+  final originalImage = frame.image;
+
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawImage(originalImage, Offset.zero, Paint());
+
+  final width = originalImage.width.toDouble();
+  final height = originalImage.height.toDouble();
+
+  final bannerPaint = Paint()
+    ..shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Colors.black.withOpacity(0.75),
+        Colors.transparent,
+      ],
+    ).createShader(Rect.fromLTWH(0, 0, width, height * 0.18));
+
+  canvas.drawRect(
+    Rect.fromLTWH(0, 0, width, height * 0.18),
+    bannerPaint,
+  );
+
+  final titlePainter = TextPainter(
+    text: TextSpan(
+      text: '🐾 ${topText.toUpperCase()}',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: width * 0.07,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+
+  titlePainter.layout(maxWidth: width * 0.9);
+  titlePainter.paint(
+    canvas,
+    Offset(
+      (width - titlePainter.width) / 2,
+      height * 0.06,
+    ),
+  );
+
+  final badgePainter = TextPainter(
+    text: TextSpan(
+      text: watermarkText,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: width * 0.04,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+
+  badgePainter.layout();
+  badgePainter.paint(
+    canvas,
+    Offset(
+      width - badgePainter.width - 24,
+      height - badgePainter.height - 24,
+    ),
+  );
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(
+    originalImage.width,
+    originalImage.height,
+  );
+
+  final byteData = await img.toByteData(
+    format: ui.ImageByteFormat.png,
+  );
+
+  final file = File(
+    '${(await getTemporaryDirectory()).path}/shared_${widget.postId}.png',
+  );
+
+  await file.writeAsBytes(byteData!.buffer.asUint8List());
+
+  return file;
+}
+Future<void> _shareToFacebookFeed() async {
+  if (_post == null || _post!.imageUrls.isEmpty) return;
+
+  await SharePostHelper.sharePost(
+    imageUrl: _post!.imageUrls.first,
+    postType: _post!.postType.name,
+    fileName: 'shared_${widget.postId}',
+  );
+}
 
   Future<void> _loadPost() async {
     try {
@@ -111,255 +219,266 @@ Future<void> _addComment() async {
 
     final post = _post!;
 
-final colorHex = post.postType.color ?? '#9E9E9E'; // gris default
+      final colorHex = post.postType.color ?? '#9E9E9E'; // gris default
 
-final color = Color(
-  int.parse(colorHex.replaceAll('#', '0xff')),
-);
+      final color = Color(
+        int.parse(colorHex.replaceAll('#', '0xff')),
+      );
 
-final colors = [
-  color.withValues(alpha: 0.7),
-  color,
-];
+      final colors = [
+        color.withValues(alpha: 0.7),
+        color,
+      ];
 
-IconData _mapIcon(String? iconCode) {
-  switch (iconCode) {
-    case '0xe87c':
-      return Icons.pets;
-    case '0xe7fd':
-      return Icons.person;
-    case '0xe87d':
-      return Icons.favorite;
-    case '0xe0b7':
-      return Icons.chat;
-    default:
-      return Icons.pets;
-  }
-}
+      IconData _mapIcon(String? iconCode) {
+        switch (iconCode) {
+          case '0xe87c':
+            return Icons.pets;
+          case '0xe7fd':
+            return Icons.person;
+          case '0xe87d':
+            return Icons.favorite;
+          case '0xe0b7':
+            return Icons.chat;
+          default:
+            return Icons.pets;
+        }
+      }
 
-final icon = _mapIcon(post.postType.icon);
-return Scaffold(
-  backgroundColor: Colors.white,
-  resizeToAvoidBottomInset: true,
-  appBar: AppBar(
-    titleSpacing: 8,
-    title: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Colors.purple, Colors.pink],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.pets,
-            color: Colors.white,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        Expanded(
-          child: const Text(
-            'WebAnimal',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ),
-      ],
-    ),
-    actions: [
-      IconButton(
-        icon: const Icon(Icons.search),
-        onPressed: () {
-          context.push('/search/users');
-        },
-      ),
-            // ir a perfil
-      IconButton(
-        onPressed: () {
-          context.push('/user-posts/${AuthService.currentUserId}');
-        },
-        icon: loadingProfile
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage: avatarUrl.isNotEmpty
-                    ? NetworkImage(avatarUrl)
-                    : null,
-                child: avatarUrl.isEmpty
-                    ? const Icon(
-                        Icons.person,
-                        size: 16,
-                        color: Colors.grey,
-                      )
-                    : null,
-              ),
-      ),
-
-      
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    context.push('/account/settings');
-                  },
-                ),
-
-
-      const SizedBox(width: 4),
-    ],
-  ),
-  body: _isLoading
-      ? Center(child: CircularProgressIndicator())
-      : ListView(
-          padding: EdgeInsets.only(bottom: 6),
-          children: [
-            // Header
-            Padding(
-              padding: EdgeInsets.all(18),
-              child: Row(
+          final icon = _mapIcon(post.postType.icon);
+          return Scaffold(
+            backgroundColor: Colors.white,
+            resizeToAvoidBottomInset: true,
+            appBar: AppBar(
+              titleSpacing: 8,
+              title: Row(
                 children: [
                   Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: colors),
+                      gradient: const LinearGradient(
+                        colors: [Colors.purple, Colors.pink],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: EdgeInsets.all(2),
-                    child: CircleAvatar(
-                    radius: 22,
-                    backgroundImage: post.user.imageUrl != null
-                        ? NetworkImage(post.user.imageUrl!)
-                        : null,
-                    backgroundColor: Colors.grey[300],
-                    child: post.user.imageUrl == null
-                        ? Icon(Icons.person, color: Colors.white)
-                        : null,
-                  )
-
-
+                    child: const Icon(
+                      Icons.pets,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 8),
+
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            context.push('/user-posts/${post.user.id}');
-                          },
-                          child: Text(
-                            post.user.displayName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-
-                        Text(
-                          "${_getTimeAgo(post.datetime)} - ${post.location.label}",
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: colors),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          post.postType.name,
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                        ),
-                      ],
+                    child: const Text(
+                      'WebAnimal',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-
-           // Imagen
-          // Imagen
-            GestureDetector(
-              onTap: () => _openImageModal(
-                context,
-                post.imageUrls.first,
-              ),
-              child: Image.network(
-                post.imageUrls.isNotEmpty
-                    ? post.imageUrls.first
-                    : "https://via.placeholder.com/400x300?text=Sin+Imagen",
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: double.infinity,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.pets, size: 100, color: Colors.grey),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    context.push('/search/users');
+                  },
                 ),
-              ),
+                      // ir a perfil
+                IconButton(
+                  onPressed: () {
+                    context.push('/user-posts/${AuthService.currentUserId}');
+                  },
+                  icon: loadingProfile
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: avatarUrl.isNotEmpty
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                          child: avatarUrl.isEmpty
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: Colors.grey,
+                                )
+                              : null,
+                        ),
+                ),
+
+                
+                          IconButton(
+                            icon: const Icon(Icons.settings),
+                            onPressed: () {
+                              context.push('/account/settings');
+                            },
+                          ),
+
+
+                const SizedBox(width: 4),
+              ],
             ),
+              body: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: EdgeInsets.only(bottom: 6),
+                      children: [
+                        // Header
+                        Padding(
+                          padding: EdgeInsets.all(18),
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(colors: colors),
+                                ),
+                                padding: EdgeInsets.all(2),
+                                child: CircleAvatar(
+                                radius: 22,
+                                backgroundImage: post.user.imageUrl != null
+                                    ? NetworkImage(post.user.imageUrl!)
+                                    : null,
+                                backgroundColor: Colors.grey[300],
+                                child: post.user.imageUrl == null
+                                    ? Icon(Icons.person, color: Colors.white)
+                                    : null,
+                              )
+
+
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        context.push('/user-posts/${post.user.id}');
+                                      },
+                                      child: Text(
+                                        post.user.displayName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+
+                                    Text(
+                                      "${_getTimeAgo(post.datetime)} - ${post.location.label}",
+                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(colors: colors),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(icon, color: Colors.white, size: 14),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      post.postType.name,
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Imagen
+                      // Imagen
+                        GestureDetector(
+                          onTap: () => _openImageModal(
+                            context,
+                            post.imageUrls.first,
+                          ),
+                          child: Image.network(
+                            post.imageUrls.isNotEmpty
+                                ? post.imageUrls.first
+                                : "https://via.placeholder.com/400x300?text=Sin+Imagen",
+                            width: double.infinity,
+                            fit: BoxFit.fitWidth,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: double.infinity,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.pets, size: 100, color: Colors.grey),
+                            ),
+                          ),
+                        ),
                   // Acciones
                   Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            /// ❤️ LIKE
-                            GestureDetector(
-                              onTap: _toggleLike,
-                              child: Row(
-                                children: [
-                                  post.reacciones.isNotEmpty
-                                      ? Icon(Icons.favorite, size: 28, color: Colors.red)
-                                      : Icon(Icons.favorite_border, size: 28),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '${post.likes}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(width: 20),
-
-                            /// 💬 COMENTARIOS
-                            Row(
-                              children: [
-                                Icon(Icons.chat_bubble_outline, size: 26, color: Colors.grey[700]),
-                                SizedBox(width: 4),
-                                Text(
-                                  '${post.comments ?? _comments.length}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                    padding: EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _toggleLike,
+                          child: Row(
+                            children: [
+                              post.reacciones.isNotEmpty
+                                  ? Icon(Icons.favorite, size: 28, color: Colors.red)
+                                  : Icon(Icons.favorite_border, size: 28),
+                              SizedBox(width: 4),
+                              Text(
+                                '${post.likes}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(width: 20),
+
+                        Row(
+                          children: [
+                            Icon(Icons.chat_bubble_outline,
+                                size: 26,
+                                color: Colors.grey[700]),
+                            SizedBox(width: 4),
+                            Text(
+                              '${post.comments ?? _comments.length}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+
+                        const Spacer(),
+
+                       IconButton(
+                          onPressed: _shareToFacebookFeed,
+                          icon: const Icon(
+                            Icons.share_outlined,
+                            color: Color(0xFF1877F2),
+                            size: 28,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
 
                         // Descripción

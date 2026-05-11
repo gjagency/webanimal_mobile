@@ -944,7 +944,7 @@ void _onScroll() {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Descuentos',
+                                '🔥 Descuentos',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,

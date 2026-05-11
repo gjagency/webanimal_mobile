@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:mobile_app/service/auth_service.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 class PageAuthRegisterVet extends StatefulWidget {
   const PageAuthRegisterVet({super.key});
 
@@ -16,7 +16,7 @@ class PageAuthRegisterVet extends StatefulWidget {
 
 class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
   final _formKey = GlobalKey<FormState>();
-
+  bool _obscurePassword = true;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nombreController = TextEditingController();
@@ -158,161 +158,348 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Registrar Veterinaria'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.purple,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.purple),
-          onPressed: () => GoRouter.of(context).go('/auth/sign_in'),
+Widget _imagePickerCard() {
+  return GestureDetector(
+    onTap: _pickImage,
+    child: Container(
+      height: 150,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: Colors.grey.shade100,
+        border: Border.all(
+          color: Colors.grey.shade300,
+        ),
+        image: _imagen != null
+            ? DecorationImage(
+                image: FileImage(_imagen!),
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      child: _imagen == null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(
+                  Icons.add_a_photo_outlined,
+                  size: 38,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Agregar imagen',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            )
+          : Align(
+              alignment: Alignment.topRight,
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: const Icon(
+                  Icons.edit,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+    ),
+  );
+}
+
+Widget _locationInput() {
+  return TextFormField(
+    controller: _locationController,
+    style: const TextStyle(
+      color: Colors.black87,
+      fontWeight: FontWeight.w500,
+    ),
+    validator: (value) {
+      if (value == null || value.isEmpty) {
+        return 'La ubicación es obligatoria';
+      }
+      return null;
+    },
+    decoration: InputDecoration(
+      hintText: 'Ubicación automática',
+      hintStyle: const TextStyle(color: Colors.grey),
+      prefixIcon: const Icon(
+        Icons.location_on_outlined,
+        color: Colors.grey,
+      ),
+      suffixIcon: IconButton(
+        onPressed: _getCurrentLocation,
+        icon: const Icon(
+          Icons.my_location_rounded,
+          color: Color(0xFF9B4DCC),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const Icon(Icons.local_hospital, size: 72, color: Colors.purple),
-              const SizedBox(height: 24),
-
-              _input(_emailController, 'Email', validator: _required),
-              const SizedBox(height: 16),
-
-              _input(
-                _passwordController,
-                'Contraseña',
-                obscure: true,
-                validator: (v) =>
-                    v != null && v.length >= 6 ? null : 'Mínimo 6 caracteres',
-              ),
-              const SizedBox(height: 16),
-
-              _input(
-                _nombreController,
-                'Nombre comercial',
-                validator: _required,
-              ),
-              const SizedBox(height: 16),
-
-              _input(_telefonoController, 'Teléfono'),
-              const SizedBox(height: 16),
-
-              _input(_direccionController, 'Dirección'),
-              const SizedBox(height: 16),
-
-              // 📍 Ubicación automática
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Ubicación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(
+          color: Color(0xFF9B4DCC),
+          width: 1.5,
+        ),
+      ),
+    ),
+  );
+}
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    resizeToAvoidBottomInset: true,
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF9B4DCC),
+            Color(0xFFE0528D),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                /// BACK
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () =>
+                          GoRouter.of(context).go('/auth/sign_in'),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  hintText: 'Ubicación automática',
-                  prefixIcon:
-                      const Icon(Icons.location_on, color: Colors.purple),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.my_location, color: Colors.purple),
-                    onPressed: _getCurrentLocation,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        const BorderSide(color: Colors.purple, width: 2),
-                  ),
+
+                const SizedBox(height: 10),
+
+                /// LOGO + TITLE
+                Column(
+                  children: [
+                    Container(
+                      height: 90,
+                      width: 90,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.pets_rounded,
+                        size: 42,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Registrar veterinaria',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Completá tus datos para comenzar',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withOpacity(.85),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'La ubicación es obligatoria';
-                  }
-                  return null;
-                },
-              ),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-              // 📸 Imagen
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 140,
-                  width: double.infinity,
+                /// CARD
+                Container(
+                  padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.grey[200],
-                    image: _imagen != null
-                        ? DecorationImage(
-                            image: FileImage(_imagen!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(.12),
+                        blurRadius: 25,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: _imagen == null
-                      ? const Center(
-                          child: Icon(Icons.camera_alt, size: 40),
-                        )
-                      : null,
-                ),
-              ),
+                  child: Column(
+                    children: [
+                      _styledInput(
+                        _emailController,
+                        'Email',
+                        Icons.email_outlined,
+                        darkMode: true,
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 14),
 
-              const SizedBox(height: 32),
+                      _styledInput(
+                        _passwordController,
+                        'Contraseña',
+                        Icons.lock_outline,
+                        obscure: _obscurePassword,
+                        isPassword: true,
+                        darkMode: true,
+                        validator: (v) =>
+                            v != null && v.length >= 6
+                                ? null
+                                : 'Mínimo 6 caracteres',
+                      ),
+                      const SizedBox(height: 14),
 
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                      _styledInput(
+                        _nombreController,
+                        'Nombre comercial',
+                        Icons.storefront_outlined,
+                        darkMode: true,
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _styledInput(
+                        _telefonoController,
+                        'Teléfono',
+                        Icons.phone_outlined,
+                        darkMode: true,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _styledInput(
+                        _direccionController,
+                        'Dirección',
+                        Icons.location_city_outlined,
+                        darkMode: true,
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      _locationInput(),
+
+                      const SizedBox(height: 20),
+
+                      _imagePickerCard(),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: const Color(0xFF9B4DCC),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          child: _loading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  'Crear cuenta',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Registrar veterinaria'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _input(
-    TextEditingController controller,
-    String label, {
-    bool obscure = false,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscure,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+Widget _styledInput(
+  TextEditingController controller,
+  String hint,
+  IconData icon, {
+  bool obscure = false,
+  bool isPassword = false,
+  bool darkMode = false,
+  String? Function(String?)? validator,
+}) {
+  return TextFormField(
+    controller: controller,
+    obscureText: obscure,
+    validator: validator,
+    style: TextStyle(
+      color: darkMode ? Colors.black87 : Colors.white,
+    ),
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: darkMode ? Colors.grey : Colors.white70,
       ),
-    );
-  }
+      prefixIcon: Icon(
+        icon,
+        color: darkMode ? Colors.grey[700] : Colors.white,
+      ),
+      suffixIcon: isPassword
+          ? IconButton(
+              icon: Icon(
+                obscure
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: darkMode ? Colors.grey[700] : Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            )
+          : null,
+      filled: true,
+      fillColor:
+          darkMode ? Colors.grey.shade100 : Colors.white.withOpacity(.10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+    ),
+  );
+}
+
 
   String? _required(String? v) {
     if (v == null || v.isEmpty) return 'Campo obligatorio';

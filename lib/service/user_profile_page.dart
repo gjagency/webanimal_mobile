@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/service/auth_service.dart';
-
+import 'package:mobile_app/utils/share_post_helper.dart';
 class UserPostsPage extends StatefulWidget {
   final String userId;
   const UserPostsPage({super.key, required this.userId});
@@ -290,7 +290,7 @@ Future<void> _load() async {
                       : "https://via.placeholder.com/300";
 
                   return GestureDetector(
-               onTap: () => _openImageViewer(post, 0),
+                       onTap: () => _openImageViewer(post, 0),
 
                       child: Stack(
                         children: [
@@ -704,80 +704,132 @@ void _openImageViewer(Post post, int initialIndex) {
                                   ),
 
                                   Row(
-                                    children: [
-                                      if (isMyPost)
-                                        PopupMenuButton<String>(
-                                          color: const Color.fromARGB(255, 235, 42, 151),
-                                          icon: const Icon(
-                                            Icons.more_vert,
-                                            color: Colors.white,
-                                          ),
-                                          onSelected: (value) async {
-                                          if (value == 'edit') {
-                                            Navigator.pop(context);
-                                            _editarPost(post);
-                                          }
-
-                                          if (value == 'delete') {
-                                            final confirm = await showDialog<bool>(
-                                              context: context,
-                                              builder: (_) => AlertDialog(
-                                                title: const Text('Eliminar post'),
-                                                content: const Text(
-                                                  '¿Seguro que querés eliminar este post?',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(context, false),
-                                                    child: const Text('Cancelar'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () => Navigator.pop(context, true),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.red,
-                                                      foregroundColor: Colors.white,
-                                                    ),
-                                                    child: const Text('Eliminar'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-
-                                            if (confirm == true) {
-                                              Navigator.pop(context); // cierra viewer
-                                              await PostsService.deletePost(post.id.toString());
-                                              _refresh();
-                                            }
-                                          }
-                                        },
-                                          itemBuilder: (_) => const [
-                            
-                                          PopupMenuItem(
-                                            value: 'edit',
-                                            child: Text(
-                                              'Editar',
-                                              style: TextStyle(color: Colors.white),
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: Text(
-                                              'Eliminar',
-                                              style: TextStyle(color: Colors.white),
-                                            ),
-                                          ),
-                                          ],
-                                        ),
-
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                        ),
-                                        onPressed: () => Navigator.pop(context),
+                                children: [
+                                  if (isMyPost)
+                                    PopupMenuButton<String>(
+                                      color: const Color.fromARGB(255, 235, 42, 151),
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        color: Colors.white,
                                       ),
-                                    ],
+                                      onSelected: (value) async {
+                                        if (value == 'edit') {
+                                          Navigator.pop(context);
+                                          _editarPost(post);
+                                        }
+
+                                        if (value == 'share' && post.imageUrls.isNotEmpty) {
+                                          await SharePostHelper.sharePost(
+                                            imageUrl: post.imageUrls[currentIndex],
+                                            postType: post.postType.name,
+                                            fileName: 'shared_${post.id}',
+                                          );
+                                        }
+
+                                        if (value == 'view_post') {
+                                          Navigator.pop(context);
+                                          context.push('/posts/${post.id}/view');
+                                        }
+
+                                        if (value == 'delete') {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text('Eliminar post'),
+                                              content: const Text(
+                                                '¿Seguro que querés eliminar este post?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.red,
+                                                    foregroundColor: Colors.white,
+                                                  ),
+                                                  child: const Text('Eliminar'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirm == true) {
+                                            Navigator.pop(context);
+                                            await PostsService.deletePost(post.id.toString());
+                                            _refresh();
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (_) => const [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Text(
+                                            'Editar',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'share',
+                                          child: Text(
+                                            'Compartir',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'view_post',
+                                          child: Text(
+                                            'Ver publicación',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            'Eliminar',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                      ]
+                                    )
+                                  else
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromARGB(255, 235, 42, 151),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            context.push('/posts/${post.id}/view');
+                                          },
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Ver publicación',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () => Navigator.pop(context),
                                   ),
+                                ],
+                              ),
                                 ],
                               ),
                             ),

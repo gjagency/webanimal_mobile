@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:mobile_app/service/posts_service.dart';
-
+import 'package:mobile_app/utils/share_post_helper.dart';
 class ModernPostCard extends StatefulWidget {
   final Post post;
   final VoidCallback? onEdit;
@@ -116,17 +116,15 @@ void initState() {
     return file;
   }
 
-  Future<void> _shareToFacebookFeed() async {
-    if (widget.post.imageUrls.isEmpty) return;
+Future<void> _shareToFacebookFeed() async {
+  if (widget.post.imageUrls.isEmpty) return;
 
-    final file = await _createImageWithTexts(
-      imageUrl: widget.post.imageUrls.first,
-      topText: widget.post.postType.name,
-      watermarkText: '🐾 WeBaNiMaL',
-    );
-
-    await Share.shareXFiles([XFile(file.path)], text: '🐾 @WeBaNiMaL');
-  }
+  await SharePostHelper.sharePost(
+    imageUrl: widget.post.imageUrls.first,
+    postType: widget.post.postType.name,
+    fileName: 'shared_${widget.post.id}',
+  );
+}
 
   // ================= POPUP IMAGEN =================
 void _openImagePopup(BuildContext context, int initialIndex) {
@@ -442,9 +440,13 @@ final iconData = _mapIcon(rawIcon);
           Text('${widget.post.comments}'),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: Color(0xFF1877F2)),
-            onPressed: _shareToFacebookFeed,
-          ),
+  onPressed: _shareToFacebookFeed,
+  icon: const Icon(
+    Icons.share_outlined,
+    color: Color(0xFF1877F2),
+    size: 28,
+  ),
+),
         ],
       ),
     );

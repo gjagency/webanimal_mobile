@@ -13,6 +13,7 @@ class PageAuthSignIn extends StatefulWidget {
 class _PageAuthSignInState extends State<PageAuthSignIn> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   bool _loading = false;
 
@@ -272,7 +273,7 @@ Widget build(BuildContext context) {
 
                                       TextField(
                                         controller: _passwordController,
-                                        obscureText: true,
+                                        obscureText: _obscurePassword,
                                         style: const TextStyle(color: Colors.white),
                                         decoration: InputDecoration(
                                           hintText: 'Contraseña',
@@ -282,6 +283,19 @@ Widget build(BuildContext context) {
                                           prefixIcon: const Icon(
                                             Icons.lock,
                                             color: Colors.white,
+                                          ),
+                                          suffixIcon: IconButton(
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_off_outlined
+                                                  : Icons.visibility_outlined,
+                                              color: Colors.white,
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _obscurePassword = !_obscurePassword;
+                                              });
+                                            },
                                           ),
                                           filled: true,
                                           fillColor: Colors.white.withOpacity(0.10),

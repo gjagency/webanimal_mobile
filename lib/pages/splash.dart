@@ -20,7 +20,7 @@ class _SplashPageState extends State<SplashPage> {
   Future<void> _checkLogin() async {
     try {
       // Esperamos un momento para simular splash/loading
-      await Future.delayed(const Duration(milliseconds: 2000));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       final loggedIn = await AuthService.isLoggedIn();
 
@@ -112,7 +112,7 @@ return Scaffold(
 
                 // W
                 Positioned(
-                  left: 25,
+                  left: 50,
                   top: 10,
                   child: Transform.rotate(
                     angle: -0.00,
@@ -137,7 +137,7 @@ return Scaffold(
 
                 // A
                 Positioned(
-                  left: 110,
+                  left: 125,
                   top: 62,
                   child: Transform.rotate(
                     angle: -0.00,
