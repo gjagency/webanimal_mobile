@@ -494,7 +494,11 @@ static Future<List<PostUser>> searchUsers(String query) async {
   );
 
   if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body);
+    final decoded = jsonDecode(response.body);
+
+    final List data = decoded is Map
+        ? decoded['results'] ?? []
+        : decoded;
 
     return data
         .map<PostUser>((json) =>
@@ -509,7 +513,11 @@ static Future<List<PostUser>> getUsers() async {
   final response = await AuthService.getWithToken('/api/usuarios/');
 
   if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body);
+    final decoded = jsonDecode(response.body);
+
+    final List data = decoded is Map
+        ? decoded['results'] ?? []
+        : decoded;
 
     return data
         .map<PostUser>((json) =>

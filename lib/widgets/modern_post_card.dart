@@ -280,138 +280,161 @@ Widget _buildHeader(Color color, IconData icon) {
   // ================= BUILD =================
 @override
 Widget build(BuildContext context) {
-  // 🔹 Manejo seguro de color
-  final rawColor = widget.post.postType.color;
-  final color = (rawColor is int)
-      ? Color(rawColor as int)
-      : Color(int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ?? 0xFFCCCCCC);
+      // 🔹 Manejo seguro de color
+      final rawColor = widget.post.postType.color;
+      final color = (rawColor is int)
+          ? Color(rawColor as int)
+          : Color(int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ?? 0xFFCCCCCC);
 
-IconData _mapIcon(String? iconCode) {
-  switch (iconCode) {
-    case '0xe87c':
-      return Icons.pets;
-    case '0xe7fd':
-      return Icons.person;
-    case '0xe87d':
-      return Icons.favorite;
-    case '0xe0b7':
-      return Icons.chat;
-    case '0xe3af':
-      return Icons.image;
-    default:
-      return Icons.pets;
-  }
-}
-final rawIcon = widget.post.postType.icon;
-final iconData = _mapIcon(rawIcon);
+    IconData _mapIcon(String? iconCode) {
+      switch (iconCode) {
+        case '0xe87c':
+          return Icons.pets;
+        case '0xe7fd':
+          return Icons.person;
+        case '0xe87d':
+          return Icons.favorite;
+        case '0xe0b7':
+          return Icons.chat;
+        case '0xe3af':
+          return Icons.image;
+        default:
+          return Icons.pets;
+      }
+    }
+    final rawIcon = widget.post.postType.icon;
+    final iconData = _mapIcon(rawIcon);
 
-  return InkWell(
-    onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
-    onDoubleTap: _toggleLike,
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.pink.withOpacity(0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+      return InkWell(
+        onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
+        onDoubleTap: _toggleLike,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.pink.withOpacity(0.25),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(color, iconData),
-        if (widget.post.imageUrls.isNotEmpty)
-  AspectRatio(
-    aspectRatio: 4 / 5,
-    child: Stack(
-      children: [
-        /// ================= PAGEVIEW =================
-        PageView.builder(
-          itemCount: widget.post.imageUrls.length,
-          onPageChanged: (i) {
-            setState(() => _currentImageIndex = i);
-          },
-          itemBuilder: (context, index) {
-            final imageUrl = widget.post.imageUrls[index];
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(color, iconData),
+            if (widget.post.imageUrls.isNotEmpty)
+      AspectRatio(
+        aspectRatio: 4 / 5,
+        child: Stack(
+          children: [
+            /// ================= PAGEVIEW =================
+            PageView.builder(
+              itemCount: widget.post.imageUrls.length,
+              onPageChanged: (i) {
+                setState(() => _currentImageIndex = i);
+              },
+              itemBuilder: (context, index) {
+                final imageUrl = widget.post.imageUrls[index];
 
-            return GestureDetector(
-              onTap: () => _openImagePopup(context, index),
-              onDoubleTap: _toggleLike,
-              child: Hero(
-              tag: '${widget.post.id}_$index',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.network(
-                  imageUrl,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
+                return GestureDetector(
+                  onTap: () => _openImagePopup(context, index),
+                  onDoubleTap: _toggleLike,
+                  child: Hero(
+                  tag: '${widget.post.id}_$index',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      imageUrl,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
+                );
+              },
             ),
-            );
-          },
-        ),
 
-       
+          
 
-        /// ================= CONTADOR =================
-        if (widget.post.imageUrls.length > 1)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-
-        /// ================= DOTS =================
-        if (widget.post.imageUrls.length > 1)
-          Positioned(
-            bottom: 12,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                widget.post.imageUrls.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == _currentImageIndex ? 8 : 6,
-                  height: i == _currentImageIndex ? 8 : 6,
+            /// ================= CONTADOR =================
+            if (widget.post.imageUrls.length > 1)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: i == _currentImageIndex
-                        ? Colors.white
-                        : Colors.white38,
-                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
+
+            /// ================= DOTS =================
+            if (widget.post.imageUrls.length > 1)
+              Positioned(
+                bottom: 12,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.post.imageUrls.length,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: i == _currentImageIndex ? 8 : 6,
+                      height: i == _currentImageIndex ? 8 : 6,
+                      decoration: BoxDecoration(
+                        color: i == _currentImageIndex
+                            ? Colors.white
+                            : Colors.white38,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+         _buildActions(),
+
+          if (widget.post.telefono != null &&
+              widget.post.telefono!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.phone,
+                    size: 16,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.post.telefono!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-      ],
-    ),
-  ),
 
-
-          _buildActions(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(widget.post.description),
@@ -440,13 +463,13 @@ final iconData = _mapIcon(rawIcon);
           Text('${widget.post.comments}'),
           const Spacer(),
           IconButton(
-  onPressed: _shareToFacebookFeed,
-  icon: const Icon(
-    Icons.share_outlined,
-    color: Color(0xFF1877F2),
-    size: 28,
-  ),
-),
+          onPressed: _shareToFacebookFeed,
+          icon: const Icon(
+            Icons.share_outlined,
+            color: Color(0xFF1877F2),
+            size: 28,
+          ),
+        ),
         ],
       ),
     );
