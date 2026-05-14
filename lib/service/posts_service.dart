@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/config.dart';
 import 'package:mobile_app/service/auth_service.dart';
@@ -10,10 +9,7 @@ class PetType {
   final String id;
   final String name;
 
-  PetType({
-    required this.id,
-    required this.name,
-  });
+  PetType({required this.id, required this.name});
 
   factory PetType.fromJson(Map<String, dynamic> json) {
     return PetType(
@@ -23,19 +19,13 @@ class PetType {
   }
 }
 
-
 class PostType {
   final String id;
   final String name;
   final String? color;
   final String? icon;
 
-  PostType({
-    required this.id,
-    required this.name,
-    this.color,
-    this.icon,
-  });
+  PostType({required this.id, required this.name, this.color, this.icon});
 
   factory PostType.fromJson(Map<String, dynamic> json) {
     return PostType(
@@ -46,7 +36,6 @@ class PostType {
     );
   }
 }
-
 
 class City {
   final String id;
@@ -93,21 +82,19 @@ class PostUser {
       }
     }
 
-  return PostUser(
-    id: json['id'].toString(),
-    username: json['username'],
-    fullName: json['display_name'] ?? json['username'],
-    imageUrl: image,
-    esVeterinaria: json['es_veterinaria'] ?? false,
-    nombreComercial: json['nombre_comercial'],
-  );
-
+    return PostUser(
+      id: json['id'].toString(),
+      username: json['username'],
+      fullName: json['display_name'] ?? json['username'],
+      imageUrl: image,
+      esVeterinaria: json['es_veterinaria'] ?? false,
+      nombreComercial: json['nombre_comercial'],
+    );
   }
 
   String get displayName =>
       esVeterinaria ? (nombreComercial ?? fullName) : fullName;
 }
-
 
 class PromocionesPorVeterinaria {
   final int veterinariaId;
@@ -128,7 +115,7 @@ class PromocionesPorVeterinaria {
     return PromocionesPorVeterinaria(
       veterinariaId: json['veterinaria_id'],
       nombreComercio: json['nombreComercio'],
-      avatar: json['avatar'], 
+      avatar: json['avatar'],
       userId: json['user_id'],
       promociones: (json['promociones'] as List)
           .map((e) => Promocion.fromJson(e))
@@ -136,8 +123,6 @@ class PromocionesPorVeterinaria {
     );
   }
 }
-
-
 
 class Promocion {
   final String id;
@@ -161,20 +146,19 @@ class Promocion {
     required this.veterinariaId,
   });
 
-factory Promocion.fromJson(Map<String, dynamic> json) {
-  return Promocion(
-    id: json['id'].toString(),
-    titulo: json['titulo'] ?? '',
-    descripcion: json['descripcion'] ?? '',
-    precio: json['precio']?.toString(),
-    imagen: json['imagen']?.toString(),
-    fechadesde: json['fecha_desde']?.toString(),
-    fechahasta: json['fecha_hasta']?.toString(),
-    nombreComercio: json['nombreComercio'] ?? '',
-    veterinariaId: json['veterinaria_id'],
-  );
-}
-
+  factory Promocion.fromJson(Map<String, dynamic> json) {
+    return Promocion(
+      id: json['id'].toString(),
+      titulo: json['titulo'] ?? '',
+      descripcion: json['descripcion'] ?? '',
+      precio: json['precio']?.toString(),
+      imagen: json['imagen']?.toString(),
+      fechadesde: json['fecha_desde']?.toString(),
+      fechahasta: json['fecha_hasta']?.toString(),
+      nombreComercio: json['nombreComercio'] ?? '',
+      veterinariaId: json['veterinaria_id'],
+    );
+  }
 }
 
 class PostLocation {
@@ -190,6 +174,7 @@ class PostLocation {
     required this.label,
   });
 }
+
 class Post {
   final String id;
   final PostUser user;
@@ -205,7 +190,6 @@ class Post {
   final List<String> reacciones;
   final Map<String, int> imageIdByUrl;
 
-
   Post({
     required this.id,
     required this.user,
@@ -220,7 +204,6 @@ class Post {
     this.comments = 0,
     this.reacciones = const [],
     this.imageIdByUrl = const {},
-
   });
 }
 
@@ -262,7 +245,9 @@ class Comment {
       id: json['id'].toString(),
       userId: json['user_id']?.toString(),
       username: user['username'] ?? 'unknown',
-      displayName: json['display_name'] ?? user['username'], // ✅ aquí usamos directamente el display_name del backend
+      displayName:
+          json['display_name'] ??
+          user['username'], // ✅ aquí usamos directamente el display_name del backend
       avatar: avatar,
       text: json['body'] ?? '',
       timestamp: DateTime.parse(json['fecha_creacion']),
@@ -271,73 +256,64 @@ class Comment {
 }
 
 class PostImage {
-  final int? id;   // ← ahora permite null
+  final int? id; // ← ahora permite null
   final String url;
   bool markedForDelete; // flag para marcar borrado
-  PostImage({
-    this.id,
-    required this.url,
-    this.markedForDelete = false,
-  });
+  PostImage({this.id, required this.url, this.markedForDelete = false});
 
   factory PostImage.fromJson(Map<String, dynamic> json) {
-    return PostImage(
-      id: json['id'],
-      url: json['imagen'],
-    );
+    return PostImage(id: json['id'], url: json['imagen']);
   }
 }
-
-
 
 class PostsService {
   // GET: Lista de posts
-static Future<List<Post>> getPosts({
-  String? postType,
-  String? petType,
-  String? userId,
-  String? esVeterinaria,
-  String? vet,
-  double? lat,
-  double? lng,
-  String? cityId,
-  int page = 1,
-}) async {
-  final Map<String, String> queryParams = {};
+  static Future<List<Post>> getPosts({
+    String? postType,
+    String? petType,
+    String? userId,
+    String? esVeterinaria,
+    String? vet,
+    double? lat,
+    double? lng,
+    String? cityId,
+    int page = 1,
+  }) async {
+    final Map<String, String> queryParams = {};
 
-  if (postType != null) queryParams['posteo_tipo'] = postType;
-  if (petType != null) queryParams['mascota_tipo'] = petType;
-  if (esVeterinaria != null) {
-    queryParams['usuario__veterinaria'] = esVeterinaria;
+    if (postType != null) queryParams['posteo_tipo'] = postType;
+    if (petType != null) queryParams['mascota_tipo'] = petType;
+    if (esVeterinaria != null) {
+      queryParams['usuario__veterinaria'] = esVeterinaria;
+    }
+    if (userId != null) queryParams['usuario'] = userId;
+    if (lat != null) queryParams['lat'] = lat.toString();
+    if (lng != null) queryParams['lng'] = lng.toString();
+    if (cityId != null) queryParams['ciudad_id'] = cityId;
+    queryParams['page'] = page.toString();
+
+    // 🔥 paginación
+    queryParams['page'] = page.toString();
+
+    final uri = Uri.parse(
+      '${Config.baseUrl}/api/posteos/',
+    ).replace(queryParameters: queryParams);
+
+    final response = await AuthService.getWithToken(
+      '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      // si django devuelve paginado
+      final List data = decoded is Map ? decoded['results'] : decoded;
+
+      return data.map<Post>((json) => _parsePost(json)).toList();
+    }
+
+    throw Exception('Error al cargar posts: ${response.statusCode}');
   }
-  if (userId != null) queryParams['usuario'] = userId;
-  if (lat != null) queryParams['lat'] = lat.toString();
-  if (lng != null) queryParams['lng'] = lng.toString();
-  if (cityId != null) queryParams['ciudad_id'] = cityId;
-  queryParams['page'] = page.toString();
-
-  // 🔥 paginación
-  queryParams['page'] = page.toString();
-
-  final uri = Uri.parse(
-    '${Config.baseUrl}/api/posteos/',
-  ).replace(queryParameters: queryParams);
-
-  final response = await AuthService.getWithToken(
-    '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
-  );
-
-  if (response.statusCode == 200) {
-    final decoded = jsonDecode(response.body);
-
-    // si django devuelve paginado
-    final List data = decoded is Map ? decoded['results'] : decoded;
-
-    return data.map<Post>((json) => _parsePost(json)).toList();
-  }
-
-  throw Exception('Error al cargar posts: ${response.statusCode}');
-}
 
   // GET: Post individual
   static Future<Post> getPost(String postId) async {
@@ -377,66 +353,65 @@ static Future<List<Post>> getPosts({
     throw Exception('Error al crear post');
   }
 
-static Future<void> updatePostWithImages({
-  
-  required String postId,
-  Map<String, String>? fields,
-  List<File>? newImages,
-  List<int>? deleteImageIds,
-}) async {
-  final token = await AuthService.getAccessToken();
-print("IMAGES TO DELETE: $deleteImageIds");
-  final uri = Uri.parse('${Config.baseUrl}/api/posteos/$postId/');
-  final request = http.MultipartRequest('PUT', uri);
+  static Future<void> updatePostWithImages({
+    required String postId,
+    Map<String, String>? fields,
+    List<File>? newImages,
+    List<int>? deleteImageIds,
+  }) async {
+    final token = await AuthService.getAccessToken();
+    print("IMAGES TO DELETE: $deleteImageIds");
+    final uri = Uri.parse('${Config.baseUrl}/api/posteos/$postId/');
+    final request = http.MultipartRequest('PUT', uri);
 
-  request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Authorization'] = 'Bearer $token';
 
-  // =========================
-  // 🔹 CAMPOS NORMALES
-  // =========================
-  if (fields != null) {
-    fields.removeWhere((k, v) => v.isEmpty); // evita mandar ""
-    request.fields.addAll(fields);
-  }
-
-  // =========================
-  // 🗑️ IDS A BORRAR
-  // =========================
-if (deleteImageIds != null && deleteImageIds.isNotEmpty) {
-  request.fields['delete_images'] = jsonEncode(deleteImageIds);
-  print("🗑️ DELETE IDS SENT: ${jsonEncode(deleteImageIds)}");
-} else {
-  // NO se manda el campo si está vacío
-  print("🗑️ DELETE IDS SENT: NONE");
-}
-
-
-  // =========================
-  // 📸 NUEVAS IMÁGENES
-  // =========================
-  if (newImages != null && newImages.isNotEmpty) {
-    for (var img in newImages) {
-      request.files.add(await http.MultipartFile.fromPath('imagenes', img.path));
+    // =========================
+    // 🔹 CAMPOS NORMALES
+    // =========================
+    if (fields != null) {
+      fields.removeWhere((k, v) => v.isEmpty); // evita mandar ""
+      request.fields.addAll(fields);
     }
-    print("📸 NEW IMAGES: ${newImages.length}");
-  } else {
-    print("📸 NEW IMAGES: 0");
+
+    // =========================
+    // 🗑️ IDS A BORRAR
+    // =========================
+    if (deleteImageIds != null && deleteImageIds.isNotEmpty) {
+      request.fields['delete_images'] = jsonEncode(deleteImageIds);
+      print("🗑️ DELETE IDS SENT: ${jsonEncode(deleteImageIds)}");
+    } else {
+      // NO se manda el campo si está vacío
+      print("🗑️ DELETE IDS SENT: NONE");
+    }
+
+    // =========================
+    // 📸 NUEVAS IMÁGENES
+    // =========================
+    if (newImages != null && newImages.isNotEmpty) {
+      for (var img in newImages) {
+        request.files.add(
+          await http.MultipartFile.fromPath('imagenes', img.path),
+        );
+      }
+      print("📸 NEW IMAGES: ${newImages.length}");
+    } else {
+      print("📸 NEW IMAGES: 0");
+    }
+
+    // =========================
+    // 🚀 ENVIAR
+    // =========================
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    print("UPDATE STATUS: ${response.statusCode}");
+    print("UPDATE BODY: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception("Error update post: ${response.body}");
+    }
   }
-
-  // =========================
-  // 🚀 ENVIAR
-  // =========================
-  final streamed = await request.send();
-  final response = await http.Response.fromStream(streamed);
-
-  print("UPDATE STATUS: ${response.statusCode}");
-  print("UPDATE BODY: ${response.body}");
-
-  if (response.statusCode != 200) {
-    throw Exception("Error update post: ${response.body}");
-  }
-}
-
 
   // PUT: Actualizar post
   static Future<Post> updatePost(
@@ -488,46 +463,44 @@ if (deleteImageIds != null && deleteImageIds.isNotEmpty) {
       throw Exception('Error al obtener mis posts: ${response.statusCode}');
     }
   }
-static Future<List<PostUser>> searchUsers(String query) async {
-  final response = await AuthService.getWithToken(
-    '/api/usuarios/?q=${Uri.encodeComponent(query)}',
-  );
 
-  if (response.statusCode == 200) {
-    final decoded = jsonDecode(response.body);
+  static Future<List<PostUser>> searchUsers(String query) async {
+    final response = await AuthService.getWithToken(
+      '/api/usuarios/?q=${Uri.encodeComponent(query)}',
+    );
 
-    final List data = decoded is Map
-        ? decoded['results'] ?? []
-        : decoded;
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
 
-    return data
-        .map<PostUser>((json) =>
-            PostUser.fromJson(json as Map<String, dynamic>))
-        .toList();
+      final List data = decoded is Map ? decoded['results'] ?? [] : decoded;
+
+      return data
+          .map<PostUser>(
+            (json) => PostUser.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    }
+
+    throw Exception('Error al buscar usuarios');
   }
 
-  throw Exception('Error al buscar usuarios');
-}
+  static Future<List<PostUser>> getUsers() async {
+    final response = await AuthService.getWithToken('/api/usuarios/');
 
-static Future<List<PostUser>> getUsers() async {
-  final response = await AuthService.getWithToken('/api/usuarios/');
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
 
-  if (response.statusCode == 200) {
-    final decoded = jsonDecode(response.body);
+      final List data = decoded is Map ? decoded['results'] ?? [] : decoded;
 
-    final List data = decoded is Map
-        ? decoded['results'] ?? []
-        : decoded;
+      return data
+          .map<PostUser>(
+            (json) => PostUser.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    }
 
-    return data
-        .map<PostUser>((json) =>
-            PostUser.fromJson(json as Map<String, dynamic>))
-        .toList();
+    throw Exception('Error al cargar usuarios');
   }
-
-  throw Exception('Error al cargar usuarios');
-}
-
 
   // DELETE: Eliminar post
   static Future<bool> deletePost(String postId) async {
@@ -542,13 +515,10 @@ static Future<List<PostUser>> getUsers() async {
 
   // POST: Crear reacción
   static Future<bool> addReaction(int postId, int typeId) async {
-    final response = await AuthService.postWithToken(
-      '/api/reacciones/',
-      {
-        'posteo': postId,
-        'tipo': typeId,
-      },
-    );
+    final response = await AuthService.postWithToken('/api/reacciones/', {
+      'posteo': postId,
+      'tipo': typeId,
+    });
 
     return response.statusCode == 201;
   }
@@ -564,23 +534,19 @@ static Future<List<PostUser>> getUsers() async {
     return response.statusCode == 200;
   }
 
-static Future<List<Comment>> getComments(String postId) async {
-  final response = await AuthService.getWithToken(
-    '/api/comentarios/?posteo=$postId',
-  );
+  static Future<List<Comment>> getComments(String postId) async {
+    final response = await AuthService.getWithToken(
+      '/api/comentarios/?posteo=$postId',
+    );
 
-  if (response.statusCode == 200) {
-    final List data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
 
-    return data
-        .map((json) => Comment.fromJson(json))
-        .toList();
+      return data.map((json) => Comment.fromJson(json)).toList();
+    }
+
+    throw Exception('Error al cargar comentarios');
   }
-
-  throw Exception('Error al cargar comentarios');
-}
-
-
 
   // POST: Crear comentario
   static Future<bool> addComment(String postId, String text) async {
@@ -626,81 +592,84 @@ static Future<List<Comment>> getComments(String postId) async {
     }
     throw Exception('Error al cargar tipos de posteos');
   }
-static Post _parsePost(Map<String, dynamic> json) {
-  // ================= IMÁGENES =================
-  final rawImages = json['imagenes'];
-  final List<String> imageUrls = [];
-  final Map<String, int> imageIdByUrl = {};
 
-  if (rawImages != null && rawImages is List) {
-    for (final img in rawImages) {
-      if (img == null) continue;
+  static Post _parsePost(Map<String, dynamic> json) {
+    // ================= IMÁGENES =================
+    final rawImages = json['imagenes'];
+    final List<String> imageUrls = [];
+    final Map<String, int> imageIdByUrl = {};
 
-      String url;
-      int? id;
+    if (rawImages != null && rawImages is List) {
+      for (final img in rawImages) {
+        if (img == null) continue;
 
-      if (img is String) {
-        // Si la imagen viene como string
-        url = img.startsWith('http') ? img : '${Config.baseUrl}$img';
-      } else if (img is Map<String, dynamic>) {
-        // Si la imagen viene como map
-        final rawUrl = img['imagen'] ?? img['url'];
-        if (rawUrl == null || rawUrl.toString().isEmpty) continue;
+        String url;
+        int? id;
 
-        url = rawUrl.toString();
-        url = url.startsWith('http') ? url : '${Config.baseUrl}$url';
+        if (img is String) {
+          // Si la imagen viene como string
+          url = img.startsWith('http') ? img : '${Config.baseUrl}$img';
+        } else if (img is Map<String, dynamic>) {
+          // Si la imagen viene como map
+          final rawUrl = img['imagen'] ?? img['url'];
+          if (rawUrl == null || rawUrl.toString().isEmpty) continue;
 
-        // ID opcional
-        if (img.containsKey('id')) {
-          final parsedId = img['id'];
-          if (parsedId != null) {
-            id = parsedId is int ? parsedId : int.tryParse(parsedId.toString());
+          url = rawUrl.toString();
+          url = url.startsWith('http') ? url : '${Config.baseUrl}$url';
+
+          // ID opcional
+          if (img.containsKey('id')) {
+            final parsedId = img['id'];
+            if (parsedId != null) {
+              id = parsedId is int
+                  ? parsedId
+                  : int.tryParse(parsedId.toString());
+            }
           }
+        } else {
+          continue;
         }
-      } else {
-        continue;
-      }
 
-      imageUrls.add(url);
-      if (id != null) {
-        imageIdByUrl[url] = id;
+        imageUrls.add(url);
+        if (id != null) {
+          imageIdByUrl[url] = id;
+        }
       }
     }
-  }
 
-  // ================= POST =================
-  return Post(
-    id: json['id'].toString(),
-    user: PostUser.fromJson(json['usuario'] ?? {}),
-    postType: PostType(
-      id: json['posteo_tipo']['id'].toString(),
-      name: json['posteo_tipo']['nombre'] ?? '',
-      color: json['posteo_tipo']['color'],
-      icon: json['posteo_tipo']['icono'],
-    ),
-    petType: PetType(
-      id: json['mascota_tipo']['id'].toString(),
-      name: json['mascota_tipo']['nombre'] ?? '',
-    ),
-    imageUrls: imageUrls,
-    description: json['descripcion'] ?? '',
-    telefono: json['telefono'],
-    location: PostLocation(
+    // ================= POST =================
+    return Post(
       id: json['id'].toString(),
-      lat: (json['ubicacion_lat'] ?? 0).toDouble(),
-      lng: (json['ubicacion_lng'] ?? 0).toDouble(),
-      label: json['ubicacion_label'] ?? '',
-    ),
-    datetime: DateTime.tryParse(json['fecha_creacion'] ?? '') ?? DateTime.now(),
-    likes: json['total_reacciones'] ?? 0,
-    comments: json['total_comentarios'] ?? 0,
-    reacciones: (json['reacciones'] as List?)?.map((e) => e.toString()).toList() ?? [],
-    imageIdByUrl: imageIdByUrl,
-  );
-}
-
-
-
+      user: PostUser.fromJson(json['usuario'] ?? {}),
+      postType: PostType(
+        id: json['posteo_tipo']['id'].toString(),
+        name: json['posteo_tipo']['nombre'] ?? '',
+        color: json['posteo_tipo']['color'],
+        icon: json['posteo_tipo']['icono'],
+      ),
+      petType: PetType(
+        id: json['mascota_tipo']['id'].toString(),
+        name: json['mascota_tipo']['nombre'] ?? '',
+      ),
+      imageUrls: imageUrls,
+      description: json['descripcion'] ?? '',
+      telefono: json['telefono'],
+      location: PostLocation(
+        id: json['id'].toString(),
+        lat: (json['ubicacion_lat'] ?? 0).toDouble(),
+        lng: (json['ubicacion_lng'] ?? 0).toDouble(),
+        label: json['ubicacion_label'] ?? '',
+      ),
+      datetime:
+          DateTime.tryParse(json['fecha_creacion'] ?? '') ?? DateTime.now(),
+      likes: json['total_reacciones'] ?? 0,
+      comments: json['total_comentarios'] ?? 0,
+      reacciones:
+          (json['reacciones'] as List?)?.map((e) => e.toString()).toList() ??
+          [],
+      imageIdByUrl: imageIdByUrl,
+    );
+  }
 
   static Future<List<City>> searchCities(String query) async {
     final response = await AuthService.getWithToken(
@@ -725,16 +694,15 @@ static Post _parsePost(Map<String, dynamic> json) {
   }
 
   static Future<List<Post>> getPostsByUser(String userId) async {
-  final response = await AuthService.getWithToken(
-    '/api/posteos/?usuario=$userId',
-  );
+    final response = await AuthService.getWithToken(
+      '/api/posteos/?usuario=$userId',
+    );
 
-  if (response.statusCode == 200) {
-    final List data = jsonDecode(response.body);
-    return data.map((e) => _parsePost(e)).toList(); // ✅ usar TU parser real
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => _parsePost(e)).toList(); // ✅ usar TU parser real
+    }
+
+    throw Exception('Error cargando posts del usuario: ${response.statusCode}');
   }
-
-  throw Exception('Error cargando posts del usuario: ${response.statusCode}');
-}
-
 }

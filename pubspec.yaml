@@ -29,6 +29,8 @@ dependencies:
   app_links: ^7.0.0
   flutter_launcher_icons: ^0.14.4
   google_fonts: ^8.1.0
+  video_player: ^2.9.2
+  video_thumbnail: ^0.5.3
 
 dev_dependencies:
   flutter_test:
