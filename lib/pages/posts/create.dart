@@ -58,7 +58,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
   bool _isUploading = false;
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0.0);
 
-  static const int maxMedia = 10;
+  static const int maxMedia = 3;
 
   double? _currentLat;
   double? _currentLng;

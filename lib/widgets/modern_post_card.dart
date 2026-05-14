@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
+import 'package:mobile_app/widgets/video_player.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 class ModernPostCard extends StatefulWidget {
@@ -23,13 +23,14 @@ class ModernPostCard extends StatefulWidget {
 
 class _ModernPostCardState extends State<ModernPostCard> {
   static const _channel = MethodChannel('share_to_facebook');
-int _currentImageIndex = 0;
+  int _currentImageIndex = 0;
   bool liked = false;
   int likesIncrement = 0;
 
   @override
 void initState() {
   super.initState();
+  
   liked = widget.post.reacciones.isNotEmpty;
 }
 
@@ -195,11 +196,13 @@ void _openImagePopup(BuildContext context, int initialIndex) {
                             minScale: 1,
                             maxScale: 4,
                             child: Image.network(
+                              
                               imageUrl,
                               fit: BoxFit.contain,
                               width: double.infinity,
                               height: double.infinity,
                             ),
+                          
                           ),
                         ),
                       );
@@ -226,11 +229,23 @@ Widget _buildHeader(Color color, IconData icon) {
     child: Row(
       children: [
         CircleAvatar(
-          radius: 22,
-          backgroundImage:
-              widget.post.user.imageUrl != null ? NetworkImage(widget.post.user.imageUrl!) : null,
-          child: widget.post.user.imageUrl == null ? const Icon(Icons.person) : null,
-        ),
+  radius: 22,
+  backgroundColor: Colors.grey.shade200,
+  child: ClipOval(
+    child: widget.post.user.imageUrl != null &&
+            widget.post.user.imageUrl!.isNotEmpty
+        ? Image.network(
+            widget.post.user.imageUrl!,
+            width: 44,
+            height: 44,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.person);
+            },
+          )
+        : const Icon(Icons.person),
+  ),
+),
         const SizedBox(width: 12),
        Expanded(
         child: Column(
@@ -325,90 +340,93 @@ Widget build(BuildContext context) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(color, iconData),
-            if (widget.post.imageUrls.isNotEmpty)
-      AspectRatio(
-        aspectRatio: 4 / 5,
-        child: Stack(
-          children: [
-            /// ================= PAGEVIEW =================
-            PageView.builder(
-              itemCount: widget.post.imageUrls.length,
-              onPageChanged: (i) {
-                setState(() => _currentImageIndex = i);
-              },
-              itemBuilder: (context, index) {
-                final imageUrl = widget.post.imageUrls[index];
-
-                return GestureDetector(
-                  onTap: () => _openImagePopup(context, index),
-                  onDoubleTap: _toggleLike,
-                  child: Hero(
-                  tag: '${widget.post.id}_$index',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      imageUrl,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                );
-              },
-            ),
-
-          
-
-            /// ================= CONTADOR =================
-            if (widget.post.imageUrls.length > 1)
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Text(
-                    '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
+           if (widget.post.imageUrls.isNotEmpty)
+  AspectRatio(
+    aspectRatio: 4 / 5,
+    child: Stack(
+      children: [
+        /// ================= PAGEVIEW =================
+        PageView.builder(
+          itemCount: widget.post.imageUrls.length,
+          onPageChanged: (i) {
+            setState(() => _currentImageIndex = i);
+          },
+          itemBuilder: (context, index) {
+            final imageUrl = widget.post.imageUrls[index];
+            print('IMAGE URL: $imageUrl');
+            return GestureDetector(
+              onTap: () => _openImagePopup(context, index),
+              onDoubleTap: _toggleLike,
+              child: Hero(
+                tag: '${widget.post.id}_$index',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(
+                    imageUrl,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-
-            /// ================= DOTS =================
-            if (widget.post.imageUrls.length > 1)
-              Positioned(
-                bottom: 12,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    widget.post.imageUrls.length,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: i == _currentImageIndex ? 8 : 6,
-                      height: i == _currentImageIndex ? 8 : 6,
-                      decoration: BoxDecoration(
-                        color: i == _currentImageIndex
-                            ? Colors.white
-                            : Colors.white38,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            );
+          },
         ),
-      ),
+
+        /// ================= CONTADOR =================
+        if (widget.post.imageUrls.length > 1)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+
+        /// ================= DOTS =================
+        if (widget.post.imageUrls.length > 1)
+          Positioned(
+            bottom: 12,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                widget.post.imageUrls.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _currentImageIndex ? 8 : 6,
+                  height: i == _currentImageIndex ? 8 : 6,
+                  decoration: BoxDecoration(
+                    color: i == _currentImageIndex
+                        ? Colors.white
+                        : Colors.white38,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  ),
+
+
          _buildActions(),
 
           if (widget.post.telefono != null &&

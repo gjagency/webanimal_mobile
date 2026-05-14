@@ -771,15 +771,30 @@ void _onScroll() {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl.isEmpty
-                        ? const Icon(Icons.person, size: 16, color: Colors.grey)
-                        : null,
-                  ),
+  radius: 14,
+  backgroundColor: Colors.grey.shade200,
+  child: ClipOval(
+    child: avatarUrl.isNotEmpty
+        ? Image.network(
+            avatarUrl,
+            width: 28,
+            height: 28,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.person,
+                size: 16,
+                color: Colors.grey,
+              );
+            },
+          )
+        : const Icon(
+            Icons.person,
+            size: 16,
+            color: Colors.grey,
+          ),
+  ),
+)
           ),
 
                 IconButton(
