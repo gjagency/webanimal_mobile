@@ -10,11 +10,11 @@ String getFullImageUrl(String? path) {
 
 // ── Design tokens ────────────────────────────────────────────────
 class _T {
-  static const bg = Color(0xFF111827);          // gris carbón profundo
-  static const surface = Color(0xFF1F2937);     // superficie elevada
-  static const accent = Color(0xFF10B981);      // esmeralda
-  static const accentDim = Color(0xFF064E3B);   // esmeralda oscuro
-  static const warn = Color(0xFFF59E0B);        // ámbar para precio
+  static const bg = Color(0xFF111827); // gris carbón profundo
+  static const surface = Color(0xFF1F2937); // superficie elevada
+  static const accent = Color(0xFF10B981); // esmeralda
+  static const accentDim = Color(0xFF064E3B); // esmeralda oscuro
+  static const warn = Color(0xFFF59E0B); // ámbar para precio
   static const textHigh = Color(0xFFF9FAFB);
   static const textMid = Color(0xFF9CA3AF);
   static const textLow = Color(0xFF4B5563);
@@ -25,11 +25,7 @@ class PromocionCard extends StatelessWidget {
   final Promocion promocion;
   final VoidCallback? onTap;
 
-  const PromocionCard({
-    super.key,
-    required this.promocion,
-    this.onTap,
-  });
+  const PromocionCard({super.key, required this.promocion, this.onTap});
 
   void _showImagePopup(BuildContext context, String imageUrl) {
     showDialog(
@@ -61,8 +57,11 @@ class PromocionCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(6),
-                  child: const Icon(Icons.close_rounded,
-                      color: _T.textMid, size: 20),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: _T.textMid,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -76,8 +75,8 @@ class PromocionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = getFullImageUrl(promocion.imagen);
     final hasImage = promocion.imagen != null && imageUrl.isNotEmpty;
-    final hasPrice = promocion.precio != null &&
-        promocion.precio.toString().isNotEmpty;
+    final hasPrice =
+        promocion.precio != null && promocion.precio.toString().isNotEmpty;
     final hasDesc = promocion.descripcion.isNotEmpty;
 
     return GestureDetector(
@@ -123,22 +122,24 @@ class PromocionCard extends StatelessWidget {
                         errorBuilder: (_, __, ___) => Container(
                           height: 195,
                           color: _T.bg,
-                          child: const Icon(Icons.broken_image_rounded,
-                              color: _T.textLow, size: 40),
+                          child: const Icon(
+                            Icons.broken_image_rounded,
+                            color: _T.textLow,
+                            size: 40,
+                          ),
                         ),
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null
-                                ? child
-                                : Container(
-                                    height: 195,
-                                    color: _T.bg,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(
-                                        color: _T.accent,
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
+                        loadingBuilder: (_, child, progress) => progress == null
+                            ? child
+                            : Container(
+                                height: 195,
+                                color: _T.bg,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: _T.accent,
+                                    strokeWidth: 2,
                                   ),
+                                ),
+                              ),
                       ),
                     ),
 
@@ -168,7 +169,9 @@ class PromocionCard extends StatelessWidget {
                       right: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(20),
@@ -176,8 +179,11 @@ class PromocionCard extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.zoom_in_rounded,
-                                color: Colors.white, size: 13),
+                            Icon(
+                              Icons.zoom_in_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
                             SizedBox(width: 3),
                             Text(
                               'Ver',

@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:mobile_app/service/media_service.dart';
 import 'package:video_player/video_player.dart';
 import 'package:mobile_app/pages/location/search.dart';
 import 'package:mobile_app/service/posts_service.dart';
@@ -361,12 +361,6 @@ class _PagePostCreateState extends State<PagePostCreate> {
 
   // ============ SUBIDA ============
 
-  Future<List<String>> _imagesToBase64(List<File> images) async {
-    return Future.wait(
-      images.map((img) async => base64Encode(await img.readAsBytes())),
-    );
-  }
-
   Future<void> _savePost() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedMedia.isEmpty) {
@@ -382,10 +376,10 @@ class _PagePostCreateState extends State<PagePostCreate> {
     });
 
     try {
-      // 1. Subir todos los archivos
-      // TODO: upload images and videos from _selectedMedia MediaItem to backget, get identify to createPost
+      final medias = await Future.wait(
+        _selectedMedia.map((media) => MediaService.upload(media.file)),
+      );
 
-      // 2. Crear el post con las URLs
       await PostsService.createPost(
         postTypeId: _selectedPostTypeId!,
         petTypeId: _selectedPetTypeId!,
@@ -394,9 +388,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
         lat: _currentLat!,
         lng: _currentLng!,
         locationLabel: _locationController.text,
-
-        // replace this with mediaItemId[]
-        imagesBase64: [],
+        mediaIds: medias.map((media) => media.id ?? "").toList(),
       );
 
       _uploadProgress.value = 1.0;
@@ -904,8 +896,6 @@ class _ChipData {
   _ChipData(this.id, this.name);
 }
 
-/// Widget interno para mostrar el preview de un video con tap para
-/// play/pause y un overlay de play cuando está pausado.
 class _VideoPreview extends StatefulWidget {
   final MediaItem item;
   const _VideoPreview({required this.item});

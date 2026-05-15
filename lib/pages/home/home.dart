@@ -37,8 +37,8 @@ class _PageHomeState extends State<PageHome> {
   bool? esVeterinariaLogueada;
   List<PromocionesPorVeterinaria> _promocionesAgrupadas = [];
   List<File> _newImages = []; // imágenes nuevas elegidas
-  List<int> _deleteImageIds = [];
-  List<PostImage> _existingImages = []; // ids de imágenes a borrar (opcional)
+  List<String> _deleteImageIds = [];
+  List<PostMedia> _existingMedias = []; // ids de imágenes a borrar (opcional)
   bool _isSavingEdit = false;
 
   List<Post> _posts = [];
@@ -57,11 +57,13 @@ class _PageHomeState extends State<PageHome> {
 
     _scrollController.addListener(_onScroll);
   }
+
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
+
   Future<void> _init() async {
     await AuthService.loadCurrentUser();
     setState(() {
@@ -117,12 +119,7 @@ class _PageHomeState extends State<PageHome> {
     // Limpiar listas por si venían de otro edit
     _newImages = [];
     _deleteImageIds = [];
-
-    _existingImages = post.imageUrls.map((url) {
-      final id = post.imageIdByUrl[url]; // 👈 USAR URL COMPLETA
-
-      return PostImage(id: id, url: url);
-    }).toList();
+    _existingMedias = post.medias;
 
     showDialog(
       context: context,
@@ -161,7 +158,7 @@ class _PageHomeState extends State<PageHome> {
                     runSpacing: 8,
                     children: [
                       // 🔹 Existentes
-                      ..._existingImages.map((img) {
+                      ..._existingMedias.map((img) {
                         return Stack(
                           children: [
                             ClipRRect(
@@ -185,7 +182,7 @@ class _PageHomeState extends State<PageHome> {
                                       _deleteImageIds.add(img.id!);
                                     }
                                     // Removemos la imagen de la UI
-                                    _existingImages.remove(img);
+                                    _existingMedias.remove(img);
                                   });
                                 },
 
@@ -241,7 +238,7 @@ class _PageHomeState extends State<PageHome> {
                     label: const Text('Agregar Imagen'),
                     onPressed: () async {
                       final totalImages =
-                          _existingImages.length + _newImages.length;
+                          _existingMedias.length + _newImages.length;
                       if (totalImages >= 3) {
                         showDialog(
                           context: context,
@@ -282,13 +279,6 @@ class _PageHomeState extends State<PageHome> {
 
                       setState(() => _isSavingEdit = true);
                       try {
-                        await PostsService.updatePostWithImages(
-                          postId: post.id.toString(),
-                          fields: {'body': description},
-                          newImages: _newImages,
-                          deleteImageIds: _deleteImageIds,
-                        );
-
                         if (!context.mounted) return;
 
                         Navigator.pop(context);
@@ -375,19 +365,19 @@ class _PageHomeState extends State<PageHome> {
     try {
       // Promociones
       if (selectedTypeId == 'promociones') {
-  final data = await AuthService.getMisPromociones();
+        final data = await AuthService.getMisPromociones();
 
-  debugPrint('MIS PROMOS: $data');
+        debugPrint('MIS PROMOS: $data');
 
-  setState(() {
-    _promocionesAgrupadas = data
-        .map((e) => PromocionesPorVeterinaria.fromJson(e))
-        .toList();
-    _posts = [];
-    _isLoading = false;
-  });
-  return;
-}
+        setState(() {
+          _promocionesAgrupadas = data
+              .map((e) => PromocionesPorVeterinaria.fromJson(e))
+              .toList();
+          _posts = [];
+          _isLoading = false;
+        });
+        return;
+      }
 
       // Mis Posts
       if (selectedTypeId == 'mis_posts') {
@@ -481,16 +471,16 @@ class _PageHomeState extends State<PageHome> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
-                    maxLength: 20,
-                    decoration: const InputDecoration(
-                      labelText: 'Título',
-                      border: OutlineInputBorder(),
-                      counterText: '', // opcional: oculta el contador 0/20
+                      maxLength: 20,
+                      decoration: const InputDecoration(
+                        labelText: 'Título',
+                        border: OutlineInputBorder(),
+                        counterText: '', // opcional: oculta el contador 0/20
+                      ),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Ingrese un título' : null,
+                      onSaved: (v) => _titulo = v,
                     ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Ingrese un título' : null,
-                    onSaved: (v) => _titulo = v,
-                  ),
                     const SizedBox(height: 8),
                     TextFormField(
                       maxLength: 20,
@@ -505,22 +495,26 @@ class _PageHomeState extends State<PageHome> {
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Precio',
-                      hintText: '\$ 0.00',
-                      prefixIcon: Icon(Icons.attach_money),
-                      border: OutlineInputBorder(),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio',
+                        hintText: '\$ 0.00',
+                        prefixIcon: Icon(Icons.attach_money),
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*[.,]?\d{0,2}'),
+                        ),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Ingrese un precio';
+                        return null;
+                      },
+                      onSaved: (v) => _precio = v?.replaceAll(',', '.'),
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
-                    ],
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Ingrese un precio';
-                      return null;
-                    },
-                    onSaved: (v) => _precio = v?.replaceAll(',', '.'),
-                  ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -661,15 +655,15 @@ class _PageHomeState extends State<PageHome> {
   }
 
   List<Post> get filteredPosts => _posts.toList();
-  
-void _onScroll() {
-  if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 300 &&
-      !_isLoadingMore &&
-      _hasMore) {
-    _loadMorePosts();
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 300 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMorePosts();
+    }
   }
-}
 
   void _clearFilters() {
     setState(() {
@@ -797,12 +791,12 @@ void _onScroll() {
 )
           ),
 
-                IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                context.push('/account/settings');
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              context.push('/account/settings');
+            },
+          ),
 
           const SizedBox(width: 4),
         ],
@@ -842,7 +836,7 @@ void _onScroll() {
                           const SizedBox(width: 8),
                         ],
                         const SizedBox(width: 8),
-                       
+
                         ..._postTypes
                             .take(3)
                             .map(
@@ -954,29 +948,29 @@ void _onScroll() {
                       ),
                       const SizedBox(width: 14),
 
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '🔥 Descuentos',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '🔥 Descuentos',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Mirá promociones y ofertas disponibles',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Mirá promociones y ofertas disponibles',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                      ),
 
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
@@ -999,16 +993,16 @@ void _onScroll() {
                 : selectedTypeId == 'promociones'
                 ? PromocionesPorVeterinariaList(grupos: _promocionesAgrupadas)
                 : PostsFeed(
-              controller: _scrollController,
-              posts: filteredPosts,
-              promociones: const [],
-              isLoading: false,
-              error: _error,
-              selectedTypeId: selectedTypeId,
-              onRefresh: _loadData,
-              onEditPost: _editarPost,
-              isLoadingMore: _isLoadingMore,
-            ),
+                    controller: _scrollController,
+                    posts: filteredPosts,
+                    promociones: const [],
+                    isLoading: false,
+                    error: _error,
+                    selectedTypeId: selectedTypeId,
+                    onRefresh: _loadData,
+                    onEditPost: _editarPost,
+                    isLoadingMore: _isLoadingMore,
+                  ),
           ),
         ],
       ),
@@ -1028,40 +1022,41 @@ void _onScroll() {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
-Future<void> _loadMorePosts() async {
-  if (_isLoadingMore || !_hasMore) return;
 
-  setState(() => _isLoadingMore = true);
+  Future<void> _loadMorePosts() async {
+    if (_isLoadingMore || !_hasMore) return;
 
-  try {
-    final newPosts = await PostsService.getPosts(
-      postType: selectedTypeId,
-      petType: selectedPetTypeId,
-      cityId: selectedCityId,
-      page: _currentPage + 1,
-    );
+    setState(() => _isLoadingMore = true);
 
-    setState(() {
-      _currentPage++;
+    try {
+      final newPosts = await PostsService.getPosts(
+        postType: selectedTypeId,
+        petType: selectedPetTypeId,
+        cityId: selectedCityId,
+        page: _currentPage + 1,
+      );
 
-      if (newPosts.isEmpty || newPosts.length < 10) {
-        _hasMore = false;
-      }
+      setState(() {
+        _currentPage++;
 
-final existingIds = _posts.map((e) => e.id).toSet();
+        if (newPosts.isEmpty || newPosts.length < 10) {
+          _hasMore = false;
+        }
 
-final uniquePosts = newPosts
-    .where((post) => !existingIds.contains(post.id))
-    .toList();
+        final existingIds = _posts.map((e) => e.id).toSet();
 
-_posts.addAll(uniquePosts);
-    });
-  } catch (e) {
-    debugPrint('Error load more: $e');
-  } finally {
-    setState(() => _isLoadingMore = false);
+        final uniquePosts = newPosts
+            .where((post) => !existingIds.contains(post.id))
+            .toList();
+
+        _posts.addAll(uniquePosts);
+      });
+    } catch (e) {
+      debugPrint('Error load more: $e');
+    } finally {
+      setState(() => _isLoadingMore = false);
+    }
   }
-}
 }
 
 /// -------------------------

@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
-import 'package:mobile_app/config.dart';
 
 class LocationResult {
   final String displayName;

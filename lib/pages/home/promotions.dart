@@ -103,15 +103,13 @@ class _PagePromotionsState extends State<PagePromotions> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         titleSpacing: 0,
-          title: Row(
+        title: Row(
           children: [
             Expanded(
               child: const Text(
                 'WebAnimal',
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,  ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
             ),
           ],
@@ -855,92 +853,6 @@ class _LoadingView extends StatelessWidget {
             ),
           ),
         ],
-      ],
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorView({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        const SizedBox(height: 100),
-        const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
-        const SizedBox(height: 16),
-        const Center(
-          child: Text(
-            'No pudimos cargar las promociones',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: Text(
-            'Verificá tu conexión e intentá de nuevo',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reintentar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        const SizedBox(height: 100),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.local_offer_outlined,
-              size: 56,
-              color: Colors.purple,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Center(
-          child: Text(
-            'No hay promociones disponibles',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: Text(
-            'Volvé pronto para ver nuevas ofertas',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-        ),
       ],
     );
   }

@@ -145,7 +145,7 @@ class _MiVeterinariaCreateState extends State<MiVeterinariaCreate> {
         base64Image = await _imageToBase64(_selectedImageFile!);
       }
 
-      final result = await MisVeterinariasService.register(
+      await MisVeterinariasService.register(
         name: _nameController.text,
         phone: _phoneController.text,
         imageBase64: base64Image,

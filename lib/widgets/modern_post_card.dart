@@ -7,15 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:mobile_app/widgets/video_player.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
+
 class ModernPostCard extends StatefulWidget {
   final Post post;
   final VoidCallback? onEdit;
 
   const ModernPostCard({super.key, required this.post, this.onEdit});
-
 
   @override
   State<ModernPostCard> createState() => _ModernPostCardState();
@@ -28,11 +27,11 @@ class _ModernPostCardState extends State<ModernPostCard> {
   int likesIncrement = 0;
 
   @override
-void initState() {
-  super.initState();
-  
-  liked = widget.post.reacciones.isNotEmpty;
-}
+  void initState() {
+    super.initState();
+
+    liked = widget.post.reacciones.isNotEmpty;
+  }
 
   // ================= TIEMPO =================
   String _getTimeAgo() {
@@ -92,7 +91,10 @@ void initState() {
       textDirection: TextDirection.ltr,
     );
     titlePainter.layout(maxWidth: width * 0.9);
-    titlePainter.paint(canvas, Offset((width - titlePainter.width) / 2, height * 0.06));
+    titlePainter.paint(
+      canvas,
+      Offset((width - titlePainter.width) / 2, height * 0.06),
+    );
 
     // Watermark
     final badgePainter = TextPainter(
@@ -105,201 +107,210 @@ void initState() {
     badgePainter.layout();
     badgePainter.paint(
       canvas,
-      Offset(width - badgePainter.width - 24, height - badgePainter.height - 24),
+      Offset(
+        width - badgePainter.width - 24,
+        height - badgePainter.height - 24,
+      ),
     );
 
     final picture = recorder.endRecording();
-    final img = await picture.toImage(originalImage.width, originalImage.height);
+    final img = await picture.toImage(
+      originalImage.width,
+      originalImage.height,
+    );
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
 
-    final file = File('${(await getTemporaryDirectory()).path}/shared_${widget.post.id}.png');
+    final file = File(
+      '${(await getTemporaryDirectory()).path}/shared_${widget.post.id}.png',
+    );
     await file.writeAsBytes(byteData!.buffer.asUint8List());
     return file;
   }
 
-Future<void> _shareToFacebookFeed() async {
-  if (widget.post.imageUrls.isEmpty) return;
+  Future<void> _shareToFacebookFeed() async {
+    if (widget.post.medias.isEmpty) return;
 
-  await SharePostHelper.sharePost(
-    imageUrl: widget.post.imageUrls.first,
-    postType: widget.post.postType.name,
-    fileName: 'shared_${widget.post.id}',
-  );
-}
+    await SharePostHelper.sharePost(
+      imageUrl: widget.post.medias.first.url,
+      postType: widget.post.postType.name,
+      fileName: 'shared_${widget.post.id}',
+    );
+  }
 
   // ================= POPUP IMAGEN =================
-void _openImagePopup(BuildContext context, int initialIndex) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.9),
-    builder: (context) {
-      double dragOffset = 0;
+  void _openImagePopup(BuildContext context, int initialIndex) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.9),
+      builder: (context) {
+        double dragOffset = 0;
 
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Material(
-            color: Colors.transparent,
-            child: Stack(
-              children: [
-                /// Fondo
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(color: Colors.transparent),
-                  ),
-                ),
-
-                /// Contenido con swipe
-                GestureDetector(
-                  onVerticalDragUpdate: (details) {
-                    setState(() {
-                      dragOffset += details.delta.dy;
-                    });
-                  },
-                  onVerticalDragEnd: (details) {
-                    if (dragOffset > 150) {
-                      Navigator.pop(context); // 👈 cerrar
-                    } else {
-                      setState(() {
-                        dragOffset = 0; // vuelve a posición original
-                      });
-                    }
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    transform: Matrix4.translationValues(0, dragOffset, 0),
-                    child: Center(
-                      child: Dialog(
-                    backgroundColor: Colors.transparent,
-                    insetPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 40,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Material(
+              color: Colors.transparent,
+              child: Stack(
+                children: [
+                  /// Fondo
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(color: Colors.transparent),
                     ),
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      height: MediaQuery.of(context).size.height * 0.7,
-                      child: PageView.builder(
-                        controller: PageController(initialPage: initialIndex),
-                        itemCount: widget.post.imageUrls.length,
-                        itemBuilder: (context, index) {
-                          final imageUrl = widget.post.imageUrls[index];
+                  ),
 
-                          return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: InteractiveViewer(
-                            minScale: 1,
-                            maxScale: 4,
-                            child: Image.network(
-                              
-                              imageUrl,
-                              fit: BoxFit.contain,
-                              width: double.infinity,
-                              height: double.infinity,
+                  /// Contenido con swipe
+                  GestureDetector(
+                    onVerticalDragUpdate: (details) {
+                      setState(() {
+                        dragOffset += details.delta.dy;
+                      });
+                    },
+                    onVerticalDragEnd: (details) {
+                      if (dragOffset > 150) {
+                        Navigator.pop(context); // 👈 cerrar
+                      } else {
+                        setState(() {
+                          dragOffset = 0; // vuelve a posición original
+                        });
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      transform: Matrix4.translationValues(0, dragOffset, 0),
+                      child: Center(
+                        child: Dialog(
+                          backgroundColor: Colors.transparent,
+                          insetPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 40,
+                          ),
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.9,
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: PageView.builder(
+                              controller: PageController(
+                                initialPage: initialIndex,
+                              ),
+                              itemCount: widget.post.medias.length,
+                              itemBuilder: (context, index) {
+                                final imageUrl = widget.post.medias[index];
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: InteractiveViewer(
+                                      minScale: 1,
+                                      maxScale: 4,
+                                      child: Image.network(
+                                        imageUrl.url,
+                                        fit: BoxFit.contain,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          
                           ),
                         ),
-                      );
-                        },
                       ),
                     ),
                   ),
-                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.grey.shade200,
+            child: ClipOval(
+              child:
+                  widget.post.user.imageUrl != null &&
+                      widget.post.user.imageUrl!.isNotEmpty
+                  ? Image.network(
+                      widget.post.user.imageUrl!,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.person);
+                      },
+                    )
+                  : const Icon(Icons.person),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    context.push('/user-posts/${widget.post.user.id}');
+                  },
+                  child: Text(
+                    widget.post.user.displayName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
+                ),
+                Text(
+                  '${_getTimeAgo()} - ${widget.post.location.label}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
-          );
-        },
-      );
-    },
-  );
-}
+          ),
 
-
-Widget _buildHeader(Color color, IconData icon) {
-  return Padding(
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      children: [
-        CircleAvatar(
-  radius: 22,
-  backgroundColor: Colors.grey.shade200,
-  child: ClipOval(
-    child: widget.post.user.imageUrl != null &&
-            widget.post.user.imageUrl!.isNotEmpty
-        ? Image.network(
-            widget.post.user.imageUrl!,
-            width: 44,
-            height: 44,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(Icons.person);
-            },
-          )
-        : const Icon(Icons.person),
-  ),
-),
-        const SizedBox(width: 12),
-       Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: () {
-                context.push('/user-posts/${widget.post.user.id}');
-              },
-              child: Text(
-                widget.post.user.displayName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.white, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  widget.post.postType.name,
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
                 ),
-              ),
+              ],
             ),
-            Text(
-              '${_getTimeAgo()} - ${widget.post.location.label}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-
-   
-
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 14),
-              const SizedBox(width: 4),
-              Text(widget.post.postType.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 11)),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   // ================= BUILD =================
-@override
-Widget build(BuildContext context) {
-      // 🔹 Manejo seguro de color
-      final rawColor = widget.post.postType.color;
-      final color = (rawColor is int)
-          ? Color(rawColor as int)
-          : Color(int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ?? 0xFFCCCCCC);
+  @override
+  Widget build(BuildContext context) {
+    // 🔹 Manejo seguro de color
+    final rawColor = widget.post.postType.color;
+    final color = (rawColor is int)
+        ? Color(rawColor as int)
+        : Color(
+            int.tryParse((rawColor ?? '0xFFCCCCCC').replaceAll('#', '0xFF')) ??
+                0xFFCCCCCC,
+          );
 
     IconData _mapIcon(String? iconCode) {
       switch (iconCode) {
@@ -317,153 +328,151 @@ Widget build(BuildContext context) {
           return Icons.pets;
       }
     }
+
     final rawIcon = widget.post.postType.icon;
     final iconData = _mapIcon(rawIcon);
 
-      return InkWell(
-        onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
-        onDoubleTap: _toggleLike,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.pink.withOpacity(0.25),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(color, iconData),
-           if (widget.post.imageUrls.isNotEmpty)
-  AspectRatio(
-    aspectRatio: 4 / 5,
-    child: Stack(
-      children: [
-        /// ================= PAGEVIEW =================
-        PageView.builder(
-          itemCount: widget.post.imageUrls.length,
-          onPageChanged: (i) {
-            setState(() => _currentImageIndex = i);
-          },
-          itemBuilder: (context, index) {
-            final imageUrl = widget.post.imageUrls[index];
-            print('IMAGE URL: $imageUrl');
-            return GestureDetector(
-              onTap: () => _openImagePopup(context, index),
-              onDoubleTap: _toggleLike,
-              child: Hero(
-                tag: '${widget.post.id}_$index',
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.network(
-                    imageUrl,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            );
-          },
+    return InkWell(
+      onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
+      onDoubleTap: _toggleLike,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.pink.withOpacity(0.25),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-
-        /// ================= CONTADOR =================
-        if (widget.post.imageUrls.length > 1)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                '${_currentImageIndex + 1} / ${widget.post.imageUrls.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-
-        /// ================= DOTS =================
-        if (widget.post.imageUrls.length > 1)
-          Positioned(
-            bottom: 12,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                widget.post.imageUrls.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == _currentImageIndex ? 8 : 6,
-                  height: i == _currentImageIndex ? 8 : 6,
-                  decoration: BoxDecoration(
-                    color: i == _currentImageIndex
-                        ? Colors.white
-                        : Colors.white38,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  ),
-
-
-         _buildActions(),
-
-          if (widget.post.telefono != null &&
-              widget.post.telefono!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.phone,
-                    size: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget.post.telefono!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(color, iconData),
+            if (widget.post.medias.isNotEmpty)
+              AspectRatio(
+                aspectRatio: 4 / 5,
+                child: Stack(
+                  children: [
+                    /// ================= PAGEVIEW =================
+                    PageView.builder(
+                      itemCount: widget.post.medias.length,
+                      onPageChanged: (i) {
+                        setState(() => _currentImageIndex = i);
+                      },
+                      itemBuilder: (context, index) {
+                        final imageUrl = widget.post.medias[index];
+                        print('IMAGE URL: $imageUrl');
+                        return GestureDetector(
+                          onTap: () => _openImagePopup(context, index),
+                          onDoubleTap: _toggleLike,
+                          child: Hero(
+                            tag: '${widget.post.id}_$index',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Image.network(
+                                imageUrl.url,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                ],
+
+                    /// ================= CONTADOR =================
+                    if (widget.post.medias.length > 1)
+                      Positioned(
+                        bottom: 16,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            '${_currentImageIndex + 1} / ${widget.post.medias.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    /// ================= DOTS =================
+                    if (widget.post.medias.length > 1)
+                      Positioned(
+                        bottom: 12,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            widget.post.medias.length,
+                            (i) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: i == _currentImageIndex ? 8 : 6,
+                              height: i == _currentImageIndex ? 8 : 6,
+                              decoration: BoxDecoration(
+                                color: i == _currentImageIndex
+                                    ? Colors.white
+                                    : Colors.white38,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
+
+            _buildActions(),
+
+            if (widget.post.telefono != null &&
+                widget.post.telefono!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone, size: 16, color: Colors.green),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.post.telefono!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(widget.post.description),
             ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(widget.post.description),
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildActions() {
     return Padding(
@@ -471,7 +480,10 @@ Widget build(BuildContext context) {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : null),
+            icon: Icon(
+              liked ? Icons.favorite : Icons.favorite_border,
+              color: liked ? Colors.red : null,
+            ),
             onPressed: _toggleLike,
           ),
           Text('${widget.post.likes + likesIncrement}'),
@@ -481,13 +493,13 @@ Widget build(BuildContext context) {
           Text('${widget.post.comments}'),
           const Spacer(),
           IconButton(
-          onPressed: _shareToFacebookFeed,
-          icon: const Icon(
-            Icons.share_outlined,
-            color: Color(0xFF1877F2),
-            size: 28,
+            onPressed: _shareToFacebookFeed,
+            icon: const Icon(
+              Icons.share_outlined,
+              color: Color(0xFF1877F2),
+              size: 28,
+            ),
           ),
-        ),
         ],
       ),
     );

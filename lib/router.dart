@@ -29,8 +29,8 @@ import 'package:mobile_app/pages/posts/view.dart';
 // PROFILES
 import 'package:mobile_app/pages/profiles/public.dart';
 import 'package:mobile_app/service/page_auth_register_vet.dart';
-import 'package:mobile_app/service/search_users_page.dart';
-import 'package:mobile_app/service/user_profile_page.dart';
+import 'package:mobile_app/pages/profiles/search.dart';
+import 'package:mobile_app/pages/profiles/posts.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
