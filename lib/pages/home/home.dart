@@ -906,9 +906,9 @@ class _PageHomeState extends State<PageHome> {
                 ],
               ),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 0),
           if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 0),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -923,7 +923,7 @@ class _PageHomeState extends State<PageHome> {
                     gradient: const LinearGradient(
                       colors: [Colors.purple, Colors.pink],
                     ),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(11),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.purple.withOpacity(0.18),
@@ -934,40 +934,20 @@ class _PageHomeState extends State<PageHome> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.local_offer_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
 
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '🔥 Descuentos',
+                              '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Mirá promociones y ofertas disponibles',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
+                           
                           ],
                         ),
                       ),
@@ -975,7 +955,7 @@ class _PageHomeState extends State<PageHome> {
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
                         color: Colors.white,
-                        size: 18,
+                        size: 14,
                       ),
                     ],
                   ),

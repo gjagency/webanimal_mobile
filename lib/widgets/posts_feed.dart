@@ -53,19 +53,31 @@ class PostsFeed extends StatelessWidget {
       if (promociones.isEmpty)
         return const Center(child: Text('No hay promociones activas'));
       return RefreshIndicator(
-        onRefresh: onRefresh,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 80,
-          ),
-          itemCount: promociones.length,
-          itemBuilder: (context, index) =>
-              PromocionCard(promocion: promociones[index], onTap: () {}),
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        controller: controller,
+        padding: const EdgeInsets.only(
+          top: 16,
+          bottom: 80,
         ),
-      );
+        itemCount: posts.length + (isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= posts.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final post = posts[index];
+
+          return ModernPostCard(
+            post: post,
+            onEdit: onEditPost != null ? () => onEditPost!(post) : null,
+          );
+        },
+      ),
+    );
     }
 
     if (posts.isEmpty) {
@@ -86,13 +98,11 @@ class PostsFeed extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.builder(
-        controller: controller,
-        padding: const EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 80,
-        ),
+      controller: controller,
+      padding: const EdgeInsets.only(
+        top: 16,
+        bottom: 80,
+      ),
         itemCount: posts.length + (isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= posts.length) {

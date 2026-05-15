@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
-
+import 'package:mobile_app/widgets/modern_post_card.dart';
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -293,27 +293,80 @@ class _PagePostViewState extends State<PagePostView> {
                   ),
                 ),
 
-                // Imagen
-                // Imagen
-                GestureDetector(
-                  onTap: () => _openImageModal(context, post.medias.first.url),
-                  child: Image.network(
-                    post.medias.isNotEmpty
-                        ? post.medias.first.url
-                        : "https://via.placeholder.com/400x300?text=Sin+Imagen",
-                    width: double.infinity,
-                    fit: BoxFit.fitWidth,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: double.infinity,
-                      color: Colors.grey[200],
-                      child: const Icon(
-                        Icons.pets,
-                        size: 100,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
+// Descripción
+if (post.description.isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Text(
+      post.description,
+      style: const TextStyle(
+        fontSize: 14,
+        height: 1.4,
+      ),
+    ),
+  ),
+
+const SizedBox(height: 12),
+// Teléfono
+if (post.telefono != null && post.telefono!.isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Row(
+      children: [
+        Icon(
+          Icons.phone,
+          size: 16,
+          color: Colors.green.shade700,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          post.telefono!,
+          style: TextStyle(
+            color: Colors.green.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  ),
+
+const SizedBox(height: 14),
+
+// MEDIA
+GestureDetector(
+
+child: post.medias.first.isVideo
+    ? Container(
+        width: double.infinity,
+        height: 400,
+        color: Colors.black,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(0),
+          child: FeedVideoPlayer(
+            url: post.medias.first.url,
+          ),
+        ),
+      )
+      : Image.network(
+          post.medias.isNotEmpty
+              ? post.medias.first.url
+              : "https://via.placeholder.com/400x300?text=Sin+Imagen",
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 300,
+              width: double.infinity,
+              color: Colors.grey[200],
+              child: const Icon(
+                Icons.pets,
+                size: 100,
+                color: Colors.grey,
+              ),
+            );
+          },
+        ),
+),
                 // Acciones
                 Padding(
                   padding: EdgeInsets.all(16),
@@ -376,20 +429,7 @@ class _PagePostViewState extends State<PagePostView> {
                   ),
                 ),
 
-                // Descripción
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                      children: [TextSpan(text: ' ${post.description}')],
-                    ),
-                  ),
-                ),
+               
 
                 Divider(height: 32, thickness: 8, color: Colors.grey[100]),
 
@@ -624,51 +664,6 @@ class CommentCard extends StatelessWidget {
   }
 }
 
-void _openImageModal(BuildContext context, String? imageUrl) {
-  if (imageUrl == null) return;
-
-  showDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierColor: Colors.black,
-    builder: (_) => GestureDetector(
-      onTap: () => Navigator.of(context).pop(),
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.all(16),
-        child: Stack(
-          children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 3,
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                    height:
-                        MediaQuery.of(context).size.height *
-                        0.35, // 35% de la pantalla
-                    width: double.infinity,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
 class PostTypeConfig {
   final Color color;

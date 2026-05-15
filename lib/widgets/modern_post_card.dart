@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
+import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class ModernPostCard extends StatefulWidget {
   final Post post;
@@ -29,7 +31,6 @@ class _ModernPostCardState extends State<ModernPostCard> {
   @override
   void initState() {
     super.initState();
-
     liked = widget.post.reacciones.isNotEmpty;
   }
 
@@ -42,13 +43,16 @@ class _ModernPostCardState extends State<ModernPostCard> {
   }
 
   // ================= LIKE =================
-  Future<void> _toggleLike() async {
-    await PostsService.addReaction(int.parse(widget.post.id), 1);
-    setState(() {
-      liked = !liked;
-      likesIncrement += liked ? 1 : -1;
-    });
-  }
+Future<void> _toggleLike() async {
+  await PostsService.addReaction(int.parse(widget.post.id), 1);
+
+  if (!mounted) return;
+
+  setState(() {
+    liked = !liked;
+    likesIncrement += liked ? 1 : -1;
+  });
+}
 
   // ================= SHARE =================
   Future<File> _createImageWithTexts({
@@ -162,20 +166,24 @@ class _ModernPostCardState extends State<ModernPostCard> {
 
                   /// Contenido con swipe
                   GestureDetector(
-                    onVerticalDragUpdate: (details) {
+                   onVerticalDragUpdate: (details) {
+                    if (!mounted) return;
+
+                    setState(() {
+                      dragOffset += details.delta.dy;
+                    });
+                  },
+                                      onVerticalDragEnd: (details) {
+                    if (dragOffset > 150) {
+                      Navigator.pop(context);
+                    } else {
+                      if (!mounted) return;
+
                       setState(() {
-                        dragOffset += details.delta.dy;
+                        dragOffset = 0;
                       });
-                    },
-                    onVerticalDragEnd: (details) {
-                      if (dragOffset > 150) {
-                        Navigator.pop(context); // 👈 cerrar
-                      } else {
-                        setState(() {
-                          dragOffset = 0; // vuelve a posición original
-                        });
-                      }
-                    },
+                    }
+                  },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       transform: Matrix4.translationValues(0, dragOffset, 0),
@@ -207,12 +215,14 @@ class _ModernPostCardState extends State<ModernPostCard> {
                                     child: InteractiveViewer(
                                       minScale: 1,
                                       maxScale: 4,
-                                      child: Image.network(
-                                        imageUrl.url,
-                                        fit: BoxFit.contain,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                      ),
+                                      child: imageUrl.isVideo
+                                      ? FeedVideoPlayer(url: imageUrl.url)
+                                      : Image.network(
+                                          imageUrl.url,
+                                          fit: BoxFit.contain,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                        ),
                                     ),
                                   ),
                                 );
@@ -335,111 +345,25 @@ class _ModernPostCardState extends State<ModernPostCard> {
     return InkWell(
       onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
       onDoubleTap: _toggleLike,
-      child: Container(
+       child: Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.pink.withOpacity(0.25),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(0),
+         
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(color, iconData),
-            if (widget.post.medias.isNotEmpty)
-              AspectRatio(
-                aspectRatio: 4 / 5,
-                child: Stack(
-                  children: [
-                    /// ================= PAGEVIEW =================
-                    PageView.builder(
-                      itemCount: widget.post.medias.length,
-                      onPageChanged: (i) {
-                        setState(() => _currentImageIndex = i);
-                      },
-                      itemBuilder: (context, index) {
-                        final imageUrl = widget.post.medias[index];
-                        print('IMAGE URL: $imageUrl');
-                        return GestureDetector(
-                          onTap: () => _openImagePopup(context, index),
-                          onDoubleTap: _toggleLike,
-                          child: Hero(
-                            tag: '${widget.post.id}_$index',
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Image.network(
-                                imageUrl.url,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+            /// DESCRIPCION
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(widget.post.description),
+            ),
 
-                    /// ================= CONTADOR =================
-                    if (widget.post.medias.length > 1)
-                      Positioned(
-                        bottom: 16,
-                        right: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            '${_currentImageIndex + 1} / ${widget.post.medias.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    /// ================= DOTS =================
-                    if (widget.post.medias.length > 1)
-                      Positioned(
-                        bottom: 12,
-                        left: 0,
-                        right: 0,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            widget.post.medias.length,
-                            (i) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: i == _currentImageIndex ? 8 : 6,
-                              height: i == _currentImageIndex ? 8 : 6,
-                              decoration: BoxDecoration(
-                                color: i == _currentImageIndex
-                                    ? Colors.white
-                                    : Colors.white38,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-            _buildActions(),
-
+            /// TELEFONO
             if (widget.post.telefono != null &&
                 widget.post.telefono!.isNotEmpty)
               Padding(
@@ -449,12 +373,17 @@ class _ModernPostCardState extends State<ModernPostCard> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.phone, size: 16, color: Colors.green),
+                    const Icon(
+                      Icons.phone,
+                      size: 16,
+                      color: Colors.green,
+                    ),
                     const SizedBox(width: 6),
+
                     Text(
                       widget.post.telefono!,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
@@ -462,19 +391,68 @@ class _ModernPostCardState extends State<ModernPostCard> {
                   ],
                 ),
               ),
+            const SizedBox(height: 12),
+if (widget.post.medias.isNotEmpty)
+  SizedBox(
+    width: double.infinity,
+    height: MediaQuery.of(context).size.width * 0.55,
+    child: Stack(
+      children: [
+        PageView.builder(
+          itemCount: widget.post.medias.length,
+          onPageChanged: (i) {
+            setState(() => _currentImageIndex = i);
+          },
+          itemBuilder: (context, index) {
+            final media = widget.post.medias[index];
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(widget.post.description),
+            return GestureDetector(
+              onTap: () => _openImagePopup(context, index),
+              onDoubleTap: _toggleLike,
+              child: Hero(
+                tag: '${widget.post.id}_$index',
+                child: media.isVideo
+                    ? FeedVideoPlayer(url: media.url)
+                    : AutoSizeNetworkImage(url: media.url)
+              ),
+            );
+          },
+        ),
+
+        if (widget.post.medias.length > 1)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                '${_currentImageIndex + 1} / ${widget.post.medias.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
+          ),
+      ],
+    ),
+  ),
+
+            _buildActions(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActions() {
+Widget _buildActions() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -501,6 +479,281 @@ class _ModernPostCardState extends State<ModernPostCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+}
+class FeedVideoPlayer extends StatefulWidget {
+  final String url;
+
+  const FeedVideoPlayer({
+    super.key,
+    required this.url,
+  });
+
+  @override
+  State<FeedVideoPlayer> createState() => _FeedVideoPlayerState();
+}
+class _FeedVideoPlayerState extends State<FeedVideoPlayer>
+    with AutomaticKeepAliveClientMixin {
+  late VideoPlayerController controller;
+
+  bool _disposed = false;
+  bool _isMuted = true;
+  bool _isPaused = false;
+  int _loopCount = 0;
+  bool _wasNearEnd = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.url),
+    );
+
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    await controller.initialize();
+
+    if (!mounted || _disposed) return;
+
+    await controller.setVolume(0);
+    await controller.setLooping(true);
+    await controller.play();
+
+    controller.addListener(_videoListener);
+
+    if (!mounted || _disposed) return;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+
+    controller.removeListener(_videoListener);
+    controller.pause();
+    controller.dispose();
+
+    super.dispose();
+  }
+Future<void> _toggleMute() async {
+
+if (!mounted || _disposed) return;
+
+  setState(() {
+    _isMuted = !_isMuted;
+  });
+
+  await controller.setVolume(_isMuted ? 0 : 1);
+}
+
+Future<void> _togglePlayPause() async {
+  if (_disposed) return;
+
+  if (controller.value.isPlaying) {
+    await controller.pause();
+
+    if (!mounted || _disposed) return;
+
+    setState(() {
+      _isPaused = true;
+    });
+  } else {
+    await controller.play();
+
+    if (!mounted || _disposed) return;
+
+    setState(() {
+      _isPaused = false;
+    });
+  }
+}
+void _handleVisibilityChanged(VisibilityInfo info) async {
+  if (_disposed) return;
+  if (!controller.value.isInitialized) return;
+
+  if (info.visibleFraction < 0.3) {
+    if (controller.value.isPlaying) {
+      await controller.pause();
+
+      if (!mounted || _disposed) return;
+
+      setState(() {
+        _isPaused = true;
+      });
+    }
+  } else {
+    if (!controller.value.isPlaying) {
+      await controller.play();
+
+      if (!mounted || _disposed) return;
+
+      setState(() {
+        _isPaused = false;
+      });
+    }
+  }
+}
+void _videoListener() {
+  if (_disposed) return;
+  if (!controller.value.isInitialized) return;
+
+  final position = controller.value.position;
+  final duration = controller.value.duration;
+
+  if (duration.inMilliseconds == 0) return;
+
+  final remaining =
+      duration.inMilliseconds - position.inMilliseconds;
+
+  /// está terminando
+  if (remaining < 300 && !_wasNearEnd) {
+    _wasNearEnd = true;
+  }
+
+  /// volvió a empezar
+  if (_wasNearEnd && position.inMilliseconds < 300) {
+    _loopCount++;
+    _wasNearEnd = false;
+
+    if (_loopCount >= 3) {
+      controller.pause();
+
+      if (!mounted || _disposed) return;
+
+      setState(() {
+        _isPaused = true;
+      });
+    }
+  }
+}
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    if (!controller.value.isInitialized) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    return VisibilityDetector(
+      key: Key(widget.url),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: GestureDetector(
+        onTap: _togglePlayPause,
+        child: Stack(
+          children: [
+            /// VIDEO
+            Positioned.fill(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: controller.value.size.width,
+                  height: controller.value.size.height,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            ),
+
+            /// ICONO PLAY
+            if (_isPaused)
+              const Center(
+                child: Icon(
+                  Icons.play_circle_fill,
+                  color: Colors.white,
+                  size: 70,
+                ),
+              ),
+
+            /// BOTON MUTE
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: GestureDetector(
+                onTap: _toggleMute,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isMuted
+                        ? Icons.volume_off
+                        : Icons.volume_up,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}class AutoSizeNetworkImage extends StatefulWidget {
+  final String url;
+
+  const AutoSizeNetworkImage({
+    super.key,
+    required this.url,
+  });
+
+  @override
+  State<AutoSizeNetworkImage> createState() => _AutoSizeNetworkImageState();
+}
+
+class _AutoSizeNetworkImageState extends State<AutoSizeNetworkImage> {
+  double? aspectRatio;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateImageRatio();
+  }
+
+  void _calculateImageRatio() {
+    final image = Image.network(widget.url);
+
+    image.image.resolve(const ImageConfiguration()).addListener(
+      ImageStreamListener((ImageInfo info, bool _) {
+        if (!mounted) return;
+
+        setState(() {
+          aspectRatio =
+              info.image.width / info.image.height;
+        });
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (aspectRatio == null) {
+      return const SizedBox(
+        height: 300,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: aspectRatio!,
+      child: Image.network(
+        widget.url,
+        fit: BoxFit.cover,
+        width: double.infinity,
       ),
     );
   }

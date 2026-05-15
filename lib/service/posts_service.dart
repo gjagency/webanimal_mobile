@@ -147,14 +147,13 @@ class PostMedia {
   factory PostMedia.fromJson(Map<String, dynamic> json) {
     return PostMedia(
       id: json['id'].toString(),
-      url: json['url'] ?? '',
-      mimeType: json['mime_type'] ?? '',
-      filename: json['filename'] ?? '',
+      url: (json['url'] ?? '').toString(),
+      mimeType: (json['mime_type'] ?? '').toString().toLowerCase(),
+      filename: (json['filename'] ?? '').toString(),
     );
   }
 
   bool get isVideo => mimeType.startsWith('video/');
-
   bool get isImage => mimeType.startsWith('image/');
 }
 
