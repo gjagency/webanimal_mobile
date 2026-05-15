@@ -391,61 +391,22 @@ Future<void> _toggleLike() async {
                   ],
                 ),
               ),
-            const SizedBox(height: 12),
-if (widget.post.medias.isNotEmpty)
-  SizedBox(
-    width: double.infinity,
-    height: MediaQuery.of(context).size.width * 0.55,
-    child: Stack(
-      children: [
-        PageView.builder(
-          itemCount: widget.post.medias.length,
-          onPageChanged: (i) {
-            setState(() => _currentImageIndex = i);
-          },
-          itemBuilder: (context, index) {
-            final media = widget.post.medias[index];
+                const SizedBox(height: 12),
 
-            return GestureDetector(
-              onTap: () => _openImagePopup(context, index),
-              onDoubleTap: _toggleLike,
-              child: Hero(
-                tag: '${widget.post.id}_$index',
-                child: media.isVideo
-                    ? FeedVideoPlayer(url: media.url)
-                    : AutoSizeNetworkImage(url: media.url)
-              ),
-            );
-          },
-        ),
+                if (widget.post.medias.isNotEmpty)
+                  AutoAdaptiveMediaSlider(
+                    medias: widget.post.medias,
+                    postId: widget.post.id,
+                    currentIndex: _currentImageIndex,
+                    onPageChanged: (i) {
+                      setState(() => _currentImageIndex = i);
+                    },
+                    onImageTap: (index) => _openImagePopup(context, index),
+                    onDoubleTap: _toggleLike,
+                  ),
 
-        if (widget.post.medias.length > 1)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                '${_currentImageIndex + 1} / ${widget.post.medias.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  ),
+                _buildActions(),
 
-            _buildActions(),
           ],
         ),
       ),
@@ -701,59 +662,121 @@ void _videoListener() {
       ),
     );
   }
-}class AutoSizeNetworkImage extends StatefulWidget {
-  final String url;
+}
 
-  const AutoSizeNetworkImage({
+class AutoAdaptiveMediaSlider extends StatefulWidget {
+  final List<dynamic> medias;
+  final String postId;
+  final int currentIndex;
+  final Function(int) onPageChanged;
+  final Function(int) onImageTap;
+  final VoidCallback onDoubleTap;
+
+  const AutoAdaptiveMediaSlider({
     super.key,
-    required this.url,
+    required this.medias,
+    required this.postId,
+    required this.currentIndex,
+    required this.onPageChanged,
+    required this.onImageTap,
+    required this.onDoubleTap,
   });
 
   @override
-  State<AutoSizeNetworkImage> createState() => _AutoSizeNetworkImageState();
+  State<AutoAdaptiveMediaSlider> createState() =>
+      _AutoAdaptiveMediaSliderState();
 }
 
-class _AutoSizeNetworkImageState extends State<AutoSizeNetworkImage> {
-  double? aspectRatio;
+class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
+  double aspectRatio = 1;
 
-  @override
-  void initState() {
-    super.initState();
-    _calculateImageRatio();
-  }
-
-  void _calculateImageRatio() {
-    final image = Image.network(widget.url);
+  void _updateAspectRatio(String url) {
+    final image = Image.network(url);
 
     image.image.resolve(const ImageConfiguration()).addListener(
       ImageStreamListener((ImageInfo info, bool _) {
         if (!mounted) return;
 
         setState(() {
-          aspectRatio =
-              info.image.width / info.image.height;
+          aspectRatio = info.image.width / info.image.height;
         });
       }),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (aspectRatio == null) {
-      return const SizedBox(
-        height: 300,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+  void initState() {
+    super.initState();
 
+    final firstMedia = widget.medias.first;
+    if (!firstMedia.isVideo) {
+      _updateAspectRatio(firstMedia.url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: aspectRatio!,
-      child: Image.network(
-        widget.url,
-        fit: BoxFit.cover,
-        width: double.infinity,
+      aspectRatio: aspectRatio,
+      child: Stack(
+        children: [
+          PageView.builder(
+            itemCount: widget.medias.length,
+            onPageChanged: (i) {
+              widget.onPageChanged(i);
+
+              final media = widget.medias[i];
+              if (!media.isVideo) {
+                _updateAspectRatio(media.url);
+              }
+            },
+            itemBuilder: (context, index) {
+              final media = widget.medias[index];
+
+              return GestureDetector(
+                onTap: () => widget.onImageTap(index),
+                onDoubleTap: widget.onDoubleTap,
+                child: Hero(
+                  tag: '${widget.postId}_$index',
+                  child: media.isVideo
+                      ? FeedVideoPlayer(url: media.url)
+                      : Container(
+                          color: Colors.white,
+                          child: Image.network(
+                            media.url,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                ),
+              );
+            },
+          ),
+
+          if (widget.medias.length > 1)
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  '${widget.currentIndex + 1} / ${widget.medias.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
