@@ -8,6 +8,7 @@ import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:video_player/video_player.dart';
+
 class UserPostsPage extends StatefulWidget {
   final String userId;
   const UserPostsPage({super.key, required this.userId});
@@ -38,7 +39,7 @@ class _UserPostsPageState extends State<UserPostsPage> {
       final profile = await AuthService.getProfile();
 
       setState(() {
-        avatarUrl = profile['avatar'] ?? 'https://i.pravatar.cc/150?img=10';
+        avatarUrl = profile['avatar'] ?? "";
         loadingProfile = false;
       });
     } catch (e) {
@@ -272,66 +273,63 @@ class _UserPostsPageState extends State<UserPostsPage> {
               delegate: SliverChildBuilderDelegate((context, index) {
                 final post = _posts[index];
 
-           final media = post.medias.isNotEmpty ? post.medias.first : null;
+                final media = post.medias.isNotEmpty ? post.medias.first : null;
 
-return GestureDetector(
-  onTap: () => _openImageViewer(post, 0),
-  child: Stack(
-    children: [
-      Positioned.fill(
-        child: Hero(
-          tag: '${post.id}_0',
-          child: media == null
-              ? Container(color: Colors.grey.shade300)
-              : media.isVideo
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Icon(
-                              Icons.play_circle_fill,
-                              color: Colors.white,
-                              size: 40,
+                return GestureDetector(
+                  onTap: () => _openImageViewer(post, 0),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Hero(
+                          tag: '${post.id}_0',
+                          child: media == null
+                              ? Container(color: Colors.grey.shade300)
+                              : media.isVideo
+                              ? Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Container(
+                                      color: Colors.black,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Image.network(media.url, fit: BoxFit.cover),
+                        ),
+                      ),
+
+                      if (post.medias.length > 1)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '+${post.medias.length - 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    )
-                  : Image.network(
-                      media.url,
-                      fit: BoxFit.cover,
-                    ),
-        ),
-      ),
-
-      if (post.medias.length > 1)
-        Positioned(
-          top: 6,
-          right: 6,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 6,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              '+${post.medias.length - 1}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-    ],
-  ),
-);
+                    ],
+                  ),
+                );
               }, childCount: _posts.length),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
@@ -357,513 +355,214 @@ return GestureDetector(
     );
   }
 
-Future<void> _editarPost(Post post) async {
-  final formKey = GlobalKey<FormState>();
-  String description = post.description;
-  final ImagePicker picker = ImagePicker();
+  Future<void> _editarPost(Post post) async {
+    final formKey = GlobalKey<FormState>();
+    String description = post.description;
+    final ImagePicker picker = ImagePicker();
 
-  _medias = List.from(post.medias);
+    _medias = List.from(post.medias);
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => StatefulBuilder(
-      builder: (context, setModalState) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Colors.purple, Colors.pink],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Editar Post',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    TextFormField(
-                      initialValue: description,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: '¿Qué querés compartir?',
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Ingrese descripción' : null,
-                      onSaved: (v) => description = v ?? '',
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      'Imágenes',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        ..._medias.map(
-  (media) {
-    final isVideo = media.isVideo;
-
-    return _imagePreview(
-      image: isVideo
-          ? Container(
-              color: Colors.black,
-              child: const Center(
-                child: Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            )
-          : Image.network(
-              media.url,
-              fit: BoxFit.cover,
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
             ),
-      onDelete: () {
-        setModalState(() {
-          _medias.remove(media);
-        });
-      },
-    );
-  },
-),
-
-                        if (_medias.length < 3)
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await picker.pickImage(
-                                source: ImageSource.gallery,
-                              );
-
-                              if (picked != null) {
-                                final media = await MediaService.upload(
-                                  File(picked.path),
-                                );
-
-                                setModalState(() {
-                                  _medias.add(
-                                    PostMedia(
-                                      id: media.id ?? "",
-                                      url: media.url ?? "",
-                                      mimeType: media.mimeType ?? "",
-                                      filename: media.filename ?? "",
-                                    ),
-                                  );
-                                });
-                              }
-                            },
-                            child: Container(
-                              width: 90,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.add_photo_alternate_outlined,
-                                size: 30,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancelar'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isSavingEdit
-                                ? null
-                                : () async {
-                                    if (!formKey.currentState!.validate()) {
-                                      return;
-                                    }
-
-                                    formKey.currentState!.save();
-                                    setState(() => _isSavingEdit = true);
-
-                                    try {
-                                      await PostsService.updatePost(
-                                        post.id.toString(),
-                                        description: description,
-                                        mediaIds: _medias
-                                            .map((m) => m.id)
-                                            .toList(),
-                                      );
-
-                                      if (!context.mounted) return;
-
-                                      Navigator.pop(context);
-                                      await _refresh();
-                                    } finally {
-                                      if (mounted) {
-                                        setState(
-                                          () => _isSavingEdit = false,
-                                        );
-                                      }
-                                    }
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: _isSavingEdit
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : const Text('Guardar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    ),
-  );
-}
-
-void _openImageViewer(Post post, int initialIndex) {
-  final bool isMyPost =
-      widget.userId.toString() == AuthService.currentUserId.toString();
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.9),
-    builder: (context) {
-      double dragOffset = 0;
-      int currentIndex = initialIndex;
-
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Material(
-            color: Colors.transparent,
-            child: GestureDetector(
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  dragOffset += details.delta.dy;
-                });
-              },
-              onVerticalDragEnd: (_) {
-                if (dragOffset > 150) {
-                  Navigator.pop(context);
-                } else {
-                  setState(() => dragOffset = 0);
-                }
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                transform: Matrix4.translationValues(0, dragOffset, 0),
-                color: Colors.black,
-                child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 10,
-                        ),
-                        color: Colors.black,
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.purple, Colors.pink],
                               ),
-                              onPressed: () => Navigator.pop(context),
+                              borderRadius: BorderRadius.circular(14),
                             ),
+                            child: const Icon(Icons.edit, color: Colors.white),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Editar Post',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
-                          Row(
-  children: [
-    if (!isMyPost)
-      TextButton(
-        onPressed: () {
-          Navigator.pop(context);
-          context.push('/posts/${post.id}/view');
-        },
-        child: const Text(
-          'Ver publicación',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-  if (isMyPost)
-                                            PopupMenuButton<String>(
-                                              color: const Color.fromARGB(
-                                                255,
-                                                235,
-                                                42,
-                                                151,
-                                              ),
-                                              icon: const Icon(
-                                                Icons.more_vert,
-                                                color: Colors.white,
-                                              ),
-                                              onSelected: (value) async {
-                                                if (value == 'edit') {
-                                                  Navigator.pop(context);
-                                                  _editarPost(post);
-                                                }
-
-                                                if (value == 'share' &&
-                                                    post.medias.isNotEmpty) {
-                                                  await SharePostHelper.sharePost(
-                                                    imageUrl: post
-                                                        .medias[currentIndex]
-                                                        .url,
-                                                    postType:
-                                                        post.postType.name,
-                                                    fileName:
-                                                        'shared_${post.id}',
-                                                  );
-                                                }
-
-                                                if (value == 'view_post') {
-                                                  Navigator.pop(context);
-                                                  context.push(
-                                                    '/posts/${post.id}/view',
-                                                  );
-                                                }
-
-                                                if (value == 'delete') {
-                                                  final confirm = await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (_) => AlertDialog(
-                                                      title: const Text(
-                                                        'Eliminar post',
-                                                      ),
-                                                      content: const Text(
-                                                        '¿Seguro que querés eliminar este post?',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                context,
-                                                                false,
-                                                              ),
-                                                          child: const Text(
-                                                            'Cancelar',
-                                                          ),
-                                                        ),
-                                                        ElevatedButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                context,
-                                                                true,
-                                                              ),
-                                                          style:
-                                                              ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    Colors.red,
-                                                                foregroundColor:
-                                                                    Colors
-                                                                        .white,
-                                                              ),
-                                                          child: const Text(
-                                                            'Eliminar',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-
-                                                  if (confirm == true) {
-                                                    Navigator.pop(context);
-                                                    await PostsService.deletePost(
-                                                      post.id.toString(),
-                                                    );
-                                                    _refresh();
-                                                  }
-                                                }
-                                              },
-                                              itemBuilder: (_) => const [
-                                                PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Text(
-                                                    'Editar',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'share',
-                                                  child: Text(
-                                                    'Compartir',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'view_post',
-                                                  child: Text(
-                                                    'Ver publicación',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Text(
-                                                    'Eliminar',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          else
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: const Color.fromARGB(
-                                                  255,
-                                                  235,
-                                                  42,
-                                                  151,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                  context.push(
-                                                    '/posts/${post.id}/view',
-                                                  );
-                                                },
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor: Colors.white,
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 14,
-                                                        vertical: 8,
-                                                      ),
-                                                ),
-                                                child: const Text(
-                                                  'Ver publicación',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                            ),
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                          ),
-                                        ],
-                                      ),
-                                                            
-                          ],
+                      TextFormField(
+                        initialValue: description,
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: '¿Qué querés compartir?',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Ingrese descripción'
+                            : null,
+                        onSaved: (v) => description = v ?? '',
                       ),
 
-                      Expanded(
-                        child: PageView.builder(
-                          controller: PageController(
-                            initialPage: initialIndex,
-                          ),
-                          itemCount: post.medias.length,
-                          onPageChanged: (i) {
-                            setState(() => currentIndex = i);
-                          },
-                          itemBuilder: (context, index) {
-                            final media = post.medias[index];
+                      const SizedBox(height: 20),
 
-                            return Center(
-                              child: Hero(
-                                tag: '${post.id}_$index',
-                                child: media.isVideo
-                                    ? VideoPlayerWidget(
-                                        url: media.url,
-                                      )
-                                    : InteractiveViewer(
-                                        minScale: 1,
-                                        maxScale: 4,
-                                        child: Image.network(
-                                          media.url,
-                                          fit: BoxFit.contain,
+                      const Text(
+                        'Imágenes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          ..._medias.map((media) {
+                            final isVideo = media.isVideo;
+
+                            return _imagePreview(
+                              image: isVideo
+                                  ? Container(
+                                      color: Colors.black,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                          size: 30,
                                         ),
                                       ),
-                              ),
+                                    )
+                                  : Image.network(media.url, fit: BoxFit.cover),
+                              onDelete: () {
+                                setModalState(() {
+                                  _medias.remove(media);
+                                });
+                              },
                             );
-                          },
-                        ),
+                          }),
+
+                          if (_medias.length < 3)
+                            GestureDetector(
+                              onTap: () async {
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                );
+
+                                if (picked != null) {
+                                  final media = await MediaService.upload(
+                                    File(picked.path),
+                                  );
+
+                                  setModalState(() {
+                                    _medias.add(
+                                      PostMedia(
+                                        id: media.id ?? "",
+                                        url: media.url ?? "",
+                                        mimeType: media.mimeType ?? "",
+                                        filename: media.filename ?? "",
+                                      ),
+                                    );
+                                  });
+                                }
+                              },
+                              child: Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 30,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isSavingEdit
+                                  ? null
+                                  : () async {
+                                      if (!formKey.currentState!.validate()) {
+                                        return;
+                                      }
+
+                                      formKey.currentState!.save();
+                                      setState(() => _isSavingEdit = true);
+
+                                      try {
+                                        await PostsService.updatePost(
+                                          post.id.toString(),
+                                          description: description,
+                                          mediaIds: _medias
+                                              .map((m) => m.id)
+                                              .toList(),
+                                        );
+
+                                        if (!context.mounted) return;
+
+                                        Navigator.pop(context);
+                                        await _refresh();
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() => _isSavingEdit = false);
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: _isSavingEdit
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : const Text('Guardar'),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -872,10 +571,286 @@ void _openImageViewer(Post post, int initialIndex) {
             ),
           );
         },
-      );
-    },
-  );
-}
+      ),
+    );
+  }
+
+  void _openImageViewer(Post post, int initialIndex) {
+    final bool isMyPost =
+        widget.userId.toString() == AuthService.currentUserId.toString();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.9),
+      builder: (context) {
+        double dragOffset = 0;
+        int currentIndex = initialIndex;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Material(
+              color: Colors.transparent,
+              child: GestureDetector(
+                onVerticalDragUpdate: (details) {
+                  setState(() {
+                    dragOffset += details.delta.dy;
+                  });
+                },
+                onVerticalDragEnd: (_) {
+                  if (dragOffset > 150) {
+                    Navigator.pop(context);
+                  } else {
+                    setState(() => dragOffset = 0);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  transform: Matrix4.translationValues(0, dragOffset, 0),
+                  color: Colors.black,
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          color: Colors.black,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+
+                              Row(
+                                children: [
+                                  if (!isMyPost)
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        context.push('/posts/${post.id}/view');
+                                      },
+                                      child: const Text(
+                                        'Ver publicación',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  if (isMyPost)
+                                    PopupMenuButton<String>(
+                                      color: const Color.fromARGB(
+                                        255,
+                                        235,
+                                        42,
+                                        151,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        color: Colors.white,
+                                      ),
+                                      onSelected: (value) async {
+                                        if (value == 'edit') {
+                                          Navigator.pop(context);
+                                          _editarPost(post);
+                                        }
+
+                                        if (value == 'share' &&
+                                            post.medias.isNotEmpty) {
+                                          await SharePostHelper.sharePost(
+                                            imageUrl:
+                                                post.medias[currentIndex].url,
+                                            postType: post.postType.name,
+                                            fileName: 'shared_${post.id}',
+                                          );
+                                        }
+
+                                        if (value == 'view_post') {
+                                          Navigator.pop(context);
+                                          context.push(
+                                            '/posts/${post.id}/view',
+                                          );
+                                        }
+
+                                        if (value == 'delete') {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text(
+                                                'Eliminar post',
+                                              ),
+                                              content: const Text(
+                                                '¿Seguro que querés eliminar este post?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                      ),
+                                                  child: const Text('Eliminar'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirm == true) {
+                                            Navigator.pop(context);
+                                            await PostsService.deletePost(
+                                              post.id.toString(),
+                                            );
+                                            _refresh();
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (_) => const [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Text(
+                                            'Editar',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'share',
+                                          child: Text(
+                                            'Compartir',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'view_post',
+                                          child: Text(
+                                            'Ver publicación',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            'Eliminar',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
+                                          255,
+                                          235,
+                                          42,
+                                          151,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          context.push(
+                                            '/posts/${post.id}/view',
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Ver publicación',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Expanded(
+                          child: PageView.builder(
+                            controller: PageController(
+                              initialPage: initialIndex,
+                            ),
+                            itemCount: post.medias.length,
+                            onPageChanged: (i) {
+                              setState(() => currentIndex = i);
+                            },
+                            itemBuilder: (context, index) {
+                              final media = post.medias[index];
+
+                              return Center(
+                                child: Hero(
+                                  tag: '${post.id}_$index',
+                                  child: media.isVideo
+                                      ? VideoPlayerWidget(url: media.url)
+                                      : InteractiveViewer(
+                                          minScale: 1,
+                                          maxScale: 4,
+                                          child: Image.network(
+                                            media.url,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _imagePreview({
     required Widget image,
     required VoidCallback onDelete,
@@ -923,10 +898,7 @@ void _openImageViewer(Post post, int initialIndex) {
 class VideoPlayerWidget extends StatefulWidget {
   final String url;
 
-  const VideoPlayerWidget({
-    super.key,
-    required this.url,
-  });
+  const VideoPlayerWidget({super.key, required this.url});
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -985,23 +957,19 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-         SizedBox.expand(
-  child: FittedBox(
-    fit: BoxFit.cover,
-    child: SizedBox(
-      width: controller.value.size.width,
-      height: controller.value.size.height,
-      child: VideoPlayer(controller),
-    ),
-  ),
-),
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: controller.value.size.width,
+                height: controller.value.size.height,
+                child: VideoPlayer(controller),
+              ),
+            ),
+          ),
 
           if (paused)
-            const Icon(
-              Icons.play_circle_fill,
-              color: Colors.white,
-              size: 80,
-            ),
+            const Icon(Icons.play_circle_fill, color: Colors.white, size: 80),
         ],
       ),
     );

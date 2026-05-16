@@ -447,14 +447,12 @@ class AuthService {
     required String lastName,
     required String email,
     required String bio,
-    File? avatar,
+    required String? avatarId,
   }) async {
     try {
       final token = await getAccessToken();
-
       final uri = Uri.parse('${Config.baseUrl}/api/auth/profile/');
       final request = http.MultipartRequest('POST', uri);
-
       request.headers['Authorization'] = 'Bearer $token';
 
       request.fields['name'] = name;
@@ -462,18 +460,11 @@ class AuthService {
       request.fields['email'] = email;
       request.fields['bio'] = bio;
 
-      if (avatar != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath('avatar', avatar.path),
-        );
+      if (avatarId != null) {
+        request.fields['avatar_id'] = avatarId;
       }
 
       final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-
-      debugPrint('Update profile response: ${response.statusCode}');
-      debugPrint(responseBody);
-
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Error updateProfile: $e');
@@ -501,7 +492,7 @@ class PromocionesService {
     String? precio,
     DateTime? fechaDesde,
     DateTime? fechaHasta,
-    File? imagen,
+    String? imagenId,
   }) async {
     try {
       final token = await AuthService.getAccessToken();
@@ -520,6 +511,7 @@ class PromocionesService {
       request.fields['titulo'] = titulo;
       request.fields['descripcion'] = descripcion;
       if (precio != null) request.fields['precio'] = precio;
+      if (imagenId != null) request.fields['media_id'] = imagenId;
 
       if (fechaDesde != null) {
         request.fields['fecha_desde'] =
@@ -534,30 +526,16 @@ class PromocionesService {
             "${fechaHasta.day.toString().padLeft(2, '0')}";
       }
 
-      if (imagen != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'imagen',
-            imagen.path,
-            filename: imagen.path.split('/').last,
-          ),
-        );
-      }
-
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
-      print('Crear promoción status: ${streamedResponse.statusCode}');
-      print('Crear promoción body: $responseBody');
 
       if (streamedResponse.statusCode == 401) {
-        print('Unauthorized: Token inválido o expirado');
         return false;
       }
 
       final Map<String, dynamic> jsonResponse = json.decode(responseBody);
       return jsonResponse['ok'] == true;
     } catch (e) {
-      print('Excepción creando promoción: $e');
       return false;
     }
   }

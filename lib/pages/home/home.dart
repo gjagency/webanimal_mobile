@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_app/service/media_service.dart';
 import 'package:mobile_app/widgets/promociones_por_veterinaria_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
@@ -574,13 +575,17 @@ class _PageHomeState extends State<PageHome> {
                   if (!_formKey.currentState!.validate()) return;
                   _formKey.currentState!.save();
 
+                  final media = _imagen != null
+                      ? await MediaService.upload(_imagen!)
+                      : null;
+
                   bool success = await PromocionesService.crearPromocion(
                     titulo: _titulo!,
                     descripcion: _descripcion!,
                     precio: _precio,
                     fechaDesde: _fechaDesde,
                     fechaHasta: _fechaHasta,
-                    imagen: _imagen,
+                    imagenId: media?.id,
                   );
 
                   String mensaje = success
@@ -765,30 +770,30 @@ class _PageHomeState extends State<PageHome> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : CircleAvatar(
-  radius: 14,
-  backgroundColor: Colors.grey.shade200,
-  child: ClipOval(
-    child: avatarUrl.isNotEmpty
-        ? Image.network(
-            avatarUrl,
-            width: 28,
-            height: 28,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                Icons.person,
-                size: 16,
-                color: Colors.grey,
-              );
-            },
-          )
-        : const Icon(
-            Icons.person,
-            size: 16,
-            color: Colors.grey,
-          ),
-  ),
-)
+                    radius: 14,
+                    backgroundColor: Colors.grey.shade200,
+                    child: ClipOval(
+                      child: avatarUrl.isNotEmpty
+                          ? Image.network(
+                              avatarUrl,
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: Colors.grey,
+                                );
+                              },
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                    ),
+                  ),
           ),
 
           IconButton(
@@ -934,7 +939,6 @@ class _PageHomeState extends State<PageHome> {
                   ),
                   child: Row(
                     children: [
-
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,7 +951,6 @@ class _PageHomeState extends State<PageHome> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                           
                           ],
                         ),
                       ),

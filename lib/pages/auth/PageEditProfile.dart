@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_app/service/auth_service.dart';
+import 'package:mobile_app/service/media_service.dart';
 
 class PageEditProfile extends StatefulWidget {
   const PageEditProfile({super.key});
@@ -14,7 +15,7 @@ class _PageEditProfileState extends State<PageEditProfile> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();  
+  final _emailCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
 
   File? _avatarFile;
@@ -33,14 +34,14 @@ class _PageEditProfileState extends State<PageEditProfile> {
     final profile = await AuthService.getProfile();
 
     setState(() {
-    _nameCtrl.text = profile['first_name'] ?? '';
-    _lastNameCtrl.text = profile['last_name'] ?? '';
-    _emailCtrl.text = profile['email'] ?? '';
-    _bioCtrl.text = profile['bio'] ?? '';
-    _avatarUrl =
-        '${profile['avatar']}?t=${DateTime.now().millisecondsSinceEpoch}';
-    _loading = false;
-  });
+      _nameCtrl.text = profile['first_name'] ?? '';
+      _lastNameCtrl.text = profile['last_name'] ?? '';
+      _emailCtrl.text = profile['email'] ?? '';
+      _bioCtrl.text = profile['bio'] ?? '';
+      _avatarUrl =
+          '${profile['avatar']}?t=${DateTime.now().millisecondsSinceEpoch}';
+      _loading = false;
+    });
   }
 
   /// 🖼️ Elegir imagen
@@ -61,12 +62,16 @@ class _PageEditProfileState extends State<PageEditProfile> {
 
     setState(() => _saving = true);
 
+    final media = _avatarFile != null
+        ? await MediaService.upload(_avatarFile!)
+        : null;
+
     final ok = await AuthService.updateProfile(
       name: _nameCtrl.text,
       lastName: _lastNameCtrl.text,
       bio: _bioCtrl.text,
       email: _emailCtrl.text,
-      avatar: _avatarFile,
+      avatarId: media?.id,
     );
 
     setState(() => _saving = false);
@@ -74,9 +79,9 @@ class _PageEditProfileState extends State<PageEditProfile> {
     if (ok && mounted) {
       Navigator.pop(context, true); // 🔁 vuelve y recarga
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al actualizar perfil')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al actualizar perfil')));
     }
   }
 
@@ -125,8 +130,9 @@ class _PageEditProfileState extends State<PageEditProfile> {
                             backgroundImage: _avatarFile != null
                                 ? FileImage(_avatarFile!)
                                 : (_avatarUrl.isNotEmpty
-                                    ? NetworkImage(_avatarUrl)
-                                    : null) as ImageProvider?,
+                                          ? NetworkImage(_avatarUrl)
+                                          : null)
+                                      as ImageProvider?,
                             child: _avatarFile == null && _avatarUrl.isEmpty
                                 ? Icon(Icons.person, size: 50)
                                 : null,
@@ -134,8 +140,11 @@ class _PageEditProfileState extends State<PageEditProfile> {
                           CircleAvatar(
                             radius: 18,
                             backgroundColor: Colors.purple,
-                            child: Icon(Icons.edit,
-                                color: Colors.white, size: 18),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ],
                       ),
@@ -158,15 +167,14 @@ class _PageEditProfileState extends State<PageEditProfile> {
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Campo requerido' : null,
                     ),
-                     TextFormField(
+                    TextFormField(
                       controller: _emailCtrl,
                       decoration: InputDecoration(labelText: 'Email'),
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Campo requerido' : null,
                     ),
-                    /// 📝 BIO
-                  
 
+                    /// 📝 BIO
                     SizedBox(height: 32),
 
                     /// 💾 GUARDAR
