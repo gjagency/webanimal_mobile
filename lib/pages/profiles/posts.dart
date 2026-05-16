@@ -630,17 +630,7 @@ class _UserPostsPageState extends State<UserPostsPage> {
 
                               Row(
                                 children: [
-                                  if (!isMyPost)
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        context.push('/posts/${post.id}/view');
-                                      },
-                                      child: const Text(
-                                        'Ver publicación',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
+                                
                                   if (isMyPost)
                                     PopupMenuButton<String>(
                                       color: const Color.fromARGB(

@@ -431,132 +431,159 @@ class _VeterinariaSection extends StatelessWidget {
 
   const _VeterinariaSection({required this.data});
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: data.avatar == null || data.avatar!.isEmpty
-                      ? const LinearGradient(
-                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                        )
-                      : null,
-                  color: Colors.grey.shade200,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: data.avatar != null && data.avatar!.isNotEmpty
-                    ? Image.network(
-                        'https://webanimal.com.ar${data.avatar}',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+@override
+Widget build(BuildContext context) {
+  debugPrint("AVATAR: ${data.avatar}");
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: data.avatar == null || data.avatar!.isEmpty
+                    ? const LinearGradient(
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      )
+                    : null,
+                color: Colors.grey.shade200,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: data.avatar != null && data.avatar!.isNotEmpty
+                  ? Image.network(
+                      data.avatar!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, error, stackTrace) {
+                        debugPrint('Error avatar: ${data.avatar}');
+                        return const Icon(
                           Icons.storefront,
                           color: Colors.white,
                           size: 22,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.storefront,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        context.push('/user-posts/${data.userId}');
+                        );
                       },
-                      child: Text(
-                        data.nombreComercio,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      loadingBuilder: (_, child, progress) {
+                        if (progress == null) return child;
+
+                        return Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : const Icon(
+                      Icons.storefront,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      context.push('/user-posts/${data.userId}');
+                    },
+                    child: Text(
+                      data.nombreComercio,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.local_offer,
+                        size: 12,
+                        color: Colors.purple,
+                      ),
+                      const SizedBox(width: 4),
+
+                      Text(
+                        '${data.promociones.length} promociones disponibles',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
                         ),
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            GestureDetector(
+              onTap: () => context.push('/user-posts/${data.userId}'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Ver',
+                      style: TextStyle(
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.local_offer,
-                          size: 12,
-                          color: Colors.purple,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${data.promociones.length} promociones disponibles',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    SizedBox(width: 2),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 10,
+                      color: Colors.purple,
                     ),
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () => context.push('/user-posts/${data.userId}'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Ver',
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 10,
-                        color: Colors.purple,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        SizedBox(
-          height: 260,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: data.promociones.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) =>
-                _PromocionCard(promocion: data.promociones[i]),
-          ),
+      ),
+
+      SizedBox(
+        height: 260,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: data.promociones.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, i) =>
+              _PromocionCard(promocion: data.promociones[i]),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 }
 
 // ============ CARD DE PROMOCIÓN ============
@@ -566,14 +593,70 @@ class _PromocionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = promocion.imagen != null && promocion.imagen!.isNotEmpty
-        ? 'https://webanimal.com.ar${promocion.imagen}'
-        : null;
+    final imageUrl = promocion.imagen;
+        debugPrint("IMAGE: ${promocion.imagen}");
     return GestureDetector(
-      onTap: () {
-        // navegar al detalle si tenés ruta
-        // context.push('/promocion/${promocion.id}');
-      },
+     onTap: () {
+  if (imageUrl == null || imageUrl.isEmpty) return;
+
+showDialog(
+  context: context,
+  barrierColor: Colors.black.withOpacity(0.9),
+  builder: (_) {
+    return Center(
+      child: Stack(
+        children: [
+          Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            height: MediaQuery.of(context).size.height * 0.55,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.black,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) {
+                  return const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: 50,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          Positioned(
+            top: 10,
+            right: 10,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+);
+},
       child: Container(
         width: 200,
         decoration: BoxDecoration(
