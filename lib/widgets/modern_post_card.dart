@@ -763,10 +763,7 @@ class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
                   horizontal: 10,
                   vertical: 4,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              
                 child: Text(
                   '${widget.currentIndex + 1} / ${widget.medias.length}',
                   style: const TextStyle(

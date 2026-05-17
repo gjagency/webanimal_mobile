@@ -329,35 +329,54 @@ class PostsService {
 
   // POST EDIT
 
-  static Future<Post> createPost({
-    required String postTypeId,
-    required String petTypeId,
-    required String description,
-    required String telefono,
-    required List<String> mediaIds,
-    required double lat,
-    required double lng,
-    required String locationLabel,
-  }) async {
-    final response = await AuthService.postWithToken('/api/posteos/', {
-      'posteo_tipo': postTypeId,
-      'mascota_tipo': petTypeId,
-      'descripcion': description,
-      'telefono': telefono,
-      'medias': mediaIds,
-      'ubicacion_lat': lat,
-      'ubicacion_lng': lng,
-      'ubicacion_label': locationLabel,
-    });
+static Future<Post> createPost({
+  required String postTypeId,
+  required String petTypeId,
+  required String description,
+  required String telefono,
+  required List<String> mediaIds,
+  required double lat,
+  required double lng,
+  required String locationLabel,
+}) async {
+  final response = await AuthService.postWithToken('/api/posteos/', {
+    'posteo_tipo': postTypeId,
+    'mascota_tipo': petTypeId,
+    'descripcion': description,
+    'telefono': telefono,
+    'medias': mediaIds,
+    'ubicacion_lat': lat,
+    'ubicacion_lng': lng,
+    'ubicacion_label': locationLabel,
+  });
 
-    debugPrint(response.body);
+  debugPrint(response.body);
 
-    if (response.statusCode == 201) {
-      return _parsePost(jsonDecode(response.body));
-    }
-    throw Exception('Error al crear post');
+  if (response.statusCode == 201) {
+    return _parsePost(jsonDecode(response.body));
   }
 
+  final body = jsonDecode(response.body);
+
+  // Mostrar error específico del backend
+  if (body is Map<String, dynamic>) {
+    if (body.containsKey('descripcion')) {
+      throw Exception(body['descripcion'][0]);
+    }
+
+    // fallback: primer error encontrado
+    final firstKey = body.keys.first;
+    final firstValue = body[firstKey];
+
+    if (firstValue is List && firstValue.isNotEmpty) {
+      throw Exception(firstValue.first.toString());
+    }
+
+    throw Exception(firstValue.toString());
+  }
+
+  throw Exception('Error al crear post');
+}
   static Future<Post> updatePost(
     String postId, {
     String? description,

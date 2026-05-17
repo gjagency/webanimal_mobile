@@ -22,7 +22,9 @@ class _PagePostViewState extends State<PagePostView> {
   bool _isLoading = true;
   String? _error;
   final TextEditingController _commentController = TextEditingController();
-
+  bool _isCommenting = false;
+  String _commentMessage = 'Comentando...';
+  final ValueNotifier<double> _commentProgress = ValueNotifier(0.0);
   @override
   void initState() {
     super.initState();
@@ -73,21 +75,79 @@ class _PagePostViewState extends State<PagePostView> {
   }
 
   Future<void> _addComment() async {
-    if (_commentController.text.isEmpty) return;
+    final commentText = _commentController.text.trim();
+
+    if (commentText.isEmpty) return;
+
+    // VALIDACIÓN 256 caracteres
+    if (commentText.length > 256) {
+      setState(() {
+        _isCommenting = true;
+        _commentMessage = 'Máximo 256 caracteres';
+        _commentProgress.value = 0;
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCommenting = false;
+        _commentMessage = 'Comentando...';
+        _commentProgress.value = 0.0;
+      });
+
+      return;
+    }
+
+    setState(() {
+      _isCommenting = true;
+      _commentMessage = 'Comentando...';
+      _commentProgress.value = 0.2;
+    });
 
     try {
-      await PostsService.addComment(widget.postId, _commentController.text);
-      _commentController.clear();
-      FocusScope.of(context).unfocus(); // 👈 cierra teclado
-      _loadPost();
+      await PostsService.addComment(widget.postId, commentText);
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Comentario agregado')));
+      _commentProgress.value = 1.0;
+
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      _commentController.clear();
+      FocusScope.of(context).unfocus();
+      await _loadPost();
+
+      if (!mounted) return;
+
+      setState(() {
+        _commentMessage = 'Comentario agregado con EXITO!';
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCommenting = false;
+        _commentMessage = 'Comentando...';
+        _commentProgress.value = 0.0;
+      });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Error al comentar')));
+      if (!mounted) return;
+
+      setState(() {
+        _commentMessage = 'Error al comentar';
+        _commentProgress.value = 0.0;
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCommenting = false;
+        _commentMessage = 'Comentando...';
+      });
     }
   }
 
@@ -210,9 +270,11 @@ class _PagePostViewState extends State<PagePostView> {
           const SizedBox(width: 4),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : ListView(
+body: Stack(
+  children: [
+    _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
               padding: EdgeInsets.only(bottom: 6),
               children: [
                 // Header
@@ -484,6 +546,10 @@ class _PagePostViewState extends State<PagePostView> {
                 SizedBox(height: 80), // para que no quede pegado al bottom
               ],
             ),
+
+            if (_isCommenting) _buildCommentOverlay(),
+            ],
+            ),
       bottomNavigationBar: AnimatedPadding(
         duration: const Duration(milliseconds: 150),
         padding: EdgeInsets.only(
@@ -525,6 +591,7 @@ class _PagePostViewState extends State<PagePostView> {
                 Expanded(
                   child: TextField(
                     controller: _commentController,
+                    maxLength: 256,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _addComment(),
                     decoration: InputDecoration(
@@ -564,7 +631,55 @@ class _PagePostViewState extends State<PagePostView> {
       ),
     );
   }
-
+Widget _buildCommentOverlay() {
+  return Positioned.fill(
+    child: Container(
+      color: Colors.black.withOpacity(0.4),
+      child: Center(
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(
+            vertical: 20,
+            horizontal: 24,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValueListenableBuilder<double>(
+                valueListenable: _commentProgress,
+                builder: (_, value, __) => SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CircularProgressIndicator(
+                    value: _commentMessage == 'Comentando...'
+                        ? (value == 0 ? null : value)
+                        : 1,
+                    strokeWidth: 4,
+                    color: Colors.purple,
+                    backgroundColor: Colors.purple.shade50,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _commentMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
   String _getTimeAgo(DateTime datetime) {
     final diff = DateTime.now().difference(datetime);
     if (diff.inDays > 0) return 'hace ${diff.inDays}d';

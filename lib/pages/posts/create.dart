@@ -42,11 +42,12 @@ class PagePostCreate extends StatefulWidget {
 
 class _PagePostCreateState extends State<PagePostCreate> {
   final _formKey = GlobalKey<FormState>();
+  final FocusNode _descriptionFocusNode = FocusNode();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _pageController = PageController();
-
+  String _locationLabel = 'Mi ubicación';
   List<PostType> _postTypes = [];
   List<PetType> _petTypes = [];
   String? _selectedPostTypeId;
@@ -56,6 +57,7 @@ class _PagePostCreateState extends State<PagePostCreate> {
   int _currentMediaIndex = 0;
 
   bool _isUploading = false;
+  String _uploadMessage = 'Publicando...';
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0.0);
 
   static const int maxMedia = 3;
@@ -69,8 +71,8 @@ class _PagePostCreateState extends State<PagePostCreate> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _checkGpsOrGoBack();
-      _loadInitialData();
+      await _initLocation();
+      await _loadInitialData();
     });
   }
 
@@ -80,32 +82,74 @@ class _PagePostCreateState extends State<PagePostCreate> {
     _locationController.dispose();
     _telefonoController.dispose();
     _pageController.dispose();
+    _descriptionFocusNode.dispose();
     for (final m in _selectedMedia) {
       m.dispose();
     }
     super.dispose();
   }
+Future<void> _initLocation() async {
+  try {
+    LocationPermission permission = await Geolocator.checkPermission();
 
-  Future<void> _checkGpsOrGoBack() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes activar el GPS para crear una publicación'),
-        ),
-      );
-      await Geolocator.openLocationSettings();
-      if (mounted) context.pop();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      setState(() {
+        _locationController.text = 'Permiso denegado';
+        _locationLabel = 'Sin permiso';
+      });
+      return;
+    }
+
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+
+      // esperar hasta que el usuario active GPS
+      while (!serviceEnabled) {
+        await Future.delayed(const Duration(seconds: 1));
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      }
+    }
+
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    _currentLat = pos.latitude;
+    _currentLng = pos.longitude;
+
+    final address = await LocationService.reverseGeocode(
+      pos.latitude,
+      pos.longitude,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _locationController.text = address;
+      _locationLabel = address;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      _locationController.text = 'Ubicación no disponible';
+      _locationLabel = 'Sin ubicación';
+    });
   }
+}
 
   Future<void> _loadInitialData() async {
     try {
       final results = await Future.wait([
         PostsService.getPostTypes(),
         PostsService.getPetTypes(),
-        _getCurrentLocation(),
       ]);
 
       if (!mounted) return;
@@ -361,101 +405,189 @@ class _PagePostCreateState extends State<PagePostCreate> {
 
   // ============ SUBIDA ============
 
-  Future<void> _savePost() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedMedia.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Agregá al menos una foto o video')),
-      );
-      return;
-    }
+Future<void> _savePost() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isUploading = true;
-      _uploadProgress.value = 0.01;
-    });
+  // Validar descripción
+if (_descriptionController.text.trim().length > 256) {
+  _descriptionFocusNode.requestFocus();
 
-    try {
-      final medias = await Future.wait(
-        _selectedMedia.map((media) => MediaService.upload(media.file)),
-      );
+  setState(() {
+    _isUploading = true;
+    _uploadMessage = 'El campo descripción tiene un máximo de 256 caracteres';
+    _uploadProgress.value = 0;
+  });
 
-      await PostsService.createPost(
-        postTypeId: _selectedPostTypeId!,
-        petTypeId: _selectedPetTypeId!,
-        description: _descriptionController.text,
-        telefono: _telefonoController.text,
-        lat: _currentLat!,
-        lng: _currentLng!,
-        locationLabel: _locationController.text,
-        mediaIds: medias.map((media) => media.id ?? "").toList(),
-      );
+  await Future.delayed(const Duration(seconds: 2));
 
-      _uploadProgress.value = 1.0;
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      context.pop();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al publicar: $e')));
-    } finally {
-      if (mounted) setState(() => _isUploading = false);
-    }
+  if (!mounted) return;
+
+  setState(() {
+    _isUploading = false;
+    _uploadMessage = 'Publicando...';
+  });
+
+  return;
+}
+
+  // Validar que haya al menos un archivo
+  if (_selectedMedia.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Agregá al menos una foto o video'),
+      ),
+    );
+    return;
   }
 
+  setState(() {
+    _isUploading = true;
+    _uploadProgress.value = 0.01;
+  });
+
+  try {
+    // Subir imágenes/videos
+    final medias = await Future.wait(
+      _selectedMedia.map(
+        (media) => MediaService.upload(media.file),
+      ),
+    );
+
+    // Crear publicación
+    await PostsService.createPost(
+      postTypeId: _selectedPostTypeId!,
+      petTypeId: _selectedPetTypeId!,
+      description: _descriptionController.text.trim(),
+      telefono: _telefonoController.text.trim(),
+      lat: _currentLat!,
+      lng: _currentLng!,
+      locationLabel: _locationController.text,
+      mediaIds: medias.map((media) => media.id ?? '').toList(),
+    );
+_uploadProgress.value = 1.0;
+await Future.delayed(const Duration(milliseconds: 300));
+
+if (!mounted) return;
+
+setState(() {
+  _uploadMessage = '¡Publicación creada con éxito!';
+  _uploadProgress.value = 1.0;
+});
+
+await Future.delayed(const Duration(seconds: 2));
+
+if (!mounted) return;
+
+context.pop();
+
+await Future.delayed(const Duration(seconds: 2));
+
+if (!mounted) return;
+
+context.pop();
+  }  catch (e) {
+  if (!mounted) return;
+
+  final message = e.toString().replaceFirst('Exception: ', '');
+
+  setState(() {
+    _uploadMessage = message;
+    _uploadProgress.value = 0;
+  });
+
+  Future.delayed(const Duration(seconds: 2), () {
+    if (!mounted) return;
+
+    setState(() {
+      _isUploading = false;
+      _uploadMessage = 'Publicando...';
+    });
+  });
+}
+}
   // ============ BUILD ============
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Row(
+     appBar: AppBar(
+  backgroundColor: Colors.grey[50],
+  titleSpacing: 0,
+  title: Row(
+    children: [
+      Expanded(
+        child: const Text(
+          'WebAnimal',
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black,
+          ),
+        ),
+      ),
+    ],
+  ),
+  actions: [
+    GestureDetector(
+      onTap: _openLocationSearch,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.pink],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.pets, color: Colors.white, size: 20),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: Colors.purple,
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'WebAnimal',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: Text(
+                _locationLabel,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
               ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.location_on,
+              color: Colors.purple,
+              size: 22,
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: (_isLoading || _isUploading) ? null : _savePost,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'Publicar',
-                    style: TextStyle(
-                      color: Colors.purple,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
+    ),
+    TextButton(
+      onPressed: (_isLoading || _isUploading) ? null : _savePost,
+      child: _isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.purple,
+              ),
+            )
+          : const Text(
+              'Publicar',
+              style: TextStyle(
+                color: Colors.purple,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+    ),
+    const SizedBox(width: 8),
+  ],
+),
       body: Stack(
         children: [
           _isLoadingTypes
@@ -503,34 +635,21 @@ class _PagePostCreateState extends State<PagePostCreate> {
                       ),
                       const SizedBox(height: 8),
                       _sectionTitle('Descripción'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextFormField(
-                        controller: _descriptionController,
-                        maxLines: 4,
-                        maxLength: 500,
-                        decoration: _inputDecoration(
-                          'Describe tu publicación...',
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _sectionTitle('Ubicación'),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: _openLocationSearch,
-                        child: AbsorbPointer(
-                          child: TextFormField(
-                            controller: _locationController,
-                            readOnly: true,
-                            decoration: _inputDecoration(
-                              'Buscar dirección...',
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: Colors.purple,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+  controller: _descriptionController,
+  focusNode: _descriptionFocusNode,
+  maxLines: 4,
+  maxLength: 256,
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'La descripción es obligatoria';
+    }
+    return null;
+  },
+  decoration: _inputDecoration('Describe tu publicación...'),
+),
+                     
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -855,23 +974,29 @@ class _PagePostCreateState extends State<PagePostCreate> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ValueListenableBuilder<double>(
-                  valueListenable: _uploadProgress,
-                  builder: (_, value, __) => SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: CircularProgressIndicator(
-                      value: value == 0 ? null : value,
-                      strokeWidth: 4,
-                      color: Colors.purple,
-                      backgroundColor: Colors.purple[50],
+               ValueListenableBuilder<double>(
+                    valueListenable: _uploadProgress,
+                    builder: (_, value, __) => SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: CircularProgressIndicator(
+                        value: _uploadMessage == 'Publicando...'
+                            ? (value == 0 ? null : value)
+                            : 0,
+                        strokeWidth: 4,
+                        color: Colors.purple,
+                        backgroundColor: Colors.purple[50],
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Publicando...',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                Text(
+                  _uploadMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 ValueListenableBuilder<double>(
@@ -908,14 +1033,14 @@ class _VideoPreviewState extends State<_VideoPreview> {
   bool _showControls = true;
   Timer? _hideTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    // Si el controller todavía no se inicializó (por si pasó algo raro)
-    widget.item.initController().then((_) {
-      if (mounted) setState(() {});
-    });
-  }
+@override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+
+  });
+}
 
   @override
   void dispose() {

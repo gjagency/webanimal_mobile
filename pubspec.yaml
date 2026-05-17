@@ -33,6 +33,7 @@ dependencies:
   video_thumbnail: ^0.5.3
   mime: ^2.0.0
   visibility_detector: ^0.4.0+2
+  cached_video_player_plus: ^3.0.3
 
 dev_dependencies:
   flutter_test:

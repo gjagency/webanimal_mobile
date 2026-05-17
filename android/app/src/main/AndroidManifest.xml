@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="mobile_app"
+        android:label="WeBaNiMaL"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

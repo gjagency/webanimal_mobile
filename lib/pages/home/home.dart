@@ -915,56 +915,59 @@ class _PageHomeState extends State<PageHome> {
           if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
             const SizedBox(height: 0),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GestureDetector(
-                onTap: () {
-                  context.push('/home/promotions');
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Colors.purple, Colors.pink],
-                    ),
-                    borderRadius: BorderRadius.circular(11),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.purple.withOpacity(0.18),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+           Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 2),
+  child: GestureDetector(
+    onTap: () {
+      context.push('/home/promotions');
+    },
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 360;
 
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ],
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isSmall ? 16 : 26),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.purple, Colors.pink],
+            ),
+            borderRadius: BorderRadius.circular(11),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withOpacity(0.18),
+                blurRadius: 12,
+                offset: const Offset(0, 0),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmall ? 11 : 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: isSmall ? 12 : 14,
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  ),
+),
 
             const SizedBox(height: 10),
           ],
