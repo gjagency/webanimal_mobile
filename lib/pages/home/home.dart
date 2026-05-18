@@ -26,7 +26,8 @@ class PageHome extends StatefulWidget {
 
 class _PageHomeState extends State<PageHome> {
   final ScrollController _scrollController = ScrollController();
-
+  bool _hideTopSection = false;
+  double _lastOffset = 0;
   int _currentPage = 1;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -427,15 +428,31 @@ void _mostrarCrearPromocionDialog() {
 
   List<Post> get filteredPosts => _posts.toList();
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 300 &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMorePosts();
-    }
+void _onScroll() {
+  final offset = _scrollController.offset;
+
+  /// ocultar apenas baja
+  if (offset > 20 && !_hideTopSection) {
+    setState(() {
+      _hideTopSection = true;
+    });
   }
 
+  /// mostrar SOLO arriba del todo
+  if (offset <= 0 && _hideTopSection) {
+    setState(() {
+      _hideTopSection = false;
+    });
+  }
+
+  /// load more
+  if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300 &&
+      !_isLoadingMore &&
+      _hasMore) {
+    _loadMorePosts();
+  }
+}
   void _clearFilters() {
     setState(() {
       selectedTypeId = null;
@@ -597,192 +614,262 @@ void _mostrarCrearPromocionDialog() {
           const SizedBox(width: 4),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        QuickFilterChip(
-                          label: 'Todos',
-                          icon: Icons.grid_view_rounded,
-                          isSelected: selectedTypeId == null,
-                          onTap: () {
-                            setState(() => selectedTypeId = null);
-                            _loadData();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        if (AuthService.esVeterinaria) ...[
+body: Column(
+  children: [
+    /// =========================
+    /// FILTROS (desaparecen al scrollear)
+    /// =========================
+    AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      height: _scrollController.hasClients &&
+              _scrollController.offset > 10
+          ? 0
+          : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: _scrollController.hasClients &&
+                _scrollController.offset > 10
+            ? 0
+            : 1,
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
                           QuickFilterChip(
-                            label: 'Mis Descuentos',
-                            icon: Icons.local_offer_rounded,
-                            isSelected: selectedTypeId == 'promociones',
+                            label: 'Todos',
+                            icon: Icons.grid_view_rounded,
+                            isSelected: selectedTypeId == null,
                             onTap: () {
-                              setState(() => selectedTypeId = 'promociones');
+                              setState(() => selectedTypeId = null);
                               _loadData();
                             },
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                        const SizedBox(width: 8),
 
-                        ..._postTypes
-                            .take(3)
-                            .map(
-                              (type) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: QuickFilterChip(
-                                  label: type.name,
-                                  icon: _getIconForType(type.name),
-                                  isSelected: selectedTypeId == type.id,
-                                  onTap: () {
-                                    setState(() => selectedTypeId = type.id);
-                                    _loadData();
-                                  },
+                          const SizedBox(width: 8),
+
+                          if (AuthService.esVeterinaria) ...[
+                            QuickFilterChip(
+                              label: 'Mis Descuentos',
+                              icon: Icons.local_offer_rounded,
+                              isSelected:
+                                  selectedTypeId == 'promociones',
+                              onTap: () {
+                                setState(() =>
+                                    selectedTypeId = 'promociones');
+                                _loadData();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+
+                          ..._postTypes.take(3).map(
+                                (type) => Padding(
+                                  padding:
+                                      const EdgeInsets.only(right: 8),
+                                  child: QuickFilterChip(
+                                    label: type.name,
+                                    icon: _getIconForType(type.name),
+                                    isSelected:
+                                        selectedTypeId == type.id,
+                                    onTap: () {
+                                      setState(() =>
+                                          selectedTypeId = type.id);
+                                      _loadData();
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                      ],
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.tune_rounded),
-                  onPressed: _showFilterBottomSheet,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.grey[100],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (hasFilters)
-            Container(
-              color: Colors.white,
-              width: double.infinity,
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (selectedPetTypeId != null)
-                    ActiveFilterChip(
-                      label: _petTypes
-                          .firstWhere((p) => p.id == selectedPetTypeId)
-                          .name,
-                      onRemove: () {
-                        setState(() => selectedPetTypeId = null);
-                        _loadData();
-                      },
-                    ),
-                  if (selectedDateRange != null)
-                    ActiveFilterChip(
-                      label: 'Rango de fecha',
-                      onRemove: () => setState(() => selectedDateRange = null),
-                    ),
-                  TextButton.icon(
-                    onPressed: _clearFilters,
-                    icon: const Icon(Icons.clear_all, size: 16),
-                    label: const Text('Limpiar filtros'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
+                        ],
                       ),
+                    ),
+                  ),
+
+                  IconButton(
+                    icon: const Icon(Icons.tune_rounded),
+                    onPressed: _showFilterBottomSheet,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.grey[100],
                     ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 0),
-          if (selectedTypeId == null && !AuthService.esVeterinaria) ...[
-            const SizedBox(height: 0),
 
-           Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 2),
-  child: GestureDetector(
-    onTap: () {
-      context.push('/home/promotions');
-    },
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmall = constraints.maxWidth < 360;
+            if (hasFilters)
+              Container(
+                color: Colors.white,
+                width: double.infinity,
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: 12,
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (selectedPetTypeId != null)
+                      ActiveFilterChip(
+                        label: _petTypes
+                            .firstWhere(
+                              (p) =>
+                                  p.id == selectedPetTypeId,
+                            )
+                            .name,
+                        onRemove: () {
+                          setState(
+                            () => selectedPetTypeId = null,
+                          );
+                          _loadData();
+                        },
+                      ),
 
-        return Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(isSmall ? 16 : 26),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Colors.purple, Colors.pink],
-            ),
-            borderRadius: BorderRadius.circular(11),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.purple.withOpacity(0.18),
-                blurRadius: 12,
-                offset: const Offset(0, 0),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isSmall ? 11 : 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                    if (selectedDateRange != null)
+                      ActiveFilterChip(
+                        label: 'Rango de fecha',
+                        onRemove: () => setState(
+                          () => selectedDateRange = null,
+                        ),
+                      ),
+
+                    TextButton.icon(
+                      onPressed: _clearFilters,
+                      icon: const Icon(
+                        Icons.clear_all,
+                        size: 16,
+                      ),
+                      label: const Text('Limpiar filtros'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
-                size: isSmall ? 12 : 14,
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  ),
-),
-
-            const SizedBox(height: 10),
           ],
-          const SizedBox(height: 10),
-
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : selectedTypeId == 'promociones'
-                ? PromocionesPorVeterinariaList(grupos: _promocionesAgrupadas)
-                : PostsFeed(
-                    controller: _scrollController,
-                    posts: filteredPosts,
-                    promociones: const [],
-                    isLoading: false,
-                    error: _error,
-                    selectedTypeId: selectedTypeId,
-                    onRefresh: _loadData,
-                    onEditPost: _editarPost,
-                    isLoadingMore: _isLoadingMore,
-                  ),
-          ),
-        ],
+        ),
       ),
+    ),
+
+    /// =========================
+    /// DESCUENTOS (SIEMPRE FIJO)
+    /// =========================
+    if (selectedTypeId == null &&
+        !AuthService.esVeterinaria)
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: GestureDetector(
+          onTap: () {
+            context.push('/home/promotions');
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isSmall =
+                  constraints.maxWidth < 360;
+
+              return Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(
+                  top: 8,
+                  bottom: 10,
+                ),
+                padding: EdgeInsets.all(
+                  isSmall ? 16 : 26,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Colors.purple,
+                      Colors.pink,
+                    ],
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(11),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purple
+                          .withOpacity(0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
+                        maxLines: 3,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize:
+                              isSmall ? 11 : 12,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    Icon(
+                      Icons
+                          .arrow_forward_ios_rounded,
+                      color: Colors.white,
+                      size: isSmall ? 12 : 14,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+
+    /// =========================
+    /// FEED
+    /// =========================
+    Expanded(
+      child: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : selectedTypeId == 'promociones'
+              ? PromocionesPorVeterinariaList(
+                  grupos: _promocionesAgrupadas,
+                )
+              : PostsFeed(
+                  controller: _scrollController,
+                  posts: filteredPosts,
+                  promociones: const [],
+                  isLoading: false,
+                  error: _error,
+                  selectedTypeId: selectedTypeId,
+                  onRefresh: _loadData,
+                  onEditPost: _editarPost,
+                  isLoadingMore: _isLoadingMore,
+                ),
+    ),
+  ],
+),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(
           bottom: 1,
