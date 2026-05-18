@@ -1,10 +1,14 @@
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/modern_post_card.dart';
-
+import 'package:flutter/foundation.dart';
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -37,17 +41,45 @@ class _PagePostViewState extends State<PagePostView> {
     _commentController.dispose();
     super.dispose();
   }
+Future<void> _shareToFacebookFeed() async {
+  if (_post == null || _post!.medias.isEmpty) return;
 
-  Future<void> _shareToFacebookFeed() async {
-    if (_post == null || _post!.medias.isEmpty) return;
+  final media = _post!.medias.first;
 
-    await SharePostHelper.sharePost(
-      imageUrl: _post!.medias.first.url,
-      postType: _post!.postType.name,
-      fileName: 'shared_${widget.postId}',
+  /// VIDEO
+  if (media.isVideo) {
+    final tempDir = await getTemporaryDirectory();
+
+    final filePath =
+        '${tempDir.path}/shared_video_${widget.postId}.mp4';
+
+    final file = File(filePath);
+
+    /// si ya existe no lo vuelve a descargar
+    if (!await file.exists()) {
+      final request = await HttpClient().getUrl(Uri.parse(media.url));
+      final response = await request.close();
+
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
+      await file.writeAsBytes(bytes);
+    }
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: '🐾 @WeBaNiMaL',
     );
+
+    return;
   }
 
+  /// IMAGEN
+  await SharePostHelper.sharePost(
+    imageUrl: media.url,
+    postType: _post!.postType.name,
+    fileName: 'shared_${widget.postId}',
+  );
+}
   Future<void> _loadPost() async {
     try {
       final results = await Future.wait([
