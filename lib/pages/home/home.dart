@@ -814,7 +814,7 @@ body: Column(
                   children: [
                     Expanded(
                       child: Text(
-                        '🔥 Mirá Descuentos - Veterinarias y Espacio Animal',
+                        '🔥 Mirá descuentos en Veterinarias y Espacio Animal',
                         maxLines: 3,
                         overflow:
                             TextOverflow.ellipsis,
