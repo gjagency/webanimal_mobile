@@ -368,7 +368,7 @@ class _PageHomeState extends State<PageHome> {
       if (selectedTypeId == 'promociones') {
         final data = await AuthService.getMisPromociones();
 
-        debugPrint('MIS PROMOS: $data');
+
 
         setState(() {
           _promocionesAgrupadas = data
@@ -416,248 +416,14 @@ class _PageHomeState extends State<PageHome> {
     }
   }
 
-  void _mostrarCrearPromocionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final _formKey = GlobalKey<FormState>();
-        String? _titulo;
-        String? _descripcion;
-        String? _precio;
-        DateTime? _fechaDesde;
-        DateTime? _fechaHasta;
-        File? _imagen;
-        final ImagePicker _picker = ImagePicker();
-
-        Future<void> _pickImage(void Function(void Function()) setState) async {
-          final XFile? picked = await _picker.pickImage(
-            source: ImageSource.gallery,
-          );
-          if (picked != null) setState(() => _imagen = File(picked.path));
-        }
-
-        Future<void> _pickDate({
-          required bool desde,
-          required void Function(void Function()) setState,
-        }) async {
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2100),
-          );
-          if (picked != null) {
-            setState(() {
-              if (desde)
-                _fechaDesde = picked;
-              else
-                _fechaHasta = picked;
-            });
-          }
-        }
-
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Crear Promoción',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      maxLength: 20,
-                      decoration: const InputDecoration(
-                        labelText: 'Título',
-                        border: OutlineInputBorder(),
-                        counterText: '', // opcional: oculta el contador 0/20
-                      ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Ingrese un título' : null,
-                      onSaved: (v) => _titulo = v,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      maxLength: 20,
-                      decoration: const InputDecoration(
-                        labelText: 'Descripción',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) => v == null || v.isEmpty
-                          ? 'Ingrese una descripción'
-                          : null,
-                      onSaved: (v) => _descripcion = v,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Precio',
-                        hintText: '\$ 0.00',
-                        prefixIcon: Icon(Icons.attach_money),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*[.,]?\d{0,2}'),
-                        ),
-                      ],
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Ingrese un precio';
-                        return null;
-                      },
-                      onSaved: (v) => _precio = v?.replaceAll(',', '.'),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () =>
-                                _pickDate(desde: true, setState: setState),
-                            child: Text(
-                              _fechaDesde != null
-                                  ? 'Desde: ${DateFormat('dd/MM/yyyy').format(_fechaDesde!)}'
-                                  : 'Seleccionar fecha desde',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () =>
-                                _pickDate(desde: false, setState: setState),
-                            child: Text(
-                              _fechaHasta != null
-                                  ? 'Hasta: ${DateFormat('dd/MM/yyyy').format(_fechaHasta!)}'
-                                  : 'Seleccionar fecha hasta',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _imagen != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              _imagen!,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : const SizedBox(height: 120),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _pickImage(setState),
-                      icon: const Icon(Icons.image),
-                      label: const Text('Seleccionar Imagen'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  _formKey.currentState!.save();
-
-                  final media = _imagen != null
-                      ? await MediaService.upload(_imagen!)
-                      : null;
-
-                  bool success = await PromocionesService.crearPromocion(
-                    titulo: _titulo!,
-                    descripcion: _descripcion!,
-                    precio: _precio,
-                    fechaDesde: _fechaDesde,
-                    fechaHasta: _fechaHasta,
-                    imagenId: media?.id,
-                  );
-
-                  String mensaje = success
-                      ? 'Promoción creada'
-                      : 'Excediste el límite de promociones, para aumentarlo comunicate al WhatsApp';
-
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      title: Text(success ? 'Éxito' : 'Error'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(mensaje),
-                          if (!success)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 16),
-                              child: IconButton(
-                                icon: const FaIcon(
-                                  FontAwesomeIcons.whatsapp,
-                                  color: Colors.green,
-                                  size: 32,
-                                ),
-                                onPressed: () async {
-                                  final Uri whatsappUrl = Uri.parse(
-                                    "https://wa.me/5492920601338?text=Hola%20WebAnimal%20quiero%20aumentar%20el%20límite%20de%20promociones",
-                                  );
-                                  try {
-                                    await launchUrl(
-                                      whatsappUrl,
-                                      mode: LaunchMode.externalApplication,
-                                    );
-                                  } catch (_) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'No se pudo abrir WhatsApp',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            if (success) {
-                              Navigator.pop(context);
-                              _loadData();
-                            }
-                          },
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: const Text('Crear'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+void _mostrarCrearPromocionDialog() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const CrearPromocionSheet(),
+  );
+}
 
   List<Post> get filteredPosts => _posts.toList();
 
@@ -758,43 +524,68 @@ class _PageHomeState extends State<PageHome> {
               context.push('/search/users');
             },
           ),
-          // ir a perfil
-          IconButton(
-            onPressed: () {
-              context.push('/user-posts/${AuthService.currentUserId}');
-            },
-            icon: loadingProfile
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.grey.shade200,
-                    child: ClipOval(
-                      child: avatarUrl.isNotEmpty
-                          ? Image.network(
-                              avatarUrl,
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.person,
-                                  size: 16,
-                                  color: Colors.grey,
-                                );
-                              },
-                            )
-                          : const Icon(
-                              Icons.person,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                    ),
-                  ),
+       IconButton(
+  onPressed: () {
+    context.push('/user-posts/${AuthService.currentUserId}');
+  },
+  icon: loadingProfile
+      ? const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.red,
           ),
+        )
+      : Container(
+          width: 36,
+          height: 36,
+          padding: const EdgeInsets.all(2),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: SweepGradient(
+              colors: [
+                Color(0xFFFF0000),
+                Color(0xFFFF4D4D),
+                Color(0xFFFFFFFF),
+                Color(0xFFFF0000),
+              ],
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+            child: CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.grey.shade200,
+              child: ClipOval(
+                child: avatarUrl.isNotEmpty
+                    ? Image.network(
+                        avatarUrl,
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return const Icon(
+                            Icons.person,
+                            size: 16,
+                            color: Colors.grey,
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.person,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+              ),
+            ),
+          ),
+        ),
+),
 
           IconButton(
             icon: const Icon(Icons.settings),
@@ -1218,3 +1009,421 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
     );
   }
 }
+class CrearPromocionSheet extends StatefulWidget {
+  const CrearPromocionSheet({super.key});
+
+  @override
+  State<CrearPromocionSheet> createState() => _CrearPromocionSheetState();
+}
+
+class _CrearPromocionSheetState extends State<CrearPromocionSheet> {
+  final _formKey = GlobalKey<FormState>();
+
+  String? titulo;
+  String? descripcion;
+  String? precio;
+  String? imageError;
+  String? dateError;
+  DateTime? fechaDesde;
+  DateTime? fechaHasta;
+
+  File? imagen;
+  bool loading = false;
+
+  final picker = ImagePicker();
+
+  Future<void> pickImage() async {
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (picked != null) {
+      setState(() {
+        imagen = File(picked.path);
+        imageError = null;
+      });
+    }
+  }
+
+  Future<void> pickDate(bool desde) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (desde) {
+          fechaDesde = picked;
+        } else {
+          fechaHasta = picked;
+        }
+
+        if (fechaDesde != null &&
+            fechaHasta != null &&
+            !fechaHasta!.isBefore(fechaDesde!)) {
+          dateError = null;
+        }
+      });
+    }
+  }
+
+Future<void> submit() async {
+  FocusScope.of(context).unfocus();
+
+  final formValid = _formKey.currentState!.validate();
+
+  setState(() {
+    imageError = imagen == null ? 'Debés agregar una imagen' : null;
+
+    if (fechaDesde == null || fechaHasta == null) {
+      dateError = 'Seleccioná ambas fechas';
+    } else if (fechaHasta!.isBefore(fechaDesde!)) {
+      dateError = 'La fecha final debe ser posterior';
+    } else {
+      dateError = null;
+    }
+  });
+
+  if (!formValid || imageError != null || dateError != null) {
+    return;
+  }
+
+  _formKey.currentState!.save();
+  setState(() => loading = true);
+
+  try {
+    final media = await MediaService.upload(imagen!);
+
+    final success = await PromocionesService.crearPromocion(
+      titulo: titulo!,
+      descripcion: descripcion!,
+      precio: precio,
+      fechaDesde: fechaDesde,
+      fechaHasta: fechaHasta,
+      imagenId: media.id,
+    );
+
+    if (!mounted) return;
+
+    Navigator.pop(context);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        title: Text(success ? 'Promoción creada 🎉' : 'Error'),
+        content: Text(
+          success
+              ? 'Tu promoción fue publicada correctamente'
+              : 'Excediste el límite de promociones',
+        ),
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
+  }
+}
+  InputDecoration deco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+@override
+Widget build(BuildContext context) {
+  final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+  return Container(
+    height: MediaQuery.of(context).size.height * .92,
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(28),
+      ),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(18, 12, 18, bottom + 16),
+        child: Column(
+          children: [
+            Container(
+              width: 45,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(50),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            const Text(
+              'Nueva promoción',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            Expanded(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      /// IMAGEN
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: pickImage,
+                            child: Container(
+                              height: 180,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: imageError != null
+                                      ? Colors.red
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: imagen != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Image.file(
+                                        imagen!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons
+                                              .add_photo_alternate_outlined,
+                                          size: 42,
+                                          color: Colors.grey,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text('Agregar imagen'),
+                                      ],
+                                    ),
+                            ),
+                          ),
+
+                          if (imageError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                left: 4,
+                              ),
+                              child: Text(
+                                imageError!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /// TITULO
+                      TextFormField(
+                        decoration: deco('Título', Icons.title),
+                        maxLength: 30,
+                        textCapitalization:
+                            TextCapitalization.sentences,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Ingresá un título';
+                          }
+                          if (value.trim().length < 3) {
+                            return 'Mínimo 3 caracteres';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) => titulo = value!.trim(),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// DESCRIPCION
+                      TextFormField(
+                        decoration: deco(
+                          'Descripción',
+                          Icons.description_outlined,
+                        ),
+                        maxLines: 3,
+                        maxLength: 120,
+                        textCapitalization:
+                            TextCapitalization.sentences,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Ingresá una descripción';
+                          }
+                          if (value.trim().length < 5) {
+                            return 'Mínimo 5 caracteres';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) =>
+                            descripcion = value!.trim(),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// PRECIO
+                      TextFormField(
+                        decoration: deco(
+                          'Precio',
+                          Icons.attach_money_rounded,
+                        ),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*[.,]?\d{0,2}'),
+                          ),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Ingresá un precio';
+                          }
+
+                          final parsed = double.tryParse(
+                            value.replaceAll(',', '.'),
+                          );
+
+                          if (parsed == null) {
+                            return 'Precio inválido';
+                          }
+
+                          if (parsed <= 0) {
+                            return 'Debe ser mayor a 0';
+                          }
+
+                          return null;
+                        },
+                        onSaved: (value) =>
+                            precio = value!.replaceAll(',', '.'),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /// FECHAS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => pickDate(true),
+                              icon: const Icon(
+                                Icons.calendar_month,
+                              ),
+                              label: Text(
+                                fechaDesde == null
+                                    ? 'Desde'
+                                    : DateFormat(
+                                        'dd/MM/yyyy',
+                                      ).format(fechaDesde!),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => pickDate(false),
+                              icon: const Icon(Icons.event),
+                              label: Text(
+                                fechaHasta == null
+                                    ? 'Hasta'
+                                    : DateFormat(
+                                        'dd/MM/yyyy',
+                                      ).format(fechaHasta!),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (dateError != null)
+                        Padding(
+                          padding:
+                              const EdgeInsets.only(top: 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              dateError!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+   const SizedBox(height: 16),
+
+            /// BOTON
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: loading ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: loading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Crear promoción',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}}
