@@ -31,7 +31,10 @@ class _ModernPostCardState extends State<ModernPostCard> {
   @override
   void initState() {
     super.initState();
+
     liked = widget.post.reacciones.isNotEmpty;
+
+    _precacheVideo();
   }
 
   // ================= TIEMPO =================
@@ -41,7 +44,31 @@ class _ModernPostCardState extends State<ModernPostCard> {
     if (diff.inHours > 0) return 'hace ${diff.inHours}h';
     return 'hace ${diff.inMinutes}m';
   }
+Future<void> _precacheVideo() async {
+  if (widget.post.medias.isEmpty) return;
 
+  final media = widget.post.medias.first;
+
+  if (!media.isVideo) return;
+
+  try {
+    final dir = await getTemporaryDirectory();
+
+    final file = File(
+      '${dir.path}/video_${widget.post.id}.mp4',
+    );
+
+    if (await file.exists()) return;
+
+    final request = await HttpClient().getUrl(
+      Uri.parse(media.url),
+    );
+
+    final response = await request.close();
+
+    await response.pipe(file.openWrite());
+  } catch (_) {}
+}
   // ================= LIKE =================
 Future<void> _toggleLike() async {
   await PostsService.addReaction(int.parse(widget.post.id), 1);
@@ -63,7 +90,10 @@ Future<void> _toggleLike() async {
     final response = await http.get(Uri.parse(imageUrl));
     final bytes = response.bodyBytes;
 
-    final codec = await ui.instantiateImageCodec(bytes);
+    final codec = await ui.instantiateImageCodec(
+      bytes,
+      targetWidth: 1080,
+    );
     final frame = await codec.getNextFrame();
     final originalImage = frame.image;
 
@@ -134,13 +164,71 @@ Future<void> _toggleLike() async {
   Future<void> _shareToFacebookFeed() async {
     if (widget.post.medias.isEmpty) return;
 
-    await SharePostHelper.sharePost(
-      imageUrl: widget.post.medias.first.url,
-      postType: widget.post.postType.name,
-      fileName: 'shared_${widget.post.id}',
-    );
-  }
+    final media = widget.post.medias.first;
 
+    try {
+      /// MOSTRAR loader instantáneo
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      /// =========================
+      /// VIDEO
+      /// =========================
+      if (media.isVideo) {
+        final dir = await getTemporaryDirectory();
+
+        final filePath =
+            '${dir.path}/video_${widget.post.id}.mp4';
+
+        final file = File(filePath);
+
+        /// SOLO descarga si no existe
+        if (!await file.exists()) {
+          final request = await HttpClient().getUrl(
+            Uri.parse(media.url),
+          );
+
+          final response = await request.close();
+
+          await response.pipe(file.openWrite());
+        }
+
+        if (context.mounted) Navigator.pop(context);
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: '🐾 @WeBaNiMaL',
+        );
+
+        return;
+      }
+      /// =========================
+      /// IMAGEN
+      /// =========================
+      final file = await SharePostHelper.createImageWithTexts(
+        imageUrl: media.url,
+        topText: widget.post.postType.name,
+        watermarkText: '🐾 WeBaNiMaL',
+        fileName: 'shared_${widget.post.id}',
+      );
+
+      if (context.mounted) Navigator.pop(context);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '🐾 @WeBaNiMaL',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+
+      debugPrint('ERROR SHARE: $e');
+    }
+  }
   // ================= POPUP IMAGEN =================
   void _openImagePopup(BuildContext context, int initialIndex) {
     showDialog(
@@ -432,7 +520,9 @@ Widget _buildActions() {
           Text('${widget.post.comments}'),
           const Spacer(),
           IconButton(
-            onPressed: _shareToFacebookFeed,
+            onPressed: () async {
+              await _shareToFacebookFeed();
+            },
             icon: const Icon(
               Icons.share_outlined,
               color: Color(0xFF1877F2),

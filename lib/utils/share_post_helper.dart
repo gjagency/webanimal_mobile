@@ -105,12 +105,48 @@ class SharePostHelper {
 
     return file;
   }
+static Future<void> sharePost({
+  required String imageUrl,
+  required String postType,
+  required String fileName,
+}) async {
+  try {
+    final lower = imageUrl.toLowerCase();
 
-  static Future<void> sharePost({
-    required String imageUrl,
-    required String postType,
-    required String fileName,
-  }) async {
+    final isVideo =
+        lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.webm');
+
+    final tempDir = await getTemporaryDirectory();
+
+    /// =========================
+    /// VIDEO
+    /// =========================
+    if (isVideo) {
+      final request = await HttpClient().getUrl(
+        Uri.parse(imageUrl),
+      );
+
+      final response = await request.close();
+
+      final file = File(
+        '${tempDir.path}/$fileName.mp4',
+      );
+
+      await response.pipe(file.openWrite());
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '🐾 @WeBaNiMaL',
+      );
+
+      return;
+    }
+
+    /// =========================
+    /// IMAGEN
+    /// =========================
     final file = await createImageWithTexts(
       imageUrl: imageUrl,
       topText: postType,
@@ -122,5 +158,8 @@ class SharePostHelper {
       [XFile(file.path)],
       text: '🐾 @WeBaNiMaL',
     );
+  } catch (e) {
+    debugPrint('ERROR SHARE: $e');
   }
+}
 }
