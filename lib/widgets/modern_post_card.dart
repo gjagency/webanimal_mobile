@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/widgets/avatar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_app/service/posts_service.dart';
@@ -44,42 +45,40 @@ class _ModernPostCardState extends State<ModernPostCard> {
     if (diff.inHours > 0) return 'hace ${diff.inHours}h';
     return 'hace ${diff.inMinutes}m';
   }
-Future<void> _precacheVideo() async {
-  if (widget.post.medias.isEmpty) return;
 
-  final media = widget.post.medias.first;
+  Future<void> _precacheVideo() async {
+    if (widget.post.medias.isEmpty) return;
 
-  if (!media.isVideo) return;
+    final media = widget.post.medias.first;
 
-  try {
-    final dir = await getTemporaryDirectory();
+    if (!media.isVideo) return;
 
-    final file = File(
-      '${dir.path}/video_${widget.post.id}.mp4',
-    );
+    try {
+      final dir = await getTemporaryDirectory();
 
-    if (await file.exists()) return;
+      final file = File('${dir.path}/video_${widget.post.id}.mp4');
 
-    final request = await HttpClient().getUrl(
-      Uri.parse(media.url),
-    );
+      if (await file.exists()) return;
 
-    final response = await request.close();
+      final request = await HttpClient().getUrl(Uri.parse(media.url));
 
-    await response.pipe(file.openWrite());
-  } catch (_) {}
-}
+      final response = await request.close();
+
+      await response.pipe(file.openWrite());
+    } catch (_) {}
+  }
+
   // ================= LIKE =================
-Future<void> _toggleLike() async {
-  await PostsService.addReaction(int.parse(widget.post.id), 1);
+  Future<void> _toggleLike() async {
+    await PostsService.addReaction(int.parse(widget.post.id), 1);
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() {
-    liked = !liked;
-    likesIncrement += liked ? 1 : -1;
-  });
-}
+    setState(() {
+      liked = !liked;
+      likesIncrement += liked ? 1 : -1;
+    });
+  }
 
   // ================= SHARE =================
   Future<File> _createImageWithTexts({
@@ -90,10 +89,7 @@ Future<void> _toggleLike() async {
     final response = await http.get(Uri.parse(imageUrl));
     final bytes = response.bodyBytes;
 
-    final codec = await ui.instantiateImageCodec(
-      bytes,
-      targetWidth: 1080,
-    );
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 1080);
     final frame = await codec.getNextFrame();
     final originalImage = frame.image;
 
@@ -171,9 +167,7 @@ Future<void> _toggleLike() async {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       /// =========================
@@ -182,16 +176,13 @@ Future<void> _toggleLike() async {
       if (media.isVideo) {
         final dir = await getTemporaryDirectory();
 
-        final filePath =
-            '${dir.path}/video_${widget.post.id}.mp4';
+        final filePath = '${dir.path}/video_${widget.post.id}.mp4';
 
         final file = File(filePath);
 
         /// SOLO descarga si no existe
         if (!await file.exists()) {
-          final request = await HttpClient().getUrl(
-            Uri.parse(media.url),
-          );
+          final request = await HttpClient().getUrl(Uri.parse(media.url));
 
           final response = await request.close();
 
@@ -200,13 +191,11 @@ Future<void> _toggleLike() async {
 
         if (context.mounted) Navigator.pop(context);
 
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: '🐾 @WeBaNiMaL',
-        );
+        await Share.shareXFiles([XFile(file.path)], text: '🐾 @WeBaNiMaL');
 
         return;
       }
+
       /// =========================
       /// IMAGEN
       /// =========================
@@ -219,16 +208,14 @@ Future<void> _toggleLike() async {
 
       if (context.mounted) Navigator.pop(context);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '🐾 @WeBaNiMaL',
-      );
+      await Share.shareXFiles([XFile(file.path)], text: '🐾 @WeBaNiMaL');
     } catch (e) {
       if (context.mounted) Navigator.pop(context);
 
       debugPrint('ERROR SHARE: $e');
     }
   }
+
   // ================= POPUP IMAGEN =================
   void _openImagePopup(BuildContext context, int initialIndex) {
     showDialog(
@@ -254,24 +241,24 @@ Future<void> _toggleLike() async {
 
                   /// Contenido con swipe
                   GestureDetector(
-                   onVerticalDragUpdate: (details) {
-                    if (!mounted) return;
-
-                    setState(() {
-                      dragOffset += details.delta.dy;
-                    });
-                  },
-                                      onVerticalDragEnd: (details) {
-                    if (dragOffset > 150) {
-                      Navigator.pop(context);
-                    } else {
+                    onVerticalDragUpdate: (details) {
                       if (!mounted) return;
 
                       setState(() {
-                        dragOffset = 0;
+                        dragOffset += details.delta.dy;
                       });
-                    }
-                  },
+                    },
+                    onVerticalDragEnd: (details) {
+                      if (dragOffset > 150) {
+                        Navigator.pop(context);
+                      } else {
+                        if (!mounted) return;
+
+                        setState(() {
+                          dragOffset = 0;
+                        });
+                      }
+                    },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       transform: Matrix4.translationValues(0, dragOffset, 0),
@@ -304,13 +291,13 @@ Future<void> _toggleLike() async {
                                       minScale: 1,
                                       maxScale: 4,
                                       child: imageUrl.isVideo
-                                      ? FeedVideoPlayer(url: imageUrl.url)
-                                      : Image.network(
-                                          imageUrl.url,
-                                          fit: BoxFit.contain,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                        ),
+                                          ? FeedVideoPlayer(url: imageUrl.url)
+                                          : Image.network(
+                                              imageUrl.url,
+                                              fit: BoxFit.contain,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                            ),
                                     ),
                                   ),
                                 );
@@ -335,25 +322,7 @@ Future<void> _toggleLike() async {
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.grey.shade200,
-            child: ClipOval(
-              child:
-                  widget.post.user.imageUrl != null &&
-                      widget.post.user.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      widget.post.user.imageUrl!,
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.person);
-                      },
-                    )
-                  : const Icon(Icons.person),
-            ),
-          ),
+          CustomAvatar(url: widget.post.user.imageUrl),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -433,18 +402,18 @@ Future<void> _toggleLike() async {
     return InkWell(
       onTap: () => GoRouter.of(context).push('/posts/${widget.post.id}/view'),
       onDoubleTap: _toggleLike,
-       child: Container(
+      child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(0),
-         
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(color, iconData),
+
             /// DESCRIPCION
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -461,11 +430,7 @@ Future<void> _toggleLike() async {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.phone,
-                      size: 16,
-                      color: Colors.green,
-                    ),
+                    const Icon(Icons.phone, size: 16, color: Colors.green),
                     const SizedBox(width: 6),
 
                     Text(
@@ -479,29 +444,28 @@ Future<void> _toggleLike() async {
                   ],
                 ),
               ),
-                const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-                if (widget.post.medias.isNotEmpty)
-                  AutoAdaptiveMediaSlider(
-                    medias: widget.post.medias,
-                    postId: widget.post.id,
-                    currentIndex: _currentImageIndex,
-                    onPageChanged: (i) {
-                      setState(() => _currentImageIndex = i);
-                    },
-                    onImageTap: (index) => _openImagePopup(context, index),
-                    onDoubleTap: _toggleLike,
-                  ),
+            if (widget.post.medias.isNotEmpty)
+              AutoAdaptiveMediaSlider(
+                medias: widget.post.medias,
+                postId: widget.post.id,
+                currentIndex: _currentImageIndex,
+                onPageChanged: (i) {
+                  setState(() => _currentImageIndex = i);
+                },
+                onImageTap: (index) => _openImagePopup(context, index),
+                onDoubleTap: _toggleLike,
+              ),
 
-                _buildActions(),
-
+            _buildActions(),
           ],
         ),
       ),
     );
   }
 
-Widget _buildActions() {
+  Widget _buildActions() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -533,19 +497,17 @@ Widget _buildActions() {
       ),
     );
   }
-  
 }
+
 class FeedVideoPlayer extends StatefulWidget {
   final String url;
 
-  const FeedVideoPlayer({
-    super.key,
-    required this.url,
-  });
+  const FeedVideoPlayer({super.key, required this.url});
 
   @override
   State<FeedVideoPlayer> createState() => _FeedVideoPlayerState();
 }
+
 class _FeedVideoPlayerState extends State<FeedVideoPlayer>
     with AutomaticKeepAliveClientMixin {
   late VideoPlayerController controller;
@@ -563,9 +525,7 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer>
   void initState() {
     super.initState();
 
-    controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.url),
-    );
+    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
 
     _initializeVideo();
   }
@@ -595,43 +555,20 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer>
 
     super.dispose();
   }
-Future<void> _toggleMute() async {
 
-if (!mounted || _disposed) return;
-
-  setState(() {
-    _isMuted = !_isMuted;
-  });
-
-  await controller.setVolume(_isMuted ? 0 : 1);
-}
-
-Future<void> _togglePlayPause() async {
-  if (_disposed) return;
-
-  if (controller.value.isPlaying) {
-    await controller.pause();
-
+  Future<void> _toggleMute() async {
     if (!mounted || _disposed) return;
 
     setState(() {
-      _isPaused = true;
+      _isMuted = !_isMuted;
     });
-  } else {
-    await controller.play();
 
-    if (!mounted || _disposed) return;
-
-    setState(() {
-      _isPaused = false;
-    });
+    await controller.setVolume(_isMuted ? 0 : 1);
   }
-}
-void _handleVisibilityChanged(VisibilityInfo info) async {
-  if (_disposed) return;
-  if (!controller.value.isInitialized) return;
 
-  if (info.visibleFraction < 0.3) {
+  Future<void> _togglePlayPause() async {
+    if (_disposed) return;
+
     if (controller.value.isPlaying) {
       await controller.pause();
 
@@ -640,9 +577,7 @@ void _handleVisibilityChanged(VisibilityInfo info) async {
       setState(() {
         _isPaused = true;
       });
-    }
-  } else {
-    if (!controller.value.isPlaying) {
+    } else {
       await controller.play();
 
       if (!mounted || _disposed) return;
@@ -652,48 +587,73 @@ void _handleVisibilityChanged(VisibilityInfo info) async {
       });
     }
   }
-}
-void _videoListener() {
-  if (_disposed) return;
-  if (!controller.value.isInitialized) return;
 
-  final position = controller.value.position;
-  final duration = controller.value.duration;
+  void _handleVisibilityChanged(VisibilityInfo info) async {
+    if (_disposed) return;
+    if (!controller.value.isInitialized) return;
 
-  if (duration.inMilliseconds == 0) return;
+    if (info.visibleFraction < 0.3) {
+      if (controller.value.isPlaying) {
+        await controller.pause();
 
-  final remaining =
-      duration.inMilliseconds - position.inMilliseconds;
+        if (!mounted || _disposed) return;
 
-  /// está terminando
-  if (remaining < 300 && !_wasNearEnd) {
-    _wasNearEnd = true;
-  }
+        setState(() {
+          _isPaused = true;
+        });
+      }
+    } else {
+      if (!controller.value.isPlaying) {
+        await controller.play();
 
-  /// volvió a empezar
-  if (_wasNearEnd && position.inMilliseconds < 300) {
-    _loopCount++;
-    _wasNearEnd = false;
+        if (!mounted || _disposed) return;
 
-    if (_loopCount >= 3) {
-      controller.pause();
-
-      if (!mounted || _disposed) return;
-
-      setState(() {
-        _isPaused = true;
-      });
+        setState(() {
+          _isPaused = false;
+        });
+      }
     }
   }
-}
+
+  void _videoListener() {
+    if (_disposed) return;
+    if (!controller.value.isInitialized) return;
+
+    final position = controller.value.position;
+    final duration = controller.value.duration;
+
+    if (duration.inMilliseconds == 0) return;
+
+    final remaining = duration.inMilliseconds - position.inMilliseconds;
+
+    /// está terminando
+    if (remaining < 300 && !_wasNearEnd) {
+      _wasNearEnd = true;
+    }
+
+    /// volvió a empezar
+    if (_wasNearEnd && position.inMilliseconds < 300) {
+      _loopCount++;
+      _wasNearEnd = false;
+
+      if (_loopCount >= 3) {
+        controller.pause();
+
+        if (!mounted || _disposed) return;
+
+        setState(() {
+          _isPaused = true;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     if (!controller.value.isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return VisibilityDetector(
@@ -738,9 +698,7 @@ void _videoListener() {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isMuted
-                        ? Icons.volume_off
-                        : Icons.volume_up,
+                    _isMuted ? Icons.volume_off : Icons.volume_up,
                     color: Colors.white,
                     size: 22,
                   ),
@@ -783,15 +741,17 @@ class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
   void _updateAspectRatio(String url) {
     final image = Image.network(url);
 
-    image.image.resolve(const ImageConfiguration()).addListener(
-      ImageStreamListener((ImageInfo info, bool _) {
-        if (!mounted) return;
+    image.image
+        .resolve(const ImageConfiguration())
+        .addListener(
+          ImageStreamListener((ImageInfo info, bool _) {
+            if (!mounted) return;
 
-        setState(() {
-          aspectRatio = info.image.width / info.image.height;
-        });
-      }),
-    );
+            setState(() {
+              aspectRatio = info.image.width / info.image.height;
+            });
+          }),
+        );
   }
 
   @override
@@ -859,10 +819,7 @@ class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
                 ),
                 child: Text(
                   '${widget.currentIndex + 1} / ${widget.medias.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ),
             ),

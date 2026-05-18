@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/users_service.dart';
+import 'package:mobile_app/widgets/avatar.dart';
 
 class SearchUsersPage extends StatefulWidget {
   const SearchUsersPage({super.key});
@@ -108,15 +109,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                       final user = _results[index];
 
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage: user.imageUrl != null
-                              ? NetworkImage(user.imageUrl!)
-                              : null,
-                          child: user.imageUrl == null
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
-                        ),
+                        leading: CustomAvatar(url: user.imageUrl),
                         title: Text(
                           user.displayName,
                           style: const TextStyle(fontWeight: FontWeight.w600),

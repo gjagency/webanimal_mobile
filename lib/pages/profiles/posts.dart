@@ -7,6 +7,7 @@ import 'package:mobile_app/service/media_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
+import 'package:mobile_app/widgets/avatar.dart';
 import 'package:video_player/video_player.dart';
 
 class UserPostsPage extends StatefulWidget {
@@ -149,22 +150,7 @@ class _UserPostsPageState extends State<UserPostsPage> {
             onPressed: () {
               context.push('/user-posts/${AuthService.currentUserId}');
             },
-            icon: loadingProfile
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl.isEmpty
-                        ? const Icon(Icons.person, size: 16, color: Colors.grey)
-                        : null,
-                  ),
+            icon: CustomAvatar(url: avatarUrl),
           ),
 
           IconButton(
@@ -191,24 +177,7 @@ class _UserPostsPageState extends State<UserPostsPage> {
                     Row(
                       children: [
                         /// AVATAR
-                        CircleAvatar(
-                          radius: 42,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage:
-                              profileAvatarUrl != null &&
-                                  profileAvatarUrl.toString().isNotEmpty
-                              ? NetworkImage(profileAvatarUrl)
-                              : null,
-                          child:
-                              (profileAvatarUrl == null ||
-                                  profileAvatarUrl.toString().isEmpty)
-                              ? const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 40,
-                                )
-                              : null,
-                        ),
+                        CustomAvatar(url: profileAvatarUrl),
 
                         const SizedBox(width: 20),
 
@@ -630,7 +599,6 @@ class _UserPostsPageState extends State<UserPostsPage> {
 
                               Row(
                                 children: [
-                                
                                   if (isMyPost)
                                     PopupMenuButton<String>(
                                       color: const Color.fromARGB(
@@ -786,7 +754,6 @@ class _UserPostsPageState extends State<UserPostsPage> {
                                         ),
                                       ),
                                     ),
-                                
                                 ],
                               ),
                             ],

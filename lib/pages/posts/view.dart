@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/widgets/avatar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/modern_post_card.dart';
 import 'package:flutter/foundation.dart';
+
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -41,45 +43,43 @@ class _PagePostViewState extends State<PagePostView> {
     _commentController.dispose();
     super.dispose();
   }
-Future<void> _shareToFacebookFeed() async {
-  if (_post == null || _post!.medias.isEmpty) return;
 
-  final media = _post!.medias.first;
+  Future<void> _shareToFacebookFeed() async {
+    if (_post == null || _post!.medias.isEmpty) return;
 
-  /// VIDEO
-  if (media.isVideo) {
-    final tempDir = await getTemporaryDirectory();
+    final media = _post!.medias.first;
 
-    final filePath =
-        '${tempDir.path}/shared_video_${widget.postId}.mp4';
+    /// VIDEO
+    if (media.isVideo) {
+      final tempDir = await getTemporaryDirectory();
 
-    final file = File(filePath);
+      final filePath = '${tempDir.path}/shared_video_${widget.postId}.mp4';
 
-    /// si ya existe no lo vuelve a descargar
-    if (!await file.exists()) {
-      final request = await HttpClient().getUrl(Uri.parse(media.url));
-      final response = await request.close();
+      final file = File(filePath);
 
-      final bytes = await consolidateHttpClientResponseBytes(response);
+      /// si ya existe no lo vuelve a descargar
+      if (!await file.exists()) {
+        final request = await HttpClient().getUrl(Uri.parse(media.url));
+        final response = await request.close();
 
-      await file.writeAsBytes(bytes);
+        final bytes = await consolidateHttpClientResponseBytes(response);
+
+        await file.writeAsBytes(bytes);
+      }
+
+      await Share.shareXFiles([XFile(file.path)], text: '🐾 @WeBaNiMaL');
+
+      return;
     }
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: '🐾 @WeBaNiMaL',
+    /// IMAGEN
+    await SharePostHelper.sharePost(
+      imageUrl: media.url,
+      postType: _post!.postType.name,
+      fileName: 'shared_${widget.postId}',
     );
-
-    return;
   }
 
-  /// IMAGEN
-  await SharePostHelper.sharePost(
-    imageUrl: media.url,
-    postType: _post!.postType.name,
-    fileName: 'shared_${widget.postId}',
-  );
-}
   Future<void> _loadPost() async {
     try {
       final results = await Future.wait([
@@ -274,22 +274,7 @@ Future<void> _shareToFacebookFeed() async {
             onPressed: () {
               context.push('/user-posts/${AuthService.currentUserId}');
             },
-            icon: loadingProfile
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl.isEmpty
-                        ? const Icon(Icons.person, size: 16, color: Colors.grey)
-                        : null,
-                  ),
+            icon: CustomAvatar(url: avatarUrl),
           ),
 
           IconButton(
@@ -302,286 +287,277 @@ Future<void> _shareToFacebookFeed() async {
           const SizedBox(width: 4),
         ],
       ),
-body: Stack(
-  children: [
-    _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView(
-              padding: EdgeInsets.only(bottom: 6),
-              children: [
-                // Header
-                Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: colors),
-                        ),
-                        padding: EdgeInsets.all(2),
-                        child: CircleAvatar(
-                          radius: 22,
-                          backgroundImage: post.user.imageUrl != null
-                              ? NetworkImage(post.user.imageUrl!)
-                              : null,
-                          backgroundColor: Colors.grey[300],
-                          child: post.user.imageUrl == null
-                              ? Icon(Icons.person, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                context.push('/user-posts/${post.user.id}');
-                              },
-                              child: Text(
-                                post.user.displayName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-
-                            Text(
-                              "${_getTimeAgo(post.datetime)} - ${post.location.label}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: colors),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(icon, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              post.postType.name,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Descripción
-                if (post.description.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      post.description,
-                      style: const TextStyle(fontSize: 14, height: 1.4),
-                    ),
-                  ),
-
-                const SizedBox(height: 12),
-                // Teléfono
-                if (post.telefono != null && post.telefono!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.phone,
-                          size: 16,
-                          color: Colors.green.shade700,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          post.telefono!,
-                          style: TextStyle(
-                            color: Colors.green.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 14),
-
-                // MEDIA
-                GestureDetector(
-                  child: post.medias.first.isVideo
-                      ? Container(
-                          width: double.infinity,
-                          height: 400,
-                          color: Colors.black,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(0),
-                            child: FeedVideoPlayer(url: post.medias.first.url),
-                          ),
-                        )
-                      : Image.network(
-                          post.medias.isNotEmpty
-                              ? post.medias.first.url
-                              : "https://via.placeholder.com/400x300?text=Sin+Imagen",
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 300,
-                              width: double.infinity,
-                              color: Colors.grey[200],
-                              child: const Icon(
-                                Icons.pets,
-                                size: 100,
-                                color: Colors.grey,
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                // Acciones
-                Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _toggleLike,
-                        child: Row(
-                          children: [
-                            post.reacciones.isNotEmpty
-                                ? Icon(
-                                    Icons.favorite,
-                                    size: 28,
-                                    color: Colors.red,
-                                  )
-                                : Icon(Icons.favorite_border, size: 28),
-                            SizedBox(width: 4),
-                            Text(
-                              '${post.likes}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(width: 20),
-
-                      Row(
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: EdgeInsets.only(bottom: 6),
+                  children: [
+                    // Header
+                    Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 26,
-                            color: Colors.grey[700],
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '${post.comments}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const Spacer(),
-
-                      IconButton(
-                        onPressed: _shareToFacebookFeed,
-                        icon: const Icon(
-                          Icons.share_outlined,
-                          color: Color(0xFF1877F2),
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Divider(height: 32, thickness: 8, color: Colors.grey[100]),
-
-                // Comentarios
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Comentarios',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                _comments.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Center(
-                          child: Text(
-                            'No hay comentarios aún',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _comments.length > _visibleComments
-                                ? _visibleComments
-                                : _comments.length,
-                            itemBuilder: (context, index) {
-                              return CommentCard(comment: _comments[index]);
-                            },
-                          ),
-
-                          if (_comments.length > _visibleComments)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              child: TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _visibleComments += 10;
-                                  });
-                                },
-                                child: Text(
-                                  'Mostrar más comentarios',
-                                  style: TextStyle(
-                                    color: Colors.pink.shade400,
-                                    fontWeight: FontWeight.bold,
+                          CustomAvatar(url: post.user.imageUrl),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    context.push('/user-posts/${post.user.id}');
+                                  },
+                                  child: Text(
+                                    post.user.displayName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
-                              ),
+
+                                Text(
+                                  "${_getTimeAgo(post.datetime)} - ${post.location.label}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: colors),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(icon, color: Colors.white, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  post.postType.name,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
+                    ),
 
-                SizedBox(height: 80), // para que no quede pegado al bottom
-              ],
-            ),
+                    // Descripción
+                    if (post.description.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          post.description,
+                          style: const TextStyle(fontSize: 14, height: 1.4),
+                        ),
+                      ),
 
-            if (_isCommenting) _buildCommentOverlay(),
-            ],
-            ),
+                    const SizedBox(height: 12),
+                    // Teléfono
+                    if (post.telefono != null && post.telefono!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              size: 16,
+                              color: Colors.green.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              post.telefono!,
+                              style: TextStyle(
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 14),
+
+                    // MEDIA
+                    GestureDetector(
+                      child: post.medias.first.isVideo
+                          ? Container(
+                              width: double.infinity,
+                              height: 400,
+                              color: Colors.black,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(0),
+                                child: FeedVideoPlayer(
+                                  url: post.medias.first.url,
+                                ),
+                              ),
+                            )
+                          : Image.network(
+                              post.medias.isNotEmpty
+                                  ? post.medias.first.url
+                                  : "https://via.placeholder.com/400x300?text=Sin+Imagen",
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 300,
+                                  width: double.infinity,
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.pets,
+                                    size: 100,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    // Acciones
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _toggleLike,
+                            child: Row(
+                              children: [
+                                post.reacciones.isNotEmpty
+                                    ? Icon(
+                                        Icons.favorite,
+                                        size: 28,
+                                        color: Colors.red,
+                                      )
+                                    : Icon(Icons.favorite_border, size: 28),
+                                SizedBox(width: 4),
+                                Text(
+                                  '${post.likes}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(width: 20),
+
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 26,
+                                color: Colors.grey[700],
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                '${post.comments}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          IconButton(
+                            onPressed: _shareToFacebookFeed,
+                            icon: const Icon(
+                              Icons.share_outlined,
+                              color: Color(0xFF1877F2),
+                              size: 28,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Divider(height: 32, thickness: 8, color: Colors.grey[100]),
+
+                    // Comentarios
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Comentarios',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+
+                    _comments.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Center(
+                              child: Text(
+                                'No hay comentarios aún',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _comments.length > _visibleComments
+                                    ? _visibleComments
+                                    : _comments.length,
+                                itemBuilder: (context, index) {
+                                  return CommentCard(comment: _comments[index]);
+                                },
+                              ),
+
+                              if (_comments.length > _visibleComments)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  child: TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _visibleComments += 10;
+                                      });
+                                    },
+                                    child: Text(
+                                      'Mostrar más comentarios',
+                                      style: TextStyle(
+                                        color: Colors.pink.shade400,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                    SizedBox(height: 80), // para que no quede pegado al bottom
+                  ],
+                ),
+
+          if (_isCommenting) _buildCommentOverlay(),
+        ],
+      ),
       bottomNavigationBar: AnimatedPadding(
         duration: const Duration(milliseconds: 150),
         padding: EdgeInsets.only(
@@ -594,29 +570,7 @@ body: Stack(
             top: false,
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.grey[300],
-                  child: avatarUrl.isNotEmpty
-                      ? ClipOval(
-                          child: Image.network(
-                            avatarUrl,
-                            width: 44,
-                            height: 44,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              debugPrint(
-                                'ERROR AVATAR → $error',
-                              ); // 👈 vas a ver el error exacto
-                              return const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                              );
-                            },
-                          ),
-                        )
-                      : const Icon(Icons.person, color: Colors.white),
-                ),
+                CustomAvatar(url: avatarUrl),
 
                 const SizedBox(width: 12),
 
@@ -663,55 +617,54 @@ body: Stack(
       ),
     );
   }
-Widget _buildCommentOverlay() {
-  return Positioned.fill(
-    child: Container(
-      color: Colors.black.withOpacity(0.4),
-      child: Center(
-        child: Container(
-          width: 220,
-          padding: const EdgeInsets.symmetric(
-            vertical: 20,
-            horizontal: 24,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ValueListenableBuilder<double>(
-                valueListenable: _commentProgress,
-                builder: (_, value, __) => SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: CircularProgressIndicator(
-                    value: _commentMessage == 'Comentando...'
-                        ? (value == 0 ? null : value)
-                        : 1,
-                    strokeWidth: 4,
-                    color: Colors.purple,
-                    backgroundColor: Colors.purple.shade50,
+
+  Widget _buildCommentOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.4),
+        child: Center(
+          child: Container(
+            width: 220,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<double>(
+                  valueListenable: _commentProgress,
+                  builder: (_, value, __) => SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      value: _commentMessage == 'Comentando...'
+                          ? (value == 0 ? null : value)
+                          : 1,
+                      strokeWidth: 4,
+                      color: Colors.purple,
+                      backgroundColor: Colors.purple.shade50,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _commentMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 16),
+                Text(
+                  _commentMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   String _getTimeAgo(DateTime datetime) {
     final diff = DateTime.now().difference(datetime);
     if (diff.inDays > 0) return 'hace ${diff.inDays}d';
@@ -754,16 +707,7 @@ class CommentCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundImage: comment.avatar != null
-                ? NetworkImage(comment.avatar!)
-                : null,
-            backgroundColor: Colors.grey[300],
-            child: comment.avatar == null
-                ? Icon(Icons.person, color: Colors.white)
-                : null,
-          ),
+          CustomAvatar(url: comment.avatar),
 
           SizedBox(width: 12),
           Expanded(
