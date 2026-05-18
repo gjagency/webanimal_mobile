@@ -54,9 +54,8 @@ class _PageHomeState extends State<PageHome> {
   void initState() {
     super.initState();
     _init();
-    _getCurrentLocation();
     _loadProfile();
-
+    _getCurrentLocation();
     _scrollController.addListener(_onScroll);
   }
 
@@ -96,6 +95,62 @@ class _PageHomeState extends State<PageHome> {
     }
   }
 
+
+Future<bool> _requestLocationForPost() async {
+  try {
+    /// GPS apagado
+    bool serviceEnabled =
+        await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Activá el GPS para crear un post'),
+        ),
+      );
+
+      /// abre configuración
+      await Geolocator.openLocationSettings();
+
+      /// espera un poco al volver
+      await Future.delayed(const Duration(seconds: 2));
+
+      /// verifica nuevamente
+      serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        return false;
+      }
+    }
+
+    /// permisos
+    LocationPermission permission =
+        await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Necesitamos ubicación para crear publicaciones',
+          ),
+        ),
+      );
+
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    debugPrint('ERROR LOCATION: $e');
+    return false;
+  }
+}
   Future<void> _loadProfile() async {
     try {
       final profile = await AuthService.getProfile();
@@ -880,8 +935,15 @@ body: Column(
               ? _mostrarCrearPromocionDialog
               : null,
           // función vacía evita que haga algo
-          onCrearPost: () => GoRouter.of(context).push('/posts/create/'),
-        ),
+          onCrearPost: () async {
+            final hasPermission = await _requestLocationForPost();
+
+            if (!hasPermission) return;
+
+            if (!context.mounted) return;
+
+            GoRouter.of(context).push('/posts/create/');
+          },        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
