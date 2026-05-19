@@ -759,7 +759,7 @@ class _PageHomeState extends State<PageHome> {
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
                 onTap: () {
-                  context.push('/home/promotions');
+                  context.push('/home/pet_spaces');
                 },
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -767,8 +767,13 @@ class _PageHomeState extends State<PageHome> {
 
                     return Container(
                       width: double.infinity,
-                      margin: const EdgeInsets.only(top: 8, bottom: 10),
-                      padding: EdgeInsets.all(isSmall ? 16 : 26),
+                      margin: const EdgeInsets.only(
+                        top: 8,
+                        bottom: 10,
+                        left: 10,
+                        right: 10,
+                      ),
+                      padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Colors.purple, Colors.pink],
@@ -786,12 +791,12 @@ class _PageHomeState extends State<PageHome> {
                         children: [
                           Expanded(
                             child: Text(
-                              '🔥 Mirá descuentos en Veterinarias y Espacio Animal',
+                              'Busca un Espacio Animal',
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: isSmall ? 11 : 12,
+                                fontSize: isSmall ? 14 : 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -799,11 +804,7 @@ class _PageHomeState extends State<PageHome> {
 
                           const SizedBox(width: 8),
 
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white,
-                            size: isSmall ? 12 : 14,
-                          ),
+                          Icon(Icons.map, color: Colors.white, size: 24),
                         ],
                       ),
                     );

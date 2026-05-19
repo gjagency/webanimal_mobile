@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_app/pages/account/veterinaria_create.dart';
 import 'package:mobile_app/pages/account/veterinaria_modify.dart';
 import 'package:mobile_app/pages/auth/PageEditProfile.dart';
-import 'package:mobile_app/pages/home/promotions.dart';
+import 'package:mobile_app/pages/home/pet_space.dart';
 
 import 'package:mobile_app/service/auth_service.dart';
 
@@ -57,8 +57,8 @@ final router = GoRouter(
        ========================= */
     GoRoute(path: '/home', builder: (context, state) => const PageHome()),
     GoRoute(
-      path: '/home/promotions',
-      builder: (context, state) => const PagePromotions(),
+      path: '/home/pet_spaces',
+      builder: (context, state) => const PagePetSpace(),
     ),
 
     /* =========================

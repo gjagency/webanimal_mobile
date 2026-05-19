@@ -135,36 +135,6 @@ class AuthService {
   }
 
   /* ==========================================================
-   TODAS LAS OFERTAS / PROMOCIONES ACTIVAS
-   ========================================================== */
-  static Future<List<Map<String, dynamic>>> getOfertasPromociones({
-    double? lat,
-    double? lng,
-  }) async {
-    try {
-      String filter = "?";
-
-      if (lat != null && lng != null) filter += "lat=$lat&lng=$lng";
-
-      final response = await AuthService.getWithToken(
-        '/api/veterinarias/promociones/ofertas/$filter',
-      );
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        return data.cast<Map<String, dynamic>>();
-      } else {
-        debugPrint(
-          'Error al obtener ofertas: ${response.statusCode} ${response.body}',
-        );
-        return [];
-      }
-    } catch (e) {
-      debugPrint('Excepción en getOfertasPromociones: $e');
-      return [];
-    }
-  }
-
-  /* ==========================================================
      LOGIN CON GOOGLE
      ========================================================== */
   static Future<bool> loginWithGoogle() async {
