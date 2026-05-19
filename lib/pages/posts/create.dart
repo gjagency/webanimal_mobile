@@ -518,7 +518,7 @@ context.pop();
     children: [
       Expanded(
         child: const Text(
-          'WebAnimal',
+          'WeBaNiMaL',
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontWeight: FontWeight.bold,

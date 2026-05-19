@@ -115,28 +115,40 @@ class _UserPostsPageState extends State<UserPostsPage> {
       appBar: AppBar(
         titleSpacing: 8,
         title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.pink],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.pets, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 8),
-
-            Expanded(
-              child: const Text(
-                'WebAnimal',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              ),
-            ),
-          ],
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // Logo con gradiente
+    Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.purple, Colors.pink],
         ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Image.asset(
+        "assets/logo6.png",
+        width: 22,
+        height: 22,
+      ),
+    ),
+
+    const SizedBox(width: 10),
+
+    // Texto que NO rompe el layout
+    Expanded(
+      child: Text(
+        "WebAnimal",
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+
+  ],
+),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

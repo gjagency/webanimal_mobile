@@ -6,11 +6,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mobile_app/service/location_service.dart';
 import 'package:mobile_app/service/pet_spaces.dart';
+import 'package:mobile_app/config.dart';
 
 // ============================================================
 // ENUM DE VISTA
 // ============================================================
-
+String getFullImageUrl(String? path) {
+  if (path == null || path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  return '${Config.baseUrl}$path';
+}
 enum _ViewMode { list, map }
 
 // ============================================================
@@ -25,10 +30,10 @@ class PagePetSpace extends StatefulWidget {
 }
 
 class _PagePetSpaceState extends State<PagePetSpace>
-    with SingleTickerProviderStateMixin {
+  with SingleTickerProviderStateMixin {
   bool _loading = true;
   List<NegocioAnimal> _negocios = [];
-
+  int _selectedTab = 0; 
   double? _lat;
   double? _lng;
   String _locationLabel = 'Mi ubicación';
@@ -163,45 +168,84 @@ class _PagePetSpaceState extends State<PagePetSpace>
 
   AppBar _buildAppBar() {
     return AppBar(
-      titleSpacing: 0,
-      title: const Text(
-        'Espacio Animal',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        overflow: TextOverflow.ellipsis,
-      ),
-      actions: [
-        // Ubicación
-        GestureDetector(
-          onTap: _showChangeLocationSheet,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 4, right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 4,
-              children: [
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: Colors.purple,
-                ),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 100),
-                  child: Text(
-                    _locationLabel,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.location_on, color: Colors.purple, size: 20),
-              ],
-            ),
+  titleSpacing: 0,
+  title: Row(
+    children: [
+      const SizedBox(width: 12),
+
+      // Logo con gradiente
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.purple, Colors.pink],
           ),
+          borderRadius: BorderRadius.circular(12),
         ),
-      ],
-    );
+        child: Image.asset(
+          "assets/logo6.png",
+          width: 22,
+          height: 22,
+        ),
+      ),
+
+      const SizedBox(width: 10),
+
+      // Texto
+      const Expanded(
+        child: Text(
+          "WebAnimal",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  ),
+
+  actions: [
+    GestureDetector(
+      onTap: _showChangeLocationSheet,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4, right: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: Colors.purple,
+            ),
+
+            const SizedBox(width: 4),
+
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 90),
+              child: Text(
+                _locationLabel,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 4),
+
+            const Icon(
+              Icons.location_on,
+              color: Colors.purple,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    ),
+  ],
+);
   }
 
   // ---------- LISTA ----------
@@ -215,11 +259,23 @@ class _PagePetSpaceState extends State<PagePetSpace>
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           const SliverToBoxAdapter(child: _HeroBanner()),
-          const SliverToBoxAdapter(child: _SectionHeader()),
-          SliverList.separated(
+          SliverToBoxAdapter(
+            child: _SectionHeader(
+              selectedIndex: _selectedTab,
+              onChanged: (index) {
+                setState(() {
+                  _selectedTab = index;
+                });
+              },
+            ),
+          ),
+            SliverList.separated(
             itemCount: _negocios.length,
             separatorBuilder: (_, __) => const SizedBox(height: 1),
-            itemBuilder: (context, i) => _NegocioSection(data: _negocios[i]),
+            itemBuilder: (context, i) => _NegocioSection(
+            data: _negocios[i],
+            selectedTab: _selectedTab,
+          ),
           ),
           SliverToBoxAdapter(
             child: SizedBox(height: MediaQuery.of(context).padding.bottom + 90),
@@ -330,6 +386,8 @@ class _MapMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = getFullImageUrl(negocio.avatar);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -349,9 +407,9 @@ class _MapMarker extends StatelessWidget {
             ],
           ),
           child: ClipOval(
-            child: negocio.avatar != null && negocio.avatar!.isNotEmpty
+            child: avatarUrl.isNotEmpty
                 ? Image.network(
-                    negocio.avatar!,
+                    avatarUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.storefront,
@@ -359,7 +417,11 @@ class _MapMarker extends StatelessWidget {
                       color: Colors.purple,
                     ),
                   )
-                : const Icon(Icons.storefront, size: 18, color: Colors.purple),
+                : const Icon(
+                    Icons.storefront,
+                    size: 18,
+                    color: Colors.purple,
+                  ),
           ),
         ),
         CustomPaint(
@@ -573,7 +635,7 @@ class _HeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Veterinarias, tiendas, alimentos y más',
+                  'Veterinarias, tiendas de alimentos y más',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 12,
@@ -602,32 +664,118 @@ class _HeroBanner extends StatelessWidget {
 // ============================================================
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader();
+  final int selectedIndex;
+  final Function(int) onChanged;
+
+  const _SectionHeader({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.purple, Colors.pink],
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.purple, Colors.pink],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              borderRadius: BorderRadius.circular(2),
+              const SizedBox(width: 8),
+              const Text(
+                'Negocios cercanos',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _TabButton(
+                    title: 'Promociones',
+                    selected: selectedIndex == 0,
+                    onTap: () => onChanged(0),
+                  ),
+                ),
+                Expanded(
+                  child: _TabButton(
+                    title: 'Direcciones',
+                    selected: selectedIndex == 1,
+                    onTap: () => onChanged(1),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Text(
-            'Negocios cercanos',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabButton({
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: selected ? Colors.purple : Colors.grey[600],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -639,7 +787,11 @@ class _SectionHeader extends StatelessWidget {
 
 class _NegocioSection extends StatelessWidget {
   final NegocioAnimal data;
-  const _NegocioSection({required this.data});
+  final int selectedTab;
+  const _NegocioSection({
+    required this.data,
+    required this.selectedTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -671,9 +823,6 @@ class _NegocioSection extends StatelessWidget {
                     Row(
                       spacing: 6,
                       children: [
-                        if (data.categoria != null)
-                          _CategoriaBadge(categoria: data.categoria!),
-                        if (data.distanciaKm != null)
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             spacing: 2,
@@ -684,12 +833,37 @@ class _NegocioSection extends StatelessWidget {
                                 color: Colors.grey[500],
                               ),
                               Text(
-                                '${data.distanciaKm!.toStringAsFixed(1)} km',
+                                'Horarios de Atención: 7:40 a 20:00',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey[500],
                                 ),
                               ),
+                               
+                            ],
+                          ),
+                      ],
+                    ),
+                      Row(
+                      spacing: 6,
+                      children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 2,
+                            children: [
+                              Icon(
+                                Icons.near_me,
+                                size: 11,
+                                color: Colors.grey[500],
+                              ),
+                             Text(
+                              'Dirección: ${data.direccion ?? "Sin dirección disponible"}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                               
                             ],
                           ),
                       ],
@@ -732,28 +906,19 @@ class _NegocioSection extends StatelessWidget {
             ],
           ),
         ),
-        if (data.descripcion != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: Text(
-              data.descripcion!,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        if (data.servicios.isNotEmpty)
-          SizedBox(
-            height: 220,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: data.servicios.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, i) =>
-                  _ServicioCard(servicio: data.servicios[i]),
-            ),
-          ),
+if (selectedTab == 0 && data.servicios.isNotEmpty)
+  SizedBox(
+    height: 220,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: data.servicios.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 10),
+      itemBuilder: (context, i) =>
+          _ServicioCard(servicio: data.servicios[i]),
+    ),
+  ),
+
       ],
     );
   }
@@ -881,11 +1046,11 @@ class _ServicioCard extends StatelessWidget {
 // ============================================================
 // WIDGETS REUTILIZABLES
 // ============================================================
-
 class _AvatarWidget extends StatelessWidget {
   final String? avatar;
   final double size;
   final double radius;
+
   const _AvatarWidget({
     required this.avatar,
     required this.size,
@@ -894,27 +1059,36 @@ class _AvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = getFullImageUrl(avatar);
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         color: Colors.grey.shade200,
-        gradient: (avatar == null || avatar!.isEmpty)
+        gradient: avatarUrl.isEmpty
             ? const LinearGradient(
                 colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
               )
             : null,
       ),
       clipBehavior: Clip.antiAlias,
-      child: avatar != null && avatar!.isNotEmpty
+      child: avatarUrl.isNotEmpty
           ? Image.network(
-              avatar!,
+              avatarUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.storefront, color: Colors.white, size: 22),
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.storefront,
+                color: Colors.white,
+                size: 22,
+              ),
             )
-          : const Icon(Icons.storefront, color: Colors.white, size: 22),
+          : const Icon(
+              Icons.storefront,
+              color: Colors.white,
+              size: 22,
+            ),
     );
   }
 }

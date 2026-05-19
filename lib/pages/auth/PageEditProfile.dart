@@ -101,7 +101,7 @@ class _PageEditProfileState extends State<PageEditProfile> {
             ),
             SizedBox(width: 12),
             Text(
-              'WebAnimal',
+              'WeBaNiMaL',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
