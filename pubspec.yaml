@@ -36,6 +36,8 @@ dependencies:
   cached_video_player_plus: ^3.0.3
   flutter_map: ^7.0.0
   latlong2: ^0.9.0
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -51,4 +53,4 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo.png"
+  image_path: "assets/logo5.png"

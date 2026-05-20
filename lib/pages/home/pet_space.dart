@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:mobile_app/service/location_service.dart';
 import 'package:mobile_app/service/pet_spaces.dart';
 import 'package:mobile_app/config.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 // ============================================================
 // ENUM DE VISTA
 // ============================================================
@@ -82,6 +82,8 @@ class _PagePetSpaceState extends State<PagePetSpace>
     await _loadData();
   }
 
+
+
   Future<void> _loadData() async {
     List<NegocioAnimal> result = [];
     try {
@@ -145,21 +147,7 @@ class _PagePetSpaceState extends State<PagePetSpace>
                         ? _buildListView()
                         : _buildMapView(),
                   ),
-                  Positioned(
-                    bottom: 24 + MediaQuery.of(context).padding.bottom,
-                    right: 16,
-                    child: FloatingActionButton(
-                      heroTag: 'toggle_view',
-                      backgroundColor: Colors.purple,
-                      onPressed: _toggleViewMode,
-                      child: Icon(
-                        _viewMode == _ViewMode.list
-                            ? Icons.map_outlined
-                            : Icons.list,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                 
                 ],
               ),
       ),
@@ -168,84 +156,71 @@ class _PagePetSpaceState extends State<PagePetSpace>
 
   AppBar _buildAppBar() {
     return AppBar(
-  titleSpacing: 0,
-  title: Row(
-    children: [
-      const SizedBox(width: 12),
-
-      // Logo con gradiente
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Colors.purple, Colors.pink],
-          ),
-          borderRadius: BorderRadius.circular(12),
+      titleSpacing: 0,
+     title: Row(
+  children: [
+    Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.purple, Colors.pink],
         ),
-        child: Image.asset(
-          "assets/logo6.png",
-          width: 22,
-          height: 22,
-        ),
+        borderRadius: BorderRadius.circular(10),
       ),
-
-      const SizedBox(width: 10),
-
-      // Texto
-      const Expanded(
-        child: Text(
-          "WebAnimal",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
+      child: Image.asset(
+        "assets/logo6.png",
+        width: 22,
+        height: 22,
       ),
-    ],
-  ),
+    ),
 
-  actions: [
-    GestureDetector(
-      onTap: _showChangeLocationSheet,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 4, right: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.keyboard_arrow_down,
-              size: 18,
-              color: Colors.purple,
-            ),
+    const SizedBox(width: 10),
 
-            const SizedBox(width: 4),
-
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 90),
-              child: Text(
-                _locationLabel,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 4),
-
-            const Icon(
-              Icons.location_on,
-              color: Colors.purple,
-              size: 20,
-            ),
-          ],
+    const Expanded(
+      child: Text(
+        'WeBaNiMaL',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
         ),
+        overflow: TextOverflow.ellipsis,
       ),
     ),
   ],
-);
+),
+      actions: [
+        // Ubicación
+        GestureDetector(
+          onTap: _showChangeLocationSheet,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4, right: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 4,
+              children: [
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: Colors.purple,
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 100),
+                  child: Text(
+                    _locationLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.location_on, color: Colors.purple, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   // ---------- LISTA ----------
@@ -792,7 +767,21 @@ class _NegocioSection extends StatelessWidget {
     required this.data,
     required this.selectedTab,
   });
+Future<void> _openMaps() async {
+  if (data.lat == null || data.lng == null) return;
 
+  final url =
+      'https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}';
+
+  final uri = Uri.parse(url);
+
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -820,6 +809,7 @@ class _NegocioSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 3),
+                    if (selectedTab == 1)
                     Row(
                       spacing: 6,
                       children: [
@@ -844,30 +834,33 @@ class _NegocioSection extends StatelessWidget {
                           ),
                       ],
                     ),
-                      Row(
-                      spacing: 6,
-                      children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            spacing: 2,
-                            children: [
-                              Icon(
-                                Icons.near_me,
-                                size: 11,
-                                color: Colors.grey[500],
-                              ),
-                             Text(
-                              'Dirección: ${data.direccion ?? "Sin dirección disponible"}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                               
-                            ],
-                          ),
-                      ],
-                    ),
+                     if (selectedTab == 1)
+  Row(
+    spacing: 6,
+    children: [
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 2,
+        children: [
+          Icon(
+            Icons.near_me,
+            size: 11,
+            color: Colors.grey[500],
+          ),
+          Flexible(
+            child: Text(
+              'Dirección: ${data.direccion ?? "Sin dirección disponible"}',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
                   ],
                 ),
               ),
@@ -919,6 +912,7 @@ if (selectedTab == 0 && data.servicios.isNotEmpty)
     ),
   ),
 
+
       ],
     );
   }
@@ -936,8 +930,12 @@ class _ServicioCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = servicio.imagen;
 
-    return Container(
-      width: 180,
+final screenWidth = MediaQuery.of(context).size.width;
+final cardWidth = screenWidth * 0.34;
+
+return Container(
+width: cardWidth.clamp(120, 145),
+
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -953,29 +951,95 @@ class _ServicioCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // imagen
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            child: SizedBox(
-              height: 110,
-              width: double.infinity,
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
+          GestureDetector(
+  onTap: () {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black87,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: Stack(
+            children: [
+              GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.82,
+                    heightFactor: 0.65,
+                    child: Image.network(
                       imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: Colors.grey[100],
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                    )
-                  : _placeholder(),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                ),
+              ),
             ),
+
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
+      );
+    }
+  },
+  child: ClipRRect(
+    borderRadius: const BorderRadius.vertical(
+      top: Radius.circular(14),
+    ),
+    child: SizedBox(
+      height: MediaQuery.of(context).size.height * 0.14,
+      width: double.infinity,
+      child: imageUrl != null && imageUrl.isNotEmpty
+          ? Hero(
+              tag: imageUrl,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+                loadingBuilder: (_, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: Colors.grey[100],
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          : _placeholder(),
+    ),
+  ),
+),
           // contenido
           Expanded(
             child: Padding(
@@ -1349,7 +1413,7 @@ class _LoadingView extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 220,
+            height: 170,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
