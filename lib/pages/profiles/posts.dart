@@ -9,7 +9,7 @@ import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/avatar.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:mobile_app/service/media_service.dart';
 class UserPostsPage extends StatefulWidget {
   final String userId;
   const UserPostsPage({super.key, required this.userId});

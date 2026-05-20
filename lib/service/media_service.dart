@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
-import 'package:http/http.dart' as http;
-import 'package:http/http.dart';
 import 'package:mobile_app/config.dart';
 import 'package:mobile_app/service/auth_service.dart';
 
@@ -25,21 +26,11 @@ class Media {
 
   factory Media.fromJson(Map<String, dynamic> json) {
     return Media(
-      id: json.containsKey("id") && json["id"] != null
-          ? json['id'] as String
-          : null,
-      url: json.containsKey("url") && json["url"] != null
-          ? json['url'] as String
-          : null,
-      filename: json.containsKey("filename") && json["filename"] != null
-          ? json['filename'] as String
-          : null,
-      mimeType: json.containsKey("mime_type") && json["mime_type"] != null
-          ? json['mime_type'] as String
-          : null,
-      size: json.containsKey("size") && json["size"] != null
-          ? json['size'] as int
-          : null,
+      id: json["id"] as String?,
+      url: json["url"] as String?,
+      filename: json["filename"] as String?,
+      mimeType: json["mime_type"] as String?,
+      size: json["size"] as int?,
     );
   }
 
@@ -47,33 +38,71 @@ class Media {
 }
 
 class MediaService {
-  static Future<Media> upload(File file) async {
-    final token = await AuthService.getAccessToken();
-    final uri = Uri.parse('${Config.baseUrl}/api/media/upload/');
 
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+  static final Dio _dio = Dio();
+
+  static Future<Media> upload(
+    File file, {
+    Function(double progress)? onProgress,
+  }) async {
+
+    final token = await AuthService.getAccessToken();
+
+    final mimeType =
+        lookupMimeType(file.path) ??
+        'application/octet-stream';
+
     final mimeParts = mimeType.split('/');
 
-    final request = http.MultipartRequest('POST', uri);
-    request.headers['Authorization'] = 'Bearer $token';
-
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'file',
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
         file.path,
-        contentType: MediaType(mimeParts[0], mimeParts[1]),
+
+        contentType: MediaType(
+          mimeParts[0],
+          mimeParts[1],
+        ),
       ),
+    });
+
+    final response = await _dio.post(
+      '${Config.baseUrl}/api/media/upload/',
+
+      data: formData,
+
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+
+        sendTimeout: const Duration(minutes: 10),
+        receiveTimeout: const Duration(minutes: 10),
+      ),
+
+      onSendProgress: (sent, total) {
+
+        if (total <= 0) return;
+
+        final progress = sent / total;
+
+        print(
+          'UPLOAD ${(progress * 100).toStringAsFixed(0)}%',
+        );
+
+        onProgress?.call(progress);
+      },
     );
 
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
+    debugPrint(jsonEncode(response.data));
 
-    debugPrint(response.body);
+    if (response.statusCode == 200 ||
+        response.statusCode == 201) {
 
-    if (response.statusCode == 201) {
-      return Media.fromJson(jsonDecode(response.body));
+      return Media.fromJson(response.data);
     }
 
-    throw Exception('Error al subir media: ${response.body}');
+    throw Exception(
+      'Error al subir media: ${response.data}',
+    );
   }
 }

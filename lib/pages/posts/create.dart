@@ -409,28 +409,29 @@ Future<void> _savePost() async {
   if (!_formKey.currentState!.validate()) return;
 
   // Validar descripción
-if (_descriptionController.text.trim().length > 256) {
-  _descriptionFocusNode.requestFocus();
+  if (_descriptionController.text.trim().length > 256) {
+    _descriptionFocusNode.requestFocus();
 
-  setState(() {
-    _isUploading = true;
-    _uploadMessage = 'El campo descripción tiene un máximo de 256 caracteres';
-    _uploadProgress.value = 0;
-  });
+    setState(() {
+      _isUploading = true;
+      _uploadMessage =
+          'El campo descripción tiene un máximo de 256 caracteres';
+      _uploadProgress.value = 0;
+    });
 
-  await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() {
-    _isUploading = false;
-    _uploadMessage = 'Publicando...';
-  });
+    setState(() {
+      _isUploading = false;
+      _uploadMessage = 'Publicando...';
+    });
 
-  return;
-}
+    return;
+  }
 
-  // Validar que haya al menos un archivo
+  // Validar medios
   if (_selectedMedia.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -442,18 +443,75 @@ if (_descriptionController.text.trim().length > 256) {
 
   setState(() {
     _isUploading = true;
-    _uploadProgress.value = 0.01;
+    _uploadMessage = 'Publicando...';
+    _uploadProgress.value = 0.0;
   });
 
   try {
-    // Subir imágenes/videos
-    final medias = await Future.wait(
-      _selectedMedia.map(
-        (media) => MediaService.upload(media.file),
-      ),
+    final medias = <dynamic>[];
+
+    // =========================
+    // SUBIR ARCHIVOS CON %
+    // =========================
+
+    for (int i = 0; i < _selectedMedia.length; i++) {
+      final media = _selectedMedia[i];
+
+      // progreso entre 0% y 80%
+      _uploadProgress.value =
+          ((_selectedMedia.length == 1 ? 0 : i) /
+                  _selectedMedia.length) *
+              0.8;
+
+final uploaded = await MediaService.upload(
+  media.file,
+
+  onProgress: (progress) {
+
+    final baseProgress =
+        i / _selectedMedia.length;
+
+    final currentFileProgress =
+        progress / _selectedMedia.length;
+
+    final totalProgress =
+        (baseProgress + currentFileProgress) * 0.8;
+
+    final safeProgress =
+        totalProgress.clamp(0.0, 0.8);
+
+    _uploadProgress.value = safeProgress;
+
+    print(
+      'UPLOAD ${i + 1}/${_selectedMedia.length} '
+      '${(progress * 100).toStringAsFixed(0)}%',
     );
 
-    // Crear publicación
+    print(
+      'TOTAL ${(safeProgress * 100).toStringAsFixed(0)}%',
+    );
+  },
+);
+
+      medias.add(uploaded);
+
+      // actualizar después de subir
+      _uploadProgress.value =
+          ((i + 1) / _selectedMedia.length) * 0.8;
+          print('SUBIENDO MEDIA ${i + 1}/${_selectedMedia.length}');
+print('PROGRESO: ${(_uploadProgress.value * 100).toInt()}%');
+    }
+
+    // =========================
+    // CREANDO PUBLICACIÓN
+    // =========================
+
+    setState(() {
+      _uploadMessage = 'Creando publicación...';
+    });
+
+    _uploadProgress.value = 0.9;
+print('CREANDO POST...');
     await PostsService.createPost(
       postTypeId: _selectedPostTypeId!,
       petTypeId: _selectedPetTypeId!,
@@ -462,48 +520,51 @@ if (_descriptionController.text.trim().length > 256) {
       lat: _currentLat!,
       lng: _currentLng!,
       locationLabel: _locationController.text,
-      mediaIds: medias.map((media) => media.id ?? '').toList(),
+      mediaIds: medias
+    .map<String>((media) => (media.id ?? '').toString())
+    .toList(),
     );
-_uploadProgress.value = 1.0;
-await Future.delayed(const Duration(milliseconds: 300));
 
-if (!mounted) return;
+    // =========================
+    // FINALIZADO
+    // =========================
 
-setState(() {
-  _uploadMessage = '¡Publicación creada con éxito!';
-  _uploadProgress.value = 1.0;
-});
+    _uploadProgress.value = 1.0;
 
-await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _uploadMessage = '¡Publicación creada con éxito!';
+    });
 
-if (!mounted) return;
+    await Future.delayed(const Duration(seconds: 2));
 
-context.pop();
+    if (!mounted) return;
 
-await Future.delayed(const Duration(seconds: 2));
+    context.pop();
 
-if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 300));
 
-context.pop();
-  }  catch (e) {
-  if (!mounted) return;
+    if (!mounted) return;
 
-  final message = e.toString().replaceFirst('Exception: ', '');
+    context.pop();
+  } catch (e) {
+    if (!mounted) return;
 
-  setState(() {
-    _uploadMessage = message;
-    _uploadProgress.value = 0;
-  });
+    final message = e.toString().replaceFirst('Exception: ', '');
 
-  Future.delayed(const Duration(seconds: 2), () {
+    setState(() {
+      _uploadMessage = message;
+      _uploadProgress.value = 0;
+    });
+
+    await Future.delayed(const Duration(seconds: 2));
+
     if (!mounted) return;
 
     setState(() {
       _isUploading = false;
       _uploadMessage = 'Publicando...';
     });
-  });
-}
+  }
 }
   // ============ BUILD ============
 
@@ -958,61 +1019,99 @@ context.pop();
       }).toList(),
     );
   }
+Widget _buildUploadOverlay() {
+  return Positioned.fill(
+    child: Container(
+      color: Colors.black.withOpacity(0.4),
+      child: Center(
+        child: Container(
+          width: 240,
+          padding: const EdgeInsets.symmetric(
+            vertical: 24,
+            horizontal: 24,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
 
-  Widget _buildUploadOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.4),
-        child: Center(
-          child: Container(
-            width: 220,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-               ValueListenableBuilder<double>(
-                    valueListenable: _uploadProgress,
-                    builder: (_, value, __) => SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: CircularProgressIndicator(
-                        value: _uploadMessage == 'Publicando...'
-                            ? (value == 0 ? null : value)
-                            : 0,
-                        strokeWidth: 4,
-                        color: Colors.purple,
-                        backgroundColor: Colors.purple[50],
+              /// CÍRCULO
+              ValueListenableBuilder<double>(
+                valueListenable: _uploadProgress,
+                builder: (_, value, __) {
+
+                  final percent = (value * 100).toInt();
+
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+
+                      SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: CircularProgressIndicator(
+                          value: value == 0 ? null : value,
+                          strokeWidth: 5,
+                          color: Colors.purple,
+                          backgroundColor: Colors.purple.shade50,
+                        ),
+                      ),
+
+                      Text(
+                        value == 0
+                            ? '...'
+                            : '$percent%',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 18),
+
+              /// TEXTO
+              Text(
+                _uploadMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              /// BARRA LINEAL
+              ValueListenableBuilder<double>(
+                valueListenable: _uploadProgress,
+                builder: (_, value, __) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: value == 0 ? null : value,
+                      minHeight: 6,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: const AlwaysStoppedAnimation(
+                        Colors.purple,
                       ),
                     ),
-                  ),
-                const SizedBox(height: 16),
-                Text(
-                  _uploadMessage,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                ValueListenableBuilder<double>(
-                  valueListenable: _uploadProgress,
-                  builder: (_, value, __) => Text(
-                    value == 0 ? '' : '${(value * 100).toInt()}%',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ChipData {

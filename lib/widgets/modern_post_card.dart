@@ -25,6 +25,7 @@ class ModernPostCard extends StatefulWidget {
 }
 
 class _ModernPostCardState extends State<ModernPostCard> {
+  
   static const _channel = MethodChannel('share_to_facebook');
   int _currentImageIndex = 0;
   bool liked = false;
@@ -524,68 +525,59 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer>
     _initializeVideo();
   }
 
-  Future<void> _initializeVideo() async {
-    if (_controller != null || _loading) return;
+Future<void> _initializeVideo() async {
+  if (_controller != null || _loading) return;
 
-    _loading = true;
+  _loading = true;
 
-    try {
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.url),
-        videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: true,
-          allowBackgroundPlayback: false,
-        ),
-      );
+  try {
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.url),
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: true,
+        allowBackgroundPlayback: false,
+      ),
+    );
 
-      await controller.initialize();
+    await controller.initialize();
 
-      await controller.setLooping(true);
-      await controller.seekTo(Duration.zero);
+    await controller.setLooping(true);
+    await controller.seekTo(Duration.zero);
 
-      // 🔇 INICIA EN MUTE
-      await controller.setVolume(0);
-      _muted = true;
+    /// 🔇 inicia muteado
+    await controller.setVolume(0);
+    _muted = true;
 
-      if (!mounted) {
-        controller.dispose();
-        return;
+    /// 👇 ESTO ES LO IMPORTANTE
+    controller.addListener(() {
+      if (mounted) {
+        setState(() {});
       }
+    });
 
-      _controller = controller;
-      _initialized = true;
-
-      setState(() {});
-
-      if (_visible) {
-        controller.play();
-      }
-    } catch (e) {
-      debugPrint('VIDEO ERROR: $e');
+    if (!mounted) {
+      controller.dispose();
+      return;
     }
 
-    _loading = false;
+    _controller = controller;
+    _initialized = true;
+
+    setState(() {});
+
+   
+  } catch (e) {
+    debugPrint('VIDEO ERROR: $e');
   }
 
-  void _handleVisibility(VisibilityInfo info) async {
-    final visible = info.visibleFraction > 0.75;
+  _loading = false;
+}
+void _handleVisibility(VisibilityInfo info) {
+  _visible = info.visibleFraction > 0.75;
 
-    _visible = visible;
-
-    final controller = _controller;
-
-    if (controller == null) return;
-
-    if (visible) {
-      if (!controller.value.isPlaying) {
-        await controller.play();
-      }
-    } else {
-      if (controller.value.isPlaying) {
-        await controller.pause();
-      }
-    }
-  }
+  /// ya no autoplay
+  /// el usuario decide cuándo reproducir
+}
 
   Future<void> _togglePlayPause() async {
     final c = _controller;
@@ -668,17 +660,20 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer>
                       child: Container(color: Colors.transparent),
                     ),
                   ),
-
-                  /// ICONO PLAY
-                  if (!c.value.isPlaying)
-                    const Center(
+                /// ICONO PLAY
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: c.value.isPlaying ? 0 : 1,
+                  child: IgnorePointer(
+                    child: const Center(
                       child: Icon(
                         Icons.play_circle_fill,
                         color: Colors.white,
                         size: 70,
                       ),
                     ),
-
+                  ),
+                ),
                   /// BOTÓN MUTE
                   Positioned(
                     bottom: 12,
