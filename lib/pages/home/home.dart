@@ -451,9 +451,14 @@ class _PageHomeState extends State<PageHome> {
       ]);
 
       setState(() {
-        _posts = results[0] as List<Post>;
+        final pagination = results[0] as PostsPagination;
+
+        _posts = pagination.posts;
+        _hasMore = pagination.hasNext;
+
         _postTypes = results[1] as List<PostType>;
         _petTypes = results[2] as List<PetType>;
+
         _isLoading = false;
       });
     } catch (e) {
@@ -883,28 +888,28 @@ class _PageHomeState extends State<PageHome> {
     setState(() => _isLoadingMore = true);
 
     try {
-      final newPosts = await PostsService.getPosts(
-        postType: selectedTypeId,
-        petType: selectedPetTypeId,
-        cityId: selectedCityId,
-        page: _currentPage + 1,
-      );
+final response = await PostsService.getPosts(
+  postType: selectedTypeId,
+  petType: selectedPetTypeId,
+  cityId: selectedCityId,
+  page: _currentPage + 1,
+);
 
-      setState(() {
-        _currentPage++;
+final List<Post> newPosts = response.posts;
 
-        if (newPosts.isEmpty || newPosts.length < 10) {
-          _hasMore = false;
-        }
+setState(() {
+  _currentPage++;
 
-        final existingIds = _posts.map((e) => e.id).toSet();
+  _hasMore = response.hasNext;
 
-        final uniquePosts = newPosts
-            .where((post) => !existingIds.contains(post.id))
-            .toList();
+  final existingIds = _posts.map((e) => e.id).toSet();
 
-        _posts.addAll(uniquePosts);
-      });
+  final uniquePosts = newPosts
+      .where((post) => !existingIds.contains(post.id))
+      .toList();
+
+  _posts.addAll(uniquePosts);
+});
     } catch (e) {
       debugPrint('Error load more: $e');
     } finally {

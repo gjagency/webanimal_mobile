@@ -234,68 +234,100 @@ class Comment {
     );
   }
 }
+class PostsPagination {
+  final List<Post> posts;
+  final String? next;
 
+  PostsPagination({
+    required this.posts,
+    required this.next,
+  });
+
+  bool get hasNext => next != null;
+}
 class PostsService {
   // POSTS GET
-  static Future<List<Post>> getPosts({
-    String? postType,
-    String? petType,
-    String? userId,
-    String? esVeterinaria,
-    String? vet,
-    double? lat,
-    double? lng,
-    String? cityId,
-    int page = 1,
-  }) async {
-    final Map<String, String> queryParams = {};
-
-    if (postType != null) queryParams['posteo_tipo'] = postType;
-    if (petType != null) queryParams['mascota_tipo'] = petType;
-    if (esVeterinaria != null) {
-      queryParams['usuario__veterinaria'] = esVeterinaria;
-    }
-    if (userId != null) queryParams['usuario'] = userId;
-    if (lat != null) queryParams['lat'] = lat.toString();
-    if (lng != null) queryParams['lng'] = lng.toString();
-    if (cityId != null) queryParams['ciudad_id'] = cityId;
-    queryParams['page'] = page.toString();
-
-    // 🔥 paginación
-    queryParams['page'] = page.toString();
-
-    final uri = Uri.parse(
-      '${Config.baseUrl}/api/posteos/',
-    ).replace(queryParameters: queryParams);
-
-    final response = await AuthService.getWithToken(
-      '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
-    );
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-
-      // si django devuelve paginado
-      final List data = decoded is Map ? decoded['results'] : decoded;
-
-      return data.map<Post>((json) => _parsePost(json)).toList();
-    }
-
-    throw Exception('Error al cargar posts: ${response.statusCode}');
-  }
-
-  static Future<List<Post>> getPostsByUser(String userId) async {
+    static Future<List<Post>> getPostsByUser(String userId) async {
     final response = await AuthService.getWithToken(
       '/api/posteos/?usuario=$userId',
     );
 
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((e) => _parsePost(e)).toList(); // ✅ usar TU parser real
+      final decoded = jsonDecode(response.body);
+
+      final List data = decoded is Map
+          ? decoded['results']
+          : decoded;
+
+      return data.map<Post>((json) => _parsePost(json)).toList();
     }
 
-    throw Exception('Error cargando posts del usuario: ${response.statusCode}');
+    throw Exception(
+      'Error cargando posts del usuario: ${response.statusCode}',
+    );
   }
+
+
+static Future<PostsPagination> getPosts({
+  String? postType,
+  String? petType,
+  String? userId,
+  String? esVeterinaria,
+  String? vet,
+  double? lat,
+  double? lng,
+  String? cityId,
+  int page = 1,
+}) async {
+
+  final Map<String, String> queryParams = {};
+
+  if (postType != null) queryParams['posteo_tipo'] = postType;
+  if (petType != null) queryParams['mascota_tipo'] = petType;
+
+  if (esVeterinaria != null) {
+    queryParams['usuario__veterinaria'] = esVeterinaria;
+  }
+
+  if (userId != null) queryParams['usuario'] = userId;
+
+  if (lat != null) queryParams['lat'] = lat.toString();
+  if (lng != null) queryParams['lng'] = lng.toString();
+
+  if (cityId != null) {
+    queryParams['ciudad_id'] = cityId;
+  }
+
+  queryParams['page'] = page.toString();
+
+  final uri = Uri.parse(
+    '${Config.baseUrl}/api/posteos/',
+  ).replace(queryParameters: queryParams);
+
+  final response = await AuthService.getWithToken(
+    '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
+  );
+
+  if (response.statusCode == 200) {
+
+    final decoded = jsonDecode(response.body);
+
+    final List data = decoded['results'];
+
+    final posts = data
+        .map<Post>((json) => _parsePost(json))
+        .toList();
+
+    return PostsPagination(
+      posts: posts,
+      next: decoded['next'],
+    );
+  }
+
+  throw Exception(
+    'Error al cargar posts: ${response.statusCode}',
+  );
+}
 
   static Future<List<Post>> getMisPosts() async {
     final token = await AuthService.getAccessToken();
@@ -563,5 +595,5 @@ static Future<Post> createPost({
           (json['reacciones'] as List?)?.map((e) => e.toString()).toList() ??
           [],
     );
-  }
-}
+  }  }
+

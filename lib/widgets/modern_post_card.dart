@@ -572,11 +572,21 @@ Future<void> _initializeVideo() async {
 
   _loading = false;
 }
-void _handleVisibility(VisibilityInfo info) {
-  _visible = info.visibleFraction > 0.75;
+void _handleVisibility(VisibilityInfo info) async {
+  final c = _controller;
 
-  /// ya no autoplay
-  /// el usuario decide cuándo reproducir
+  if (c == null) return;
+
+  final visible = info.visibleFraction > 0.75;
+
+  /// si sale de pantalla -> pausa
+  if (!visible && c.value.isPlaying) {
+    await c.pause();
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
 }
 
   Future<void> _togglePlayPause() async {
@@ -770,6 +780,7 @@ class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.cover,
+                          filterQuality: FilterQuality.low,
 
                           fadeInDuration: const Duration(milliseconds: 150),
 
