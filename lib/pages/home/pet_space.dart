@@ -226,6 +226,9 @@ class _PagePetSpaceState extends State<PagePetSpace>
   // ---------- LISTA ----------
 
   Widget _buildListView() {
+      final negociosFiltrados = _selectedTab == 0
+      ? _negocios.where((n) => n.servicios.isNotEmpty).toList()
+      : _negocios;
     return RefreshIndicator(
       key: const ValueKey('list'),
       onRefresh: _onRefresh,
@@ -245,10 +248,10 @@ class _PagePetSpaceState extends State<PagePetSpace>
             ),
           ),
             SliverList.separated(
-            itemCount: _negocios.length,
+            itemCount: negociosFiltrados.length,
             separatorBuilder: (_, __) => const SizedBox(height: 1),
             itemBuilder: (context, i) => _NegocioSection(
-            data: _negocios[i],
+            data: negociosFiltrados[i],
             selectedTab: _selectedTab,
           ),
           ),
