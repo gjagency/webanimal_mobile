@@ -379,7 +379,7 @@ void _openImagePopup(BuildContext context, int initialIndex) {
                   /// INFO
                   Positioned(
                     left: 16,
-                    right: 16,
+                    right: 90,
                     bottom: 30,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,60 +396,60 @@ void _openImagePopup(BuildContext context, int initialIndex) {
                             const SizedBox(width: 10),
 
                             GestureDetector(
-  onTap: () {
-    FeedVideoPlayer.pauseAll();
+                              onTap: () {
+                                FeedVideoPlayer.pauseAll();
 
-    Navigator.pop(context);
+                                Navigator.pop(context);
 
-    Future.microtask(() {
-      if (mounted) {
-        context.push('/user-posts/${widget.post.user.id}');
-      }
-    });
-  },
+                                Future.microtask(() {
+                                  if (mounted) {
+                                    context.push('/user-posts/${widget.post.user.id}');
+                                  }
+                                });
+                              },
 
-  child: Text(
-    widget.post.user.displayName,
-    style: const TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      fontSize: 15,
-    ),
-  ),
-),
-                          ],
-                        ),
+                              child: Text(
+                                widget.post.user.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                                                      ],
+                                                    ),
 
-                        const SizedBox(height: 12),
+                                                    const SizedBox(height: 12),
 
-                    Text(
-  widget.post.description,
-  maxLines: 3,
-  overflow: TextOverflow.ellipsis,
-  style: const TextStyle(
-    color: Colors.white,
-    fontSize: 14,
-  ),
-),
-                      
+                                                Text(
+                              widget.post.description,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                                                  
 
-const SizedBox(height: 14),
+                            const SizedBox(height: 14),
 
                         /// VER POST
                         GestureDetector(
                           onTap: () {
-  FeedVideoPlayer.pauseAll();
+                            FeedVideoPlayer.pauseAll();
 
-  Navigator.pop(context);
+                            Navigator.pop(context);
 
-  Future.microtask(() {
-    if (mounted) {
-      GoRouter.of(context).push(
-        '/posts/${widget.post.id}/view',
-      );
-    }
-  });
-},
+                            Future.microtask(() {
+                              if (mounted) {
+                                GoRouter.of(context).push(
+                                  '/posts/${widget.post.id}/view',
+                                );
+                              }
+                            });
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -487,6 +487,115 @@ const SizedBox(height: 14),
                       ],
                     ),
                   ),
+                  /// ACTIONS INSTAGRAM STYLE
+Positioned(
+  right: 20,
+  bottom: 120,
+  child: Column(
+    children: [
+
+      /// LIKE
+      GestureDetector(
+        onTap: () {
+          _toggleLike();
+          setModalState(() {});
+        },
+
+        child: Column(
+          children: [
+            Icon(
+              liked
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+              color: liked
+                  ? Colors.red
+                  : Colors.white,
+              size: 32,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              '${widget.post.likes + likesIncrement}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 26),
+
+      /// COMMENTS
+      GestureDetector(
+        onTap: () {
+          FeedVideoPlayer.pauseAll();
+
+          Navigator.pop(context);
+
+          Future.microtask(() {
+            if (mounted) {
+              GoRouter.of(context).push(
+                '/posts/${widget.post.id}/view',
+              );
+            }
+          });
+        },
+
+        child: Column(
+          children: [
+            const Icon(
+              Icons.chat_bubble_outline,
+              color: Colors.white,
+              size: 30,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              '${widget.post.comments}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 26),
+
+      /// SHARE
+      GestureDetector(
+        onTap: _shareToFacebookFeed,
+
+        child: Column(
+          children: const [
+            Icon(
+              Icons.share,
+              color: Colors.white,
+              size: 30,
+            ),
+
+            SizedBox(height: 4),
+
+            Text(
+              'Compartir',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
                 ],
               ),
             ),
@@ -1727,15 +1836,17 @@ Positioned(
                 ),
               ),
             ),
-            /// ACTIONS INSTAGRAM
+/// ACTIONS INSTAGRAM STYLE
 Positioned(
   right: 20,
   bottom: 120,
   child: Column(
     children: [
+
       /// LIKE
       GestureDetector(
-      onTap: _handleLike,
+        onTap: _handleLike,
+
         child: Column(
           children: [
             Icon(
@@ -1751,7 +1862,7 @@ Positioned(
             const SizedBox(height: 4),
 
             Text(
-              '${localLikes}',
+              '$localLikes',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -1761,57 +1872,67 @@ Positioned(
           ],
         ),
       ),
-const SizedBox(height: 26),
 
-/// COMMENTS
-GestureDetector(
-  onTap: widget.onOpenPost,
-  child: Column(
-    children: [
-      const Icon(
-        Icons.chat_bubble_outline,
-        color: Colors.white,
-        size: 30,
-      ),
+      const SizedBox(height: 26),
 
-      const SizedBox(height: 4),
+      /// COMMENTS
+      GestureDetector(
+        onTap: () async {
+          await _controller.pause();
 
-      Text(
-        '${widget.comments}',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          if (!mounted) return;
+
+          widget.onOpenPost();
+        },
+
+        child: Column(
+          children: [
+            const Icon(
+              Icons.chat_bubble_outline,
+              color: Colors.white,
+              size: 30,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              '${widget.comments}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
-    ],
-  ),
-),
-  const SizedBox(height: 26),
-GestureDetector(
-  onTap: _shareVideo,
-  child: Column(
-    children: const [
-      Icon(
-        Icons.share,
-        color: Colors.white,
-        size: 30,
-      ),
 
-      SizedBox(height: 4),
+      const SizedBox(height: 26),
 
-      Text(
-        'Compartir',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 11,
+      /// SHARE
+      GestureDetector(
+        onTap: _shareVideo,
+
+        child: Column(
+          children: const [
+            Icon(
+              Icons.share,
+              color: Colors.white,
+              size: 30,
+            ),
+
+            SizedBox(height: 4),
+
+            Text(
+              'Compartir',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
       ),
-    ],
-  ),
-),
-    
-
     ],
   ),
 ),

@@ -984,68 +984,357 @@ void _openImageViewer(Post post, int initialIndex) {
         ),
 
         /// ================= MEDIA =================
-        Expanded(
-          child: PageView.builder(
-            controller: pageController,
-            allowImplicitScrolling: false,
-            itemCount: post.medias.length,
+       /// ================= MEDIA =================
+Expanded(
+  child: Stack(
+    children: [
 
-            onPageChanged: (i) {
-              setState(() => currentIndex = i);
-            },
+      /// MEDIA
+      PageView.builder(
+        controller: pageController,
+        allowImplicitScrolling: false,
+        itemCount: post.medias.length,
 
-            itemBuilder: (context, index) {
+        onPageChanged: (i) {
+          setState(() => currentIndex = i);
+        },
 
-              final media = post.medias[index];
+        itemBuilder: (context, index) {
 
-              return Center(
-                child: Hero(
-                  tag:
-                      '${post.id}_${media.id}',
+          final media = post.medias[index];
 
-                  child: media.isVideo
+          return Center(
+            child: Hero(
+              tag: '${post.id}_${media.id}',
 
-                      ? SizedBox.expand(
-                          child:
-                              VideoPlayerWidget(
-                            url: media.url,
-                          ),
-                        )
+              child: media.isVideo
 
-                      : InteractiveViewer(
-                          boundaryMargin:
-                              const EdgeInsets.all(20),
+                  ? SizedBox.expand(
+                      child: VideoPlayerWidget(
+                        url: media.url,
+                      ),
+                    )
 
-                          minScale: 1,
-                          maxScale: 3,
+                  : InteractiveViewer(
+                      boundaryMargin:
+                          const EdgeInsets.all(20),
 
-                          child:
-                             Image.network(
-                            media.url,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (
-                              context,
-                              child,
-                              loadingProgress,
-                            ) {
+                      minScale: 1,
+                      maxScale: 3,
 
-                              if (loadingProgress == null) {
-                                return child;
-                              }
+                      child: Image.network(
+                        media.url,
+                        fit: BoxFit.cover,
 
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              );
-                            },
-                          )
+                        loadingBuilder: (
+                          context,
+                          child,
+                          loadingProgress,
+                        ) {
+
+                          if (loadingProgress == null) {
+                            return child;
+                          }
+
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          );
+        },
+      ),
+
+      /// ================= OVERLAY BOTTOM =================
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            20,
+            16,
+            26,
+          ),
+
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                Colors.black.withOpacity(.85),
+                Colors.transparent,
+              ],
+            ),
+          ),
+
+          child: Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.end,
+
+            children: [
+
+              /// INFO
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
+                  mainAxisSize: MainAxisSize.min,
+
+                  children: [
+
+                    /// USER
+                    Row(
+                      children: [
+
+                        CustomAvatar(
+                          url: post.user.imageUrl,
                         ),
-                ),
-              );
-            },
+
+                        const SizedBox(width: 10),
+
+                        GestureDetector(
+                          onTap: () {
+
+                            Navigator.pop(context);
+
+                            context.push(
+                              '/user-posts/${post.user.id}',
+                            );
+                          },
+
+                          child: Text(
+                            post.user.displayName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight:
+                                  FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    /// DESCRIPTION
+                    if (post.description.isNotEmpty)
+                      Text(
+                        post.description,
+                        maxLines: 3,
+                        overflow:
+                            TextOverflow.ellipsis,
+
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+/// VER PUBLICACION
+GestureDetector(
+  onTap: () {
+
+    Navigator.pop(context);
+
+    context.push(
+      '/posts/${post.id}/view',
+    );
+  },
+
+  child: Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 14,
+      vertical: 10,
+    ),
+
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.15),
+
+      borderRadius:
+          BorderRadius.circular(14),
+
+      border: Border.all(
+        color: Colors.white24,
+      ),
+    ),
+
+    child: const Row(
+      mainAxisSize:
+          MainAxisSize.min,
+
+      children: [
+
+        Icon(
+          Icons.link,
+          color: Colors.white,
+          size: 18,
+        ),
+
+        SizedBox(width: 8),
+
+        Text(
+          'Ver publicación',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
+      ],
+    ),
+  ),
+),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 20),
+
+              /// ACTIONS
+              Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+
+                children: [
+
+                  /// LIKE
+                  GestureDetector(
+                   onTap: () async {
+
+  await PostsService.addReaction(
+    int.parse(post.id),
+    1,
+  );
+
+  await _refresh();
+},
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.favorite_border,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          '${post.likes}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  /// COMMENTS
+                  GestureDetector(
+                    onTap: () {
+
+                      Navigator.pop(context);
+
+                      context.push(
+                        '/posts/${post.id}/view',
+                      );
+                    },
+
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          '${post.comments}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  /// SHARE
+                  GestureDetector(
+                    onTap: () async {
+
+                      if (post.medias.isEmpty) {
+                        return;
+                      }
+
+                      await SharePostHelper
+                          .sharePost(
+                        imageUrl:
+                            post.medias[
+                                    currentIndex]
+                                .url,
+
+                        postType:
+                            post.postType.name,
+
+                        fileName:
+                            'shared_${post.id}',
+                      );
+                    },
+
+                    child: const Column(
+                      children: [
+
+                        Icon(
+                          Icons.share,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+
+                        SizedBox(height: 4),
+
+                        Text(
+                          'Compartir',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  ),
+),
       ],
     ),
   ),
