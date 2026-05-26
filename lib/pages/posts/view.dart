@@ -10,7 +10,8 @@ import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/modern_post_card.dart';
 import 'package:flutter/foundation.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/painting.dart';
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -20,6 +21,8 @@ class PagePostView extends StatefulWidget {
 }
 
 class _PagePostViewState extends State<PagePostView> {
+  final GlobalKey<FeedVideoPlayerState> _videoKey =
+    GlobalKey<FeedVideoPlayerState>();
   int _visibleComments = 10;
   String avatarUrl = '';
   bool loadingProfile = true;
@@ -36,6 +39,7 @@ class _PagePostViewState extends State<PagePostView> {
     super.initState();
     _loadPost();
     _loadProfile();
+    
   }
 
   @override
@@ -79,7 +83,176 @@ class _PagePostViewState extends State<PagePostView> {
       fileName: 'shared_${widget.postId}',
     );
   }
+void _openImagePopup(BuildContext context, int initialIndex) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.92),
+    builder: (context) {
+      double dragOffset = 0;
 
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+
+                /// FONDO
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+
+                /// DRAG
+                GestureDetector(
+                  onVerticalDragUpdate: (details) {
+                    setState(() {
+                      dragOffset += details.delta.dy;
+                    });
+                  },
+
+                  onVerticalDragEnd: (_) {
+                    if (dragOffset.abs() > 140) {
+                      Navigator.pop(context);
+                    } else {
+                      setState(() {
+                        dragOffset = 0;
+                      });
+                    }
+                  },
+
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    transform:
+                        Matrix4.translationValues(0, dragOffset, 0),
+
+                    child: Center(
+                      child: Dialog(
+                        backgroundColor: Colors.transparent,
+                        insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 40,
+                        ),
+
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height * 0.78,
+
+                          child: PageView.builder(
+                            controller: PageController(
+                              initialPage: initialIndex,
+                            ),
+
+                            itemCount: _post!.medias.length,
+
+                            itemBuilder: (context, index) {
+                              final media = _post!.medias[index];
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius:
+                                      BorderRadius.circular(22),
+                                ),
+
+                                child: ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.circular(22),
+
+                                  child: InteractiveViewer(
+                                    minScale: 1,
+                                    maxScale: 4,
+
+                                    child: media.isVideo
+                                        ? Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+
+                                              FeedVideoPlayer(
+                                                url: media.url,
+                                                autoplay: true,
+                                              ),
+
+                                              const Center(
+                                                child: IgnorePointer(
+                                                  child: Icon(
+                                                    Icons.play_circle_fill,
+                                                    color: Colors.white,
+                                                    size: 80,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+
+                                        : CachedNetworkImage(
+                                            imageUrl: media.url,
+                                            fit: BoxFit.contain,
+                                            width: double.infinity,
+                                            height: double.infinity,
+
+                                            placeholder: (_, __) =>
+                                                Container(
+                                              color: Colors.black,
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                            ),
+
+                                            errorWidget:
+                                                (_, __, ___) =>
+                                                    const Icon(
+                                              Icons.broken_image,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                /// CLOSE
+                Positioned(
+                  top: 45,
+                  right: 20,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
   Future<void> _loadPost() async {
     try {
       final results = await Future.wait([
@@ -407,40 +580,97 @@ class _PagePostViewState extends State<PagePostView> {
 
                     const SizedBox(height: 14),
 
-                    // MEDIA
-                    GestureDetector(
-                      child: post.medias.first.isVideo
-                          ? Container(
-                              width: double.infinity,
-                              height: 400,
-                              color: Colors.black,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(0),
-                                child: FeedVideoPlayer(
-                                  url: post.medias.first.url,
-                                ),
-                              ),
-                            )
-                          : Image.network(
-                              post.medias.isNotEmpty
-                                  ? post.medias.first.url
-                                  : "https://via.placeholder.com/400x300?text=Sin+Imagen",
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 300,
-                                  width: double.infinity,
-                                  color: Colors.grey[200],
-                                  child: const Icon(
-                                    Icons.pets,
-                                    size: 100,
-                                    color: Colors.grey,
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
+            // MEDIA
+// MEDIA
+// MEDIA
+post.medias.isNotEmpty && post.medias.first.isVideo
+    ? ClipRect(
+        child: SizedBox(
+          width: double.infinity,
+          height: 400,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.hardEdge,
+            children: [
+
+              /// VIDEO
+              Positioned.fill(
+                child: FeedVideoPlayer(
+  key: _videoKey,
+  url: post.medias.first.url,
+  autoplay: false,
+),
+              ),
+
+              /// TAP SOLO EN EL CENTRO
+              Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                onTap: () async {
+
+  await _videoKey.currentState?.pauseVideo();
+
+  await Navigator.of(context).push(
+   PageRouteBuilder(
+  opaque: false,
+  barrierColor: Colors.black,
+
+  pageBuilder: (_, __, ___) => FullScreenVideoPage(
+    videoUrl: post.medias.first.url,
+
+    liked: post.reacciones.isNotEmpty,
+    likes: post.likes,
+    comments: post.comments,
+
+    userName: post.user.displayName,
+
+    userAvatar:
+        post.user.imageUrl ??
+        'https://i.pravatar.cc/300',
+        description: post.description,
+
+    onLike: () async {
+      await _toggleLike();
+    },
+
+    onOpenPost: () {
+      Navigator.pop(context);
+    },
+  ),
+),
+  );
+
+  _videoKey.currentState?.playVideo();
+},
+
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      )
+
+    : GestureDetector(
+  onTap: () {
+    if (!post.medias.first.isVideo) {
+      _openImagePopup(context, 0);
+    }
+  },
+
+  child: Image.network(
+    post.medias.isNotEmpty
+        ? post.medias.first.url
+        : "https://via.placeholder.com/400x300?text=Sin+Imagen",
+
+    width: double.infinity,
+    fit: BoxFit.cover,
+  ),
+),
                     // Acciones
                     Padding(
                       padding: EdgeInsets.all(16),

@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
+
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -50,8 +51,21 @@ void initState() {
 
 
   // ================= LIKE =================
-  Future<void> _toggleLike() async {
-    await PostsService.addReaction(int.parse(widget.post.id), 1);
+Future<void> _toggleLike() async {
+
+  HapticFeedback.lightImpact();
+
+  setState(() {
+    liked = !liked;
+    likesIncrement += liked ? 1 : -1;
+  });
+
+  try {
+    await PostsService.addReaction(
+      int.parse(widget.post.id),
+      1,
+    );
+  } catch (e) {
 
     if (!mounted) return;
 
@@ -60,6 +74,7 @@ void initState() {
       likesIncrement += liked ? 1 : -1;
     });
   }
+}
 
   // ================= SHARE =================
   Future<File> _createImageWithTexts({
@@ -199,110 +214,261 @@ void initState() {
 
   // ================= POPUP IMAGEN =================
 void _openImagePopup(BuildContext context, int initialIndex) {
+    FeedVideoPlayer.pauseAll();
+  final pageController = PageController(
+    initialPage: initialIndex,
+  );
+
+  int currentIndex = initialIndex;
+
   showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.9),
+    barrierColor: Colors.black.withOpacity(0.95),
     builder: (context) {
-      double dragOffset = 0;
-
       return StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setModalState) {
           return Material(
-            color: Colors.transparent,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(color: Colors.transparent),
-                  ),
-                ),
+            color: Colors.black,
+            child: SafeArea(
+              child: Stack(
+                children: [
 
-                GestureDetector(
-                  onVerticalDragUpdate: (details) {
-                    if (!mounted) return;
+                  /// SLIDER
+                  Positioned.fill(
+                    child: PageView.builder(
+                      controller: pageController,
+                      itemCount: widget.post.medias.length,
 
-                    setState(() {
-                      dragOffset += details.delta.dy;
-                    });
-                  },
-                  onVerticalDragEnd: (details) {
-                    if (dragOffset > 150) {
-                      Navigator.pop(context);
-                    } else {
-                      if (!mounted) return;
+                      onPageChanged: (i) {
+                        setModalState(() {
+                          currentIndex = i;
+                        });
+                      },
 
-                      setState(() {
-                        dragOffset = 0;
-                      });
-                    }
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    transform:
-                        Matrix4.translationValues(0, dragOffset, 0),
-                    child: Center(
-                      child: Dialog(
-                        backgroundColor: Colors.transparent,
-                        insetPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 40,
-                        ),
-                        child: SizedBox(
-                          width:
-                              MediaQuery.of(context).size.width * 0.9,
-                          height:
-                              MediaQuery.of(context).size.height * 0.7,
-                          child: PageView.builder(
-                            controller: PageController(
-                              initialPage: initialIndex,
+                      itemBuilder: (_, index) {
+                        final media = widget.post.medias[index];
+
+                        /// VIDEO
+                        if (media.isVideo) {
+                          return FeedVideoPlayer(
+                            url: media.url,
+                            autoplay: true,
+                          );
+                        }
+
+                        /// IMAGEN
+                        return InteractiveViewer(
+                          minScale: 1,
+                          maxScale: 4,
+                          child: Center(
+                            child: CachedNetworkImage(
+                              imageUrl: media.url,
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+
+                              memCacheWidth: 1600,
+                              maxWidthDiskCache: 1600,
+
+                              placeholder: (_, __) => const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+
+                              errorWidget: (_, __, ___) =>
+                                  const Icon(
+                                Icons.broken_image,
+                                color: Colors.white,
+                                size: 60,
+                              ),
                             ),
-                            itemCount: widget.post.medias.length,
-                            itemBuilder: (context, index) {
-                              final imageUrl =
-                                  widget.post.medias[index];
-
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius:
-                                      BorderRadius.circular(18),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(18),
-                                  child: InteractiveViewer(
-                                    minScale: 1,
-                                    maxScale: 4,
-                                   child: imageUrl.isVideo
-                                  ? Container(
-                                      color: Colors.black,
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.play_circle_fill,
-                                          color: Colors.white,
-                                          size: 80,
-                                        ),
-                                      ),
-                                    )
-                                        : Image.network(
-                                            imageUrl.url,
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                          ),
-                                  ),
-                                ),
-                              );
-                            },
                           ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  /// LOGO TOP CENTER
+                  Positioned(
+                    top: 12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.purple,
+                                  Colors.pink,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Image.asset(
+                              "assets/logo6.png",
+                              width: 18,
+                              height: 18,
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          const Text(
+                            "WeBaNiMaL",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  /// CLOSE
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+
+                  /// CONTADOR
+                  if (widget.post.medias.length > 1)
+                    Positioned(
+                      top: 60,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          '${currentIndex + 1} / ${widget.post.medias.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  /// INFO
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 30,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        /// USER
+                        Row(
+                          children: [
+                            CustomAvatar(
+                              url: widget.post.user.imageUrl ??
+                                  'https://i.pravatar.cc/300',
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            Text(
+                              widget.post.user.displayName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                    Text(
+  widget.post.description,
+  maxLines: 3,
+  overflow: TextOverflow.ellipsis,
+  style: const TextStyle(
+    color: Colors.white,
+    fontSize: 14,
+  ),
+),
+                      
+
+const SizedBox(height: 14),
+
+                        /// VER POST
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+
+                            GoRouter.of(context).push(
+                              '/posts/${widget.post.id}/view',
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white24,
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.link,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+
+                                SizedBox(width: 8),
+
+                                Text(
+                                  'Ver publicación',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -310,13 +476,89 @@ void _openImagePopup(BuildContext context, int initialIndex) {
     },
   );
 }
-
   Widget _buildHeader(Color color, IconData icon) {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          CustomAvatar(url: widget.post.user.imageUrl),
+GestureDetector(
+  onTap: () {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "avatar",
+      barrierColor: Colors.black.withOpacity(0.92),
+      transitionDuration: const Duration(milliseconds: 250),
+
+      pageBuilder: (_, __, ___) {
+        return SafeArea(
+          child: Stack(
+            children: [
+            
+
+              /// IMAGEN
+              Center(
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 4,
+                  child: Container(
+                    width: 320,
+                    height: 320,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 25,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        widget.post.user.imageUrl ??
+                            'https://i.pravatar.cc/300',
+                        fit: BoxFit.cover,
+
+                        errorBuilder: (_, __, ___) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.person,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+          
+            ],
+          ),
+        );
+      },
+
+      transitionBuilder: (_, animation, __, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+    );
+  },
+
+  child: CustomAvatar(
+    url: widget.post.user.imageUrl ??
+        'https://i.pravatar.cc/300',
+  ),
+),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -441,16 +683,37 @@ void _openImagePopup(BuildContext context, int initialIndex) {
             const SizedBox(height: 12),
 
             if (widget.post.medias.isNotEmpty)
-              AutoAdaptiveMediaSlider(
-                medias: widget.post.medias,
-                postId: widget.post.id,
-                currentIndex: _currentImageIndex,
-                onPageChanged: (i) {
-                  setState(() => _currentImageIndex = i);
-                },
-                onImageTap: (index) => _openImagePopup(context, index),
-                onDoubleTap: _toggleLike,
-              ),
+             AutoAdaptiveMediaSlider(
+  medias: widget.post.medias,
+  postId: widget.post.id,
+
+  currentIndex: _currentImageIndex,
+  description: widget.post.description,
+
+  onPageChanged: (i) {
+    setState(() {
+      _currentImageIndex = i;
+    });
+  },
+
+  onImageTap: (index) {
+    _openImagePopup(context, index);
+  },
+
+  onDoubleTap: _toggleLike,
+
+  liked: liked,
+  likes: widget.post.likes + likesIncrement,
+  comments: widget.post.comments,
+
+  onLike: _toggleLike,
+
+  userName: widget.post.user.displayName,
+
+  userAvatar:
+      widget.post.user.imageUrl ??
+      'https://i.pravatar.cc/300',
+),
 
             _buildActions(),
           ],
@@ -473,7 +736,13 @@ void _openImagePopup(BuildContext context, int initialIndex) {
           ),
           Text('${widget.post.likes + likesIncrement}'),
           const SizedBox(width: 20),
-          const Icon(Icons.chat_bubble_outline),
+          GestureDetector(
+  child: Row(
+    children: [
+      const Icon(Icons.chat_bubble_outline),
+    ],
+  ),
+),
           const SizedBox(width: 4),
           Text('${widget.post.comments}'),
           const Spacer(),
@@ -493,245 +762,42 @@ void _openImagePopup(BuildContext context, int initialIndex) {
   }
 }
 
-class FeedVideoPlayer extends StatefulWidget {
-  final String url;
-
-  const FeedVideoPlayer({
-    super.key,
-    required this.url,
-  });
-
-  @override
-  State<FeedVideoPlayer> createState() => _FeedVideoPlayerState();
-}
-
-class _FeedVideoPlayerState extends State<FeedVideoPlayer>
-    with AutomaticKeepAliveClientMixin {
-
-  VideoPlayerController? _controller;
-
-  bool _initialized = false;
-  bool _visible = false;
-  bool _loading = false;
-
-  bool _muted = true;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeVideo();
-  }
-
-Future<void> _initializeVideo() async {
-  if (_controller != null || _loading) return;
-
-  _loading = true;
-
-  try {
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.url),
-      videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: true,
-        allowBackgroundPlayback: false,
-      ),
-    );
-
-    await controller.initialize();
-
-    await controller.setLooping(true);
-    await controller.seekTo(Duration.zero);
-
-    /// 🔇 inicia muteado
-    await controller.setVolume(0);
-    _muted = true;
-
-    /// 👇 ESTO ES LO IMPORTANTE
-    controller.addListener(() {
-      if (mounted) {
-        setState(() {});
-      }
-    });
-
-    if (!mounted) {
-      controller.dispose();
-      return;
-    }
-
-    _controller = controller;
-    _initialized = true;
-
-    setState(() {});
-
-   
-  } catch (e) {
-    debugPrint('VIDEO ERROR: $e');
-  }
-
-  _loading = false;
-}
-void _handleVisibility(VisibilityInfo info) async {
-  final c = _controller;
-
-  if (c == null) return;
-
-  final visible = info.visibleFraction > 0.75;
-
-  /// si sale de pantalla -> pausa
-  if (!visible && c.value.isPlaying) {
-    await c.pause();
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-}
-
-  Future<void> _togglePlayPause() async {
-    final c = _controller;
-    if (c == null) return;
-
-    if (c.value.isPlaying) {
-      await c.pause();
-    } else {
-      await c.play();
-    }
-
-    setState(() {});
-  }
-
-  Future<void> _toggleMute() async {
-    final c = _controller;
-    if (c == null) return;
-
-    _muted = !_muted;
-    await c.setVolume(_muted ? 0 : 1);
-
-    setState(() {});
-  }
-
-  @override
-  void deactivate() {
-    _controller?.pause();
-    super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    final controller = _controller;
-
-    _controller = null;
-    controller?.dispose();
-
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-
-    final c = _controller;
-
-    return VisibilityDetector(
-      key: ValueKey(widget.url),
-      onVisibilityChanged: _handleVisibility,
-      child: Container(
-        color: Colors.black,
-
-        child: _initialized && c != null
-            ? Stack(
-                fit: StackFit.expand,
-                children: [
-
-                  /// VIDEO
-                  ClipRect(
-                    child: OverflowBox(
-                      alignment: Alignment.center,
-                      child: FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: c.value.size.width,
-                          height: c.value.size.height,
-                          child: AspectRatio(
-                            aspectRatio: c.value.aspectRatio,
-                            child: VideoPlayer(c),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  /// TAP PLAY/PAUSE
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: _togglePlayPause,
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                /// ICONO PLAY
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: c.value.isPlaying ? 0 : 1,
-                  child: IgnorePointer(
-                    child: const Center(
-                      child: Icon(
-                        Icons.play_circle_fill,
-                        color: Colors.white,
-                        size: 70,
-                      ),
-                    ),
-                  ),
-                ),
-                  /// BOTÓN MUTE
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: _toggleMute,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _muted ? Icons.volume_off : Icons.volume_up,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Container(
-                color: Colors.black,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-      ),
-    );
-  }
-}
 class AutoAdaptiveMediaSlider extends StatefulWidget {
+  final String description;
   final List<dynamic> medias;
   final String postId;
+
+  final String userName;
+  final String userAvatar;
+
   final int currentIndex;
+
   final Function(int) onPageChanged;
   final Function(int) onImageTap;
+
   final VoidCallback onDoubleTap;
+
+  final bool liked;
+  final int likes;
+  final int comments;
+
+  final VoidCallback onLike;
 
   const AutoAdaptiveMediaSlider({
     super.key,
+    required this.description,
     required this.medias,
     required this.postId,
     required this.currentIndex,
     required this.onPageChanged,
     required this.onImageTap,
     required this.onDoubleTap,
+    required this.liked,
+    required this.likes,
+    required this.comments,
+    required this.onLike,
+    required this.userName,
+    required this.userAvatar,
   });
 
   @override
@@ -739,70 +805,154 @@ class AutoAdaptiveMediaSlider extends StatefulWidget {
       _AutoAdaptiveMediaSliderState();
 }
 
-class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
-  double aspectRatio = 4 / 5;
+class _AutoAdaptiveMediaSliderState
+    extends State<AutoAdaptiveMediaSlider> {
+  final PageController _pageController = PageController();
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: aspectRatio,
+      aspectRatio: 4 / 5,
       child: Stack(
         children: [
           PageView.builder(
+            controller: _pageController,
             allowImplicitScrolling: false,
             padEnds: false,
             pageSnapping: true,
             itemCount: widget.medias.length,
-            onPageChanged: (i) {
-              widget.onPageChanged(i);
 
-             
-            },
+            onPageChanged: widget.onPageChanged,
+
             itemBuilder: (context, index) {
               final media = widget.medias[index];
 
+              /// ================= VIDEO =================
+              if (media.isVideo) {
+                return GestureDetector(
+                  onTap: () async {
+                    /// PAUSAR TODOS LOS VIDEOS DEL FEED
+                    FeedVideoPlayer.pauseAll();
+
+                    await Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: false,
+                        pageBuilder: (_, __, ___) =>
+                            FullScreenVideoPage(
+                          videoUrl: media.url,
+
+                          liked: widget.liked,
+                          likes: widget.likes,
+                          comments: widget.comments,
+
+                          userName: widget.userName,
+                          userAvatar: widget.userAvatar,
+                          description: widget.description,
+
+                          onLike: widget.onLike,
+
+                          onOpenPost: () {
+                            GoRouter.of(context).push(
+                              '/posts/${widget.postId}/view',
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        FeedVideoPlayer(
+                          url: media.url,
+                          autoplay: false,
+                        ),
+
+                        Container(
+                          color: Colors.black.withOpacity(0.12),
+                        ),
+
+                        const Center(
+                          child: Icon(
+                            Icons.play_circle_fill,
+                            color: Colors.white,
+                            size: 80,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              /// ================= IMAGEN =================
               return GestureDetector(
                 onTap: () {
-                  if (!media.isVideo) {
-                    widget.onImageTap(index);
-                  }
+                  widget.onImageTap(index);
                 },
+
                 onDoubleTap: widget.onDoubleTap,
-                child: Hero(
-                  tag: '${widget.postId}_$index',
-                  child: media.isVideo
-                      ? FeedVideoPlayer(url: media.url)
-                      : Container(
-                          color: Colors.white,
-                          child: CachedNetworkImage(
-                          imageUrl: media.url,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.low,
 
-                          fadeInDuration: const Duration(milliseconds: 150),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
 
-                          memCacheWidth: 700,
-                          maxWidthDiskCache: 700,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
 
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey.shade200,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 4,
+
+                      child: CachedNetworkImage(
+                        imageUrl: media.url,
+                        fit: BoxFit.cover,
+
+                        width: double.infinity,
+                        height: double.infinity,
+
+                        memCacheWidth: 1200,
+                        maxWidthDiskCache: 1200,
+
+                        fadeInDuration:
+                            const Duration(milliseconds: 120),
+
+                        fadeOutDuration: Duration.zero,
+
+                        placeholder: (_, __) => Container(
+                          color: Colors.black,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                             ),
                           ),
-
-                          errorWidget: (_, __, ___) =>
-                              const Icon(Icons.broken_image),
-                        )
                         ),
+
+                        errorWidget: (_, __, ___) =>
+                            const Icon(
+                          Icons.broken_image,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
           ),
 
+          /// CONTADOR
           if (widget.medias.length > 1)
             Positioned(
               bottom: 16,
@@ -812,17 +962,814 @@ class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
                   horizontal: 10,
                   vertical: 4,
                 ),
+
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(14),
                 ),
+
                 child: Text(
                   '${widget.currentIndex + 1} / ${widget.medias.length}',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// =======================================================
+/// FEED VIDEO PLAYER
+/// =======================================================
+
+class FeedVideoPlayer extends StatefulWidget {
+  final String url;
+
+  final bool autoplay;
+
+  final VoidCallback? onPause;
+  final VoidCallback? onPlay;
+
+  const FeedVideoPlayer({
+    super.key,
+    required this.url,
+    this.autoplay = true,
+    this.onPause,
+    this.onPlay,
+  });
+
+  /// TODOS LOS VIDEOS ACTIVOS
+  static final List<FeedVideoPlayerState> _instances = [];
+
+  /// PAUSAR TODOS
+static void pauseAll([FeedVideoPlayerState? except]) {
+  for (final instance in _instances) {
+    if (instance != except) {
+      instance.pauseVideo();
+    }
+  }
+}
+  @override
+  State<FeedVideoPlayer> createState() =>
+      FeedVideoPlayerState();
+}
+
+class FeedVideoPlayerState
+    extends State<FeedVideoPlayer> {
+  VideoPlayerController? _controller;
+
+  bool _initialized = false;
+
+  bool _isVisible = false;
+
+  bool _muted = true;
+
+  bool _disposed = false;
+
+  bool _showPlayIcon = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    FeedVideoPlayer._instances.add(this);
+  }
+
+  Future<void> _initialize() async {
+    if (_controller != null || _disposed) return;
+
+    try {
+      final controller =
+          VideoPlayerController.networkUrl(
+        Uri.parse(widget.url),
+
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: false,
+          allowBackgroundPlayback: false,
+        ),
+      );
+
+      await controller.initialize();
+
+      if (_disposed) {
+        controller.dispose();
+        return;
+      }
+
+      await controller.setLooping(true);
+
+      await controller.setVolume(0);
+
+      _controller = controller;
+
+      if (!mounted) return;
+
+      setState(() {
+        _initialized = true;
+      });
+
+      if (_isVisible && widget.autoplay) {
+        FeedVideoPlayer.pauseAll();
+
+        await controller.play();
+
+        if (mounted) {
+          setState(() {
+            _showPlayIcon = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _showPlayIcon = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("VIDEO INIT ERROR: $e");
+    }
+  }
+
+Future<void> playVideo() async {
+  final c = _controller;
+
+  if (c == null) return;
+
+  FeedVideoPlayer.pauseAll(this);
+
+  await c.play();
+
+  if (mounted) {
+    setState(() {
+      _showPlayIcon = false;
+    });
+  }
+}
+
+  Future<void> pauseVideo() async {
+    final c = _controller;
+
+    if (c == null) return;
+
+    await c.pause();
+
+    if (mounted) {
+      setState(() {
+        _showPlayIcon = true;
+      });
+    }
+  }
+
+  void _onVisibilityChanged(
+    VisibilityInfo info,
+  ) async {
+    final visible = info.visibleFraction > 0.70;
+
+    _isVisible = visible;
+
+    if (!visible) {
+      await pauseVideo();
+      return;
+    }
+
+    if (_controller == null) {
+      await _initialize();
+    }
+
+    if (widget.autoplay) {
+      await playVideo();
+    } else {
+      await pauseVideo();
+    }
+  }
+
+  Future<void> _togglePlayPause() async {
+    final c = _controller;
+
+    if (c == null) return;
+
+    if (c.value.isPlaying) {
+      await pauseVideo();
+    } else {
+      await playVideo();
+    }
+  }
+
+  Future<void> _toggleMute() async {
+    final c = _controller;
+
+    if (c == null) return;
+
+    _muted = !_muted;
+
+    await c.setVolume(_muted ? 0 : 1);
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+
+    FeedVideoPlayer._instances.remove(this);
+
+    final controller = _controller;
+
+    _controller = null;
+
+    controller?.pause();
+
+    controller?.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _controller;
+
+    return VisibilityDetector(
+      key: Key(widget.url),
+
+      onVisibilityChanged: _onVisibilityChanged,
+
+      child: Container(
+        color: Colors.black,
+
+        child: !_initialized || c == null
+            ? Container(
+                color: Colors.black,
+
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.cover,
+
+                    child: SizedBox(
+                      width: c.value.size.width,
+                      height: c.value.size.height,
+
+                      child: VideoPlayer(c),
+                    ),
+                  ),
+
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _togglePlayPause,
+                      child: Container(
+                        color: Colors.transparent,
+                      ),
+                    ),
+                  ),
+
+                  AnimatedOpacity(
+                    duration:
+                        const Duration(milliseconds: 180),
+
+                    opacity: _showPlayIcon ? 1 : 0,
+
+                    child: const IgnorePointer(
+                      child: Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 70,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Positioned(
+                    right: 12,
+                    bottom: 12,
+
+                    child: GestureDetector(
+                      onTap: _toggleMute,
+
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+
+                        child: Icon(
+                          _muted
+                              ? Icons.volume_off
+                              : Icons.volume_up,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+class FullScreenVideoPage extends StatefulWidget {
+  final String videoUrl;
+
+  final bool liked;
+  final int likes;
+  final int comments;
+  final String userName;
+  final String userAvatar;
+  final String description;
+  final VoidCallback onLike;
+  final VoidCallback onOpenPost;
+  
+  const FullScreenVideoPage({
+    super.key,
+    required this.videoUrl,
+    required this.liked,
+    required this.likes,
+    required this.comments,
+    required this.userName,
+    required this.userAvatar,
+    required this.description,
+    required this.onLike,
+    required this.onOpenPost,
+
+  });
+
+  @override
+  State<FullScreenVideoPage> createState() =>
+      _FullScreenVideoPageState();
+}
+
+class _FullScreenVideoPageState
+    extends State<FullScreenVideoPage> {
+
+   late VideoPlayerController _controller;
+
+  bool _initialized = false;
+  bool _muted = false;
+
+  bool _showPlayIcon = false;
+
+  bool localLiked = false;
+  int localLikes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    localLiked = widget.liked;
+    localLikes = widget.likes;
+
+    _initialize();
+  }
+void _handleLike() {
+  HapticFeedback.lightImpact();
+
+  setState(() {
+    localLiked = !localLiked;
+    localLikes += localLiked ? 1 : -1;
+  });
+
+  widget.onLike();
+}
+Future<void> _shareVideo() async {
+  try {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+
+    final filePath =
+        '${dir.path}/fullscreen_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+    final file = File(filePath);
+
+    if (!await file.exists()) {
+      final request = await HttpClient().getUrl(
+        Uri.parse(widget.videoUrl),
+      );
+
+      final response = await request.close();
+
+      await response.pipe(file.openWrite());
+    }
+
+    if (mounted) Navigator.pop(context);
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: '🐾 @WeBaNiMaL',
+    );
+  } catch (e) {
+    if (mounted) Navigator.pop(context);
+
+    debugPrint('ERROR SHARE VIDEO: $e');
+  }
+}
+  Future<void> _initialize() async {
+    _controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.videoUrl),
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: true,
+      ),
+    );
+
+    await _controller.initialize();
+
+    await _controller.setLooping(true);
+    await _controller.play();
+
+    if (!mounted) return;
+
+    setState(() {
+      _initialized = true;
+    });
+  }
+Future<void> _togglePlayPause() async {
+  final c = _controller;
+
+  if (c == null) return;
+
+  if (c.value.isPlaying) {
+    await c.pause();
+
+    if (mounted) {
+      setState(() {
+        _showPlayIcon = true;
+      });
+    }
+  } else {
+    await c.play();
+
+    if (mounted) {
+      setState(() {
+        _showPlayIcon = false;
+      });
+    }
+  }
+}
+  Future<void> _toggleMute() async {
+    _muted = !_muted;
+
+    await _controller.setVolume(_muted ? 0 : 1);
+
+    setState(() {});
+  }
+
+@override
+void dispose() {
+  _controller.pause();
+  _controller.dispose();
+  super.dispose();
+}
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+
+      body: GestureDetector(
+      onVerticalDragEnd: (_) async {
+  await _controller.pause();
+
+  if (mounted) {
+    Navigator.pop(context);
+  }
+},
+
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+
+            /// VIDEO
+            if (_initialized)
+              Center(
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                ),
+              )
+            else
+              const Center(
+                child: CircularProgressIndicator(),
+              ),
+
+            /// TAP PLAY
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _togglePlayPause,
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            /// PLAY ICON
+            if (_initialized)
+         AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _showPlayIcon ? 1 : 0,
+                child: const IgnorePointer(
+                  child: Center(
+                    child: Icon(
+                      Icons.play_circle_fill,
+                      color: Colors.white,
+                      size: 90,
+                    ),
+                  ),
+                ),
+              ),
+
+/// LOGO TOP CENTER
+Positioned(
+  top: 50,
+  left: 0,
+  right: 0,
+  child: IgnorePointer(
+    child: Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Colors.purple,
+                  Colors.pink,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Image.asset(
+              "assets/logo6.png",
+              width: 18,
+              height: 18,
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          const Text(
+            "WeBaNiMaL",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+        ],
+      ),
+    ),
+  ),
+),
+
+
+/// INFO BOTTOM
+Positioned(
+  left: 16,
+  right: 90,
+  bottom: 90,
+
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+
+      /// USER
+      Row(
+        children: [
+          CustomAvatar(
+            url: widget.userAvatar,
+          ),
+
+          const SizedBox(width: 10),
+
+          Text(
+            widget.userName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 12),
+
+      /// DESCRIPCION
+      if (widget.description.isNotEmpty)
+        Text(
+          widget.description,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.3,
+          ),
+        ),
+
+      const SizedBox(height: 12),
+
+      /// VER POST
+      GestureDetector(
+        onTap: widget.onOpenPost,
+
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
+
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white24,
+            ),
+          ),
+
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.link,
+                color: Colors.white,
+                size: 18,
+              ),
+
+              SizedBox(width: 8),
+
+              Text(
+                'Ver publicación',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
+/// CLOSE
+Positioned(
+  top: 50,
+  left: 20,
+              child: GestureDetector(
+                onTap: () async {
+                await _controller.pause();
+                
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+
+            /// MUTE
+            Positioned(
+              bottom: 40,
+              right: 20,
+              child: GestureDetector(
+                onTap: _toggleMute,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _muted
+                        ? Icons.volume_off
+                        : Icons.volume_up,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            /// ACTIONS INSTAGRAM
+Positioned(
+  right: 20,
+  bottom: 120,
+  child: Column(
+    children: [
+      /// LIKE
+      GestureDetector(
+      onTap: _handleLike,
+        child: Column(
+          children: [
+            Icon(
+              localLiked
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+              color: localLiked
+                  ? Colors.red
+                  : Colors.white,
+              size: 32,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              '${localLikes}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+const SizedBox(height: 26),
+
+/// COMMENTS
+GestureDetector(
+  onTap: widget.onOpenPost,
+  child: Column(
+    children: [
+      const Icon(
+        Icons.chat_bubble_outline,
+        color: Colors.white,
+        size: 30,
+      ),
+
+      const SizedBox(height: 4),
+
+      Text(
+        '${widget.comments}',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ],
+  ),
+),
+  const SizedBox(height: 26),
+GestureDetector(
+  onTap: _shareVideo,
+  child: Column(
+    children: const [
+      Icon(
+        Icons.share,
+        color: Colors.white,
+        size: 30,
+      ),
+
+      SizedBox(height: 4),
+
+      Text(
+        'Compartir',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+        ),
+      ),
+    ],
+  ),
+),
+    
+
+    ],
+  ),
+),
+          ],
+        ),
       ),
     );
   }
