@@ -617,17 +617,15 @@ post.medias.isNotEmpty && post.medias.first.isVideo
 
   pageBuilder: (_, __, ___) => FullScreenVideoPage(
     videoUrl: post.medias.first.url,
-
     liked: post.reacciones.isNotEmpty,
     likes: post.likes,
     comments: post.comments,
-
     userName: post.user.displayName,
-
     userAvatar:
         post.user.imageUrl ??
         'https://i.pravatar.cc/300',
-        description: post.description,
+    userId: post.user.id,
+    description: post.description,
 
     onLike: () async {
       await _toggleLike();

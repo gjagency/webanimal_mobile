@@ -225,11 +225,11 @@ for (final post in _posts.take(3)) {
                                 "Posts",
                               ),
                               _stat(
-                                _profile?['followers_count']?.toString() ?? "0",
+                                _profile?['followers_count']?.toString() ?? "-",
                                 "Seguidores",
                               ),
                               _stat(
-                                _profile?['following_count']?.toString() ?? "0",
+                                _profile?['following_count']?.toString() ?? "-",
                                 "Siguiendo",
                               ),
                             ],

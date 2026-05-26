@@ -395,14 +395,28 @@ void _openImagePopup(BuildContext context, int initialIndex) {
 
                             const SizedBox(width: 10),
 
-                            Text(
-                              widget.post.user.displayName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
+                            GestureDetector(
+  onTap: () {
+    FeedVideoPlayer.pauseAll();
+
+    Navigator.pop(context);
+
+    Future.microtask(() {
+      if (mounted) {
+        context.push('/user-posts/${widget.post.user.id}');
+      }
+    });
+  },
+
+  child: Text(
+    widget.post.user.displayName,
+    style: const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: 15,
+    ),
+  ),
+),
                           ],
                         ),
 
@@ -424,12 +438,18 @@ const SizedBox(height: 14),
                         /// VER POST
                         GestureDetector(
                           onTap: () {
-                            Navigator.pop(context);
+  FeedVideoPlayer.pauseAll();
 
-                            GoRouter.of(context).push(
-                              '/posts/${widget.post.id}/view',
-                            );
-                          },
+  Navigator.pop(context);
+
+  Future.microtask(() {
+    if (mounted) {
+      GoRouter.of(context).push(
+        '/posts/${widget.post.id}/view',
+      );
+    }
+  });
+},
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -683,38 +703,38 @@ GestureDetector(
             const SizedBox(height: 12),
 
             if (widget.post.medias.isNotEmpty)
-             AutoAdaptiveMediaSlider(
-  medias: widget.post.medias,
-  postId: widget.post.id,
+            AutoAdaptiveMediaSlider(
+                medias: widget.post.medias,
+                postId: widget.post.id,
+                currentIndex: _currentImageIndex,
+                description: widget.post.description,
 
-  currentIndex: _currentImageIndex,
-  description: widget.post.description,
+                onPageChanged: (i) {
+                  setState(() {
+                    _currentImageIndex = i;
+                  });
+                },
 
-  onPageChanged: (i) {
-    setState(() {
-      _currentImageIndex = i;
-    });
-  },
+                onImageTap: (index) {
+                  _openImagePopup(context, index);
+                },
 
-  onImageTap: (index) {
-    _openImagePopup(context, index);
-  },
+                onDoubleTap: _toggleLike,
 
-  onDoubleTap: _toggleLike,
+                liked: liked,
+                likes: widget.post.likes + likesIncrement,
+                comments: widget.post.comments,
 
-  liked: liked,
-  likes: widget.post.likes + likesIncrement,
-  comments: widget.post.comments,
+                onLike: _toggleLike,
 
-  onLike: _toggleLike,
+                userName: widget.post.user.displayName,
 
-  userName: widget.post.user.displayName,
+                userAvatar:
+                    widget.post.user.imageUrl ??
+                    'https://i.pravatar.cc/300',
 
-  userAvatar:
-      widget.post.user.imageUrl ??
-      'https://i.pravatar.cc/300',
-),
-
+                userId: widget.post.user.id,
+              ),
             _buildActions(),
           ],
         ),
@@ -780,7 +800,7 @@ class AutoAdaptiveMediaSlider extends StatefulWidget {
   final bool liked;
   final int likes;
   final int comments;
-
+  final String userId;
   final VoidCallback onLike;
 
   const AutoAdaptiveMediaSlider({
@@ -798,6 +818,7 @@ class AutoAdaptiveMediaSlider extends StatefulWidget {
     required this.onLike,
     required this.userName,
     required this.userAvatar,
+    required this.userId,
   });
 
   @override
@@ -839,6 +860,7 @@ class _AutoAdaptiveMediaSliderState
                   onTap: () async {
                     /// PAUSAR TODOS LOS VIDEOS DEL FEED
                     FeedVideoPlayer.pauseAll();
+                    FeedVideoPlayer.fullscreenOpen = true;
 
                     await Navigator.push(
                       context,
@@ -854,6 +876,7 @@ class _AutoAdaptiveMediaSliderState
 
                           userName: widget.userName,
                           userAvatar: widget.userAvatar,
+                          userId: widget.userId,
                           description: widget.description,
 
                           onLike: widget.onLike,
@@ -1005,7 +1028,7 @@ class FeedVideoPlayer extends StatefulWidget {
 
   /// TODOS LOS VIDEOS ACTIVOS
   static final List<FeedVideoPlayerState> _instances = [];
-
+    static bool fullscreenOpen = false;
   /// PAUSAR TODOS
 static void pauseAll([FeedVideoPlayerState? except]) {
   for (final instance in _instances) {
@@ -1139,6 +1162,11 @@ Future<void> playVideo() async {
 
     if (_controller == null) {
       await _initialize();
+    }
+
+   if (FeedVideoPlayer.fullscreenOpen) {
+    await pauseVideo();
+      return;
     }
 
     if (widget.autoplay) {
@@ -1294,7 +1322,7 @@ class FullScreenVideoPage extends StatefulWidget {
   final String description;
   final VoidCallback onLike;
   final VoidCallback onOpenPost;
-  
+  final String userId;
   const FullScreenVideoPage({
     super.key,
     required this.videoUrl,
@@ -1305,6 +1333,7 @@ class FullScreenVideoPage extends StatefulWidget {
     required this.userAvatar,
     required this.description,
     required this.onLike,
+    required this.userId,
     required this.onOpenPost,
 
   });
@@ -1437,8 +1466,11 @@ Future<void> _togglePlayPause() async {
 
 @override
 void dispose() {
+  FeedVideoPlayer.fullscreenOpen = false;
+
   _controller.pause();
   _controller.dispose();
+
   super.dispose();
 }
   @override
@@ -1561,14 +1593,23 @@ Positioned(
 
           const SizedBox(width: 10),
 
-          Text(
-            widget.userName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
+        GestureDetector(
+      onTap: () async {
+        await _controller.pause();
+
+        if (!mounted) return;
+
+        context.push('/user-posts/${widget.userId}');
+      },
+  child: Text(
+    widget.userName,
+    style: const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: 15,
+    ),
+  ),
+),
         ],
       ),
 
@@ -1591,7 +1632,13 @@ Positioned(
 
       /// VER POST
       GestureDetector(
-        onTap: widget.onOpenPost,
+        onTap: () async {
+  await _controller.pause();
+
+  if (!mounted) return;
+
+  widget.onOpenPost();
+},
 
         child: Container(
           padding: const EdgeInsets.symmetric(
