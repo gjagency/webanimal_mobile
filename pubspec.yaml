@@ -15,7 +15,6 @@ dependencies:
   go_router: ^17.0.1
   image_picker: ^1.2.1
   flutter_dotenv: ^6.0.0
-  shared_preferences: ^2.5.4
   local_auth: ^3.0.0
   http: ^1.6.0
   flutter_secure_storage: ^10.0.0
@@ -39,6 +38,8 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   dio: ^5.8.0+1
+  showcaseview: ^3.0.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
