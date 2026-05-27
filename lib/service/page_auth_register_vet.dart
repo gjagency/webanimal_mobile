@@ -279,13 +279,13 @@ Widget _locationInput() {
 }
 @override
 Widget build(BuildContext context) {
- return PopScope(
-  canPop: false,
-  onPopInvoked: (didPop) {
-    if (!didPop) {
-      GoRouter.of(context).go('/auth/sign_in');
-    }
-  },
+  return PopScope(
+    canPop: false,
+    onPopInvoked: (didPop) {
+      if (!didPop) {
+        GoRouter.of(context).go('/auth/sign_in');
+      }
+    },
     child: Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -301,7 +301,7 @@ Widget build(BuildContext context) {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Form(
               key: _formKey,
               child: Column(
@@ -310,11 +310,14 @@ Widget build(BuildContext context) {
                   Row(
                     children: [
                       IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                         onPressed: () =>
                             GoRouter.of(context).go('/auth/sign_in'),
                         icon: const Icon(
                           Icons.arrow_back_ios_new_rounded,
                           color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ],
@@ -325,51 +328,38 @@ Widget build(BuildContext context) {
                   /// LOGO + TITLE
                   Column(
                     children: [
-                      Container(
-                        height: 90,
-                        width: 90,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.pets_rounded,
-                          size: 42,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 10),
                       Text(
                         'Registrar Comercio',
                         style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        'Completá tus datos para comenzar',
+                        'Completá tus datos',
                         style: GoogleFonts.poppins(
                           color: Colors.white.withOpacity(.85),
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 12),
 
                   /// CARD
                   Container(
-                    padding: const EdgeInsets.all(22),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(.12),
-                          blurRadius: 25,
-                          offset: const Offset(0, 10),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -382,7 +372,7 @@ Widget build(BuildContext context) {
                           darkMode: true,
                           validator: _required,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         _styledInput(
                           _passwordController,
@@ -396,7 +386,7 @@ Widget build(BuildContext context) {
                                   ? null
                                   : 'Mínimo 6 caracteres',
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         _styledInput(
                           _nombreController,
@@ -405,7 +395,7 @@ Widget build(BuildContext context) {
                           darkMode: true,
                           validator: _required,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         _styledInput(
                           _telefonoController,
@@ -413,7 +403,7 @@ Widget build(BuildContext context) {
                           Icons.phone_outlined,
                           darkMode: true,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         _styledInput(
                           _direccionController,
@@ -422,27 +412,25 @@ Widget build(BuildContext context) {
                           darkMode: true,
                         ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 12),
 
                         _locationInput(),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         _imagePickerCard(),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 14),
 
                         SizedBox(
                           width: double.infinity,
-                          height: 56,
+                          height: 50,
                           child: ElevatedButton(
                             onPressed: _loading ? null : _submit,
                             style: ElevatedButton.styleFrom(
-                              elevation: 0,
                               backgroundColor: const Color(0xFF9B4DCC),
-                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                             ),
                             child: _loading
@@ -452,8 +440,7 @@ Widget build(BuildContext context) {
                                 : const Text(
                                     'Crear cuenta',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                     color: Colors.white,
                                     ),
                                   ),
                           ),

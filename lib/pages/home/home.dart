@@ -10,14 +10,15 @@ import 'package:mobile_app/widgets/promociones_por_veterinaria_list.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/widgets/active_filter_chip.dart';
 import 'package:mobile_app/widgets/filter_bottom_sheet.dart';
 import 'package:mobile_app/widgets/posts_feed.dart';
 import 'package:mobile_app/widgets/quick_filter_chip.dart';
-
+import 'package:showcaseview/showcaseview.dart';
+import 'package:intl/intl.dart';
 class PageHome extends StatefulWidget {
   const PageHome({super.key});
 
@@ -27,6 +28,9 @@ class PageHome extends StatefulWidget {
 
 class _PageHomeState extends State<PageHome> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _crearPostKey = GlobalKey();
+  bool _canShowTutorial = false;
+  bool _showcaseStarted = false;
   bool _hideTopSection = false;
   double _lastOffset = 0;
   int _currentPage = 1;
@@ -54,9 +58,13 @@ class _PageHomeState extends State<PageHome> {
   @override
   void initState() {
     super.initState();
+
+    _checkShowcase();
+
     _init();
     _loadProfile();
-    _loadData(); // carga normal sin ubicación
+    _loadData();
+
     _scrollController.addListener(_onScroll);
   }
 
@@ -72,7 +80,19 @@ class _PageHomeState extends State<PageHome> {
       esVeterinariaLogueada = AuthService.esVeterinaria;
     });
   }
+Future<void> _checkShowcase() async {
+  final prefs = await SharedPreferences.getInstance();
 
+  int count = prefs.getInt('home_showcase_count') ?? 0;
+
+  if (count < 3) {
+    setState(() {
+      _canShowTutorial = true;
+    });
+
+    await prefs.setInt('home_showcase_count', count + 1);
+  }
+}
   Future<void> _getCurrentLocation() async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
@@ -560,50 +580,62 @@ class _PageHomeState extends State<PageHome> {
         selectedPetTypeId != null ||
         selectedCityId != null ||
         selectedDateRange != null;
+    return ShowCaseWidget(
+      builder: (showcaseContext) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_canShowTutorial && !_showcaseStarted) {
+        _showcaseStarted = true;
+
+        ShowCaseWidget.of(
+          showcaseContext,
+        ).startShowCase([_crearPostKey]);
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         titleSpacing: 8,
         title: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Logo con gradiente
-    Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Logo con gradiente
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset(
+                "assets/logo6.png",
+                width: 22,
+                height: 22,
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // Texto que NO rompe el layout
+            Expanded(
+              child: Text(
+                "WebAnimal",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Ejemplo de icono a la derecha
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Image.asset(
-        "assets/logo6.png",
-        width: 22,
-        height: 22,
-      ),
-    ),
-
-    const SizedBox(width: 10),
-
-    // Texto que NO rompe el layout
-    Expanded(
-      child: Text(
-        "WebAnimal",
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    ),
-
-    // Ejemplo de icono a la derecha
-    IconButton(
-      onPressed: () {},
-      icon: const Icon(Icons.notifications),
-    ),
-  ],
-),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -822,19 +854,49 @@ class _PageHomeState extends State<PageHome> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            
                           ),
 
                           const SizedBox(width: 8),
 
                           Icon(Icons.map, color: Colors.white, size: 24),
                         ],
+                        
                       ),
+                      
                     );
                   },
                 ),
               ),
             ),
 
+      GestureDetector(
+        onTap: () async {
+          await launchUrl(
+            Uri.parse('https://www.instagram.com/webanimalok/'),
+            mode: LaunchMode.externalApplication,
+          );
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            FaIcon(
+              FontAwesomeIcons.instagram,
+              color: Colors.pink,
+              size: 18,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Seguinos @webanimalok',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
+        ),
+      ),
           /// =========================
           /// FEED
           /// =========================
@@ -863,6 +925,7 @@ class _PageHomeState extends State<PageHome> {
           right: 0,
         ), // ajusta al borde inferior y derecho
         child: SpeedDialCustom(
+          showcaseKey: _crearPostKey,
           onCrearPromocion: AuthService.esVeterinaria
               ? _mostrarCrearPromocionDialog
               : null,
@@ -879,6 +942,8 @@ class _PageHomeState extends State<PageHome> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+        );
+      },
     );
   }
 
@@ -924,9 +989,14 @@ setState(() {
 class SpeedDialCustom extends StatefulWidget {
   final VoidCallback? onCrearPromocion;
   final VoidCallback? onCrearPost;
+  final GlobalKey? showcaseKey;
 
-  const SpeedDialCustom({super.key, this.onCrearPromocion, this.onCrearPost});
-
+  const SpeedDialCustom({
+  super.key,
+  this.onCrearPromocion,
+  this.onCrearPost,
+  this.showcaseKey, 
+  });
   @override
   State<SpeedDialCustom> createState() => _SpeedDialCustomState();
 }
@@ -956,7 +1026,7 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
     }
 
     if (widget.onCrearPost != null) {
-      buttons.add(
+        buttons.add(
         _buildActionButton(
           icon: Icons.post_add,
           label: 'Crear Post',
@@ -1003,14 +1073,54 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
               ),
               const SizedBox(height: 8),
               // Botón principal
-              _fab(
-                icon: _isOpen ? Icons.close : Icons.add,
-                onTap: _toggleMenu,
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.pink],
-                ),
-                isMain: true,
-              ),
+Showcase(
+  key: widget.showcaseKey ?? GlobalKey(),
+
+  title: '🐾 CONCURSO WEBANIMAL 🐾',
+
+  description:
+      'Subí una foto de tu mascota desde el menú tipo de publicación (Concurso) y participá automáticamente. El post con más likes al final de ${DateFormat('MMMM', 'es_ES').format(DateTime.now())} gana un premio para su mascota 🎁',
+
+  titleTextStyle: const TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w900,
+    color: Colors.black,
+  ),
+
+  descTextStyle: const TextStyle(
+    fontSize: 15,
+    height: 1.4,
+    color: Colors.black87,
+    fontWeight: FontWeight.w500,
+  ),
+
+  tooltipBackgroundColor: Colors.white,
+  overlayColor: Colors.black54,
+  textColor: Colors.black,
+
+  targetBorderRadius: BorderRadius.circular(30),
+  tooltipBorderRadius: BorderRadius.circular(24),
+
+  tooltipPadding: const EdgeInsets.symmetric(
+    horizontal: 22,
+    vertical: 20,
+  ),
+
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _fab(
+        icon: _isOpen ? Icons.close : Icons.add,
+        onTap: _toggleMenu,
+        gradient: const LinearGradient(
+          colors: [Colors.purple, Colors.pink],
+        ),
+        isMain: true,
+      ),
+    ],
+  ),
+),
+              
             ],
           ),
         ),
@@ -1018,26 +1128,30 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Column(
+Widget _buildActionButton({
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black26,
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -1046,9 +1160,13 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.black87,
+              fontSize: 15,
             ),
           ),
         ),
+
+        const SizedBox(width: 12),
+
         _fab(
           icon: icon,
           onTap: onTap,
@@ -1057,9 +1175,9 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
           ),
         ),
       ],
-    );
-  }
-
+    ),
+  );
+}
   Widget _fab({
     required IconData icon,
     required VoidCallback onTap,
