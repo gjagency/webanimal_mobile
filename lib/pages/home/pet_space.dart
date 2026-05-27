@@ -1268,11 +1268,14 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+return SafeArea(
+  child: Container(
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    child: SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
@@ -1293,12 +1296,16 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               ),
             ),
           ),
+
           const SizedBox(height: 16),
+
           const Text(
             'Cambiar ubicación',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 16),
+
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Container(
@@ -1312,8 +1319,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
             title: const Text('Usar mi ubicación actual'),
             onTap: _useCurrentLocation,
           ),
+
           const Divider(),
+
           const SizedBox(height: 8),
+
           TextField(
             controller: _controller,
             decoration: InputDecoration(
@@ -1335,12 +1345,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
             onSubmitted: _search,
-            textInputAction: TextInputAction.search,
           ),
+
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(color: Colors.red)),
           ],
+
           if (_results.isNotEmpty) ...[
             const SizedBox(height: 8),
             ..._results.map(
@@ -1358,10 +1369,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               ),
             ),
           ],
-          const SizedBox(height: 8),
+
+          const SizedBox(height: 12),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

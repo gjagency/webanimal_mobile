@@ -63,33 +63,47 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activa el GPS para continuar')),
-        );
-        return;
-      }
+        if (!serviceEnabled) {
+          if (!mounted) return;
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permiso de ubicación denegado')),
-          );
+          final opened = await Geolocator.openLocationSettings();
+
+          if (opened) {
+            await Future.delayed(const Duration(seconds: 2));
+            return _getCurrentLocation(); // reintenta
+          }
+
           return;
         }
-      }
 
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Permiso de ubicación denegado permanentemente, activa desde ajustes')),
-        );
-        return;
-      }
+      LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
 
+          if (permission == LocationPermission.denied) {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permiso de ubicación denegado')),
+            );
+
+            GoRouter.of(context).push('/auth/sign_in');
+            return;
+          }
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permiso denegado permanentemente'),
+            ),
+          );
+
+          GoRouter.of(context).push('/auth/sign_in');
+          return;
+        }
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
@@ -144,7 +158,7 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
             ),
           ),
         );
-        GoRouter.of(context).go('/auth/sign_in');
+        GoRouter.of(context).push('/auth/sign_in');
       }
     } catch (e) {
       _showError(e.toString());
@@ -265,182 +279,190 @@ Widget _locationInput() {
 }
 @override
 Widget build(BuildContext context) {
-  return Scaffold(
-    resizeToAvoidBottomInset: true,
-    body: Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF9B4DCC),
-            Color(0xFFE0528D),
-          ],
+ return PopScope(
+  canPop: false,
+  onPopInvoked: (didPop) {
+    if (!didPop) {
+      GoRouter.of(context).go('/auth/sign_in');
+    }
+  },
+    child: Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF9B4DCC),
+              Color(0xFFE0528D),
+            ],
+          ),
         ),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                /// BACK
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () =>
-                          GoRouter.of(context).go('/auth/sign_in'),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                /// LOGO + TITLE
-                Column(
-                  children: [
-                    Container(
-                      height: 90,
-                      width: 90,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.pets_rounded,
-                        size: 42,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Registrar veterinaria',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'Completá tus datos para comenzar',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white.withOpacity(.85),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 28),
-
-                /// CARD
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(.12),
-                        blurRadius: 25,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  /// BACK
+                  Row(
                     children: [
-                      _styledInput(
-                        _emailController,
-                        'Email',
-                        Icons.email_outlined,
-                        darkMode: true,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 14),
-
-                      _styledInput(
-                        _passwordController,
-                        'Contraseña',
-                        Icons.lock_outline,
-                        obscure: _obscurePassword,
-                        isPassword: true,
-                        darkMode: true,
-                        validator: (v) =>
-                            v != null && v.length >= 6
-                                ? null
-                                : 'Mínimo 6 caracteres',
-                      ),
-                      const SizedBox(height: 14),
-
-                      _styledInput(
-                        _nombreController,
-                        'Nombre comercial',
-                        Icons.storefront_outlined,
-                        darkMode: true,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 14),
-
-                      _styledInput(
-                        _telefonoController,
-                        'Teléfono',
-                        Icons.phone_outlined,
-                        darkMode: true,
-                      ),
-                      const SizedBox(height: 14),
-
-                      _styledInput(
-                        _direccionController,
-                        'Dirección',
-                        Icons.location_city_outlined,
-                        darkMode: true,
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      _locationInput(),
-
-                      const SizedBox(height: 20),
-
-                      _imagePickerCard(),
-
-                      const SizedBox(height: 24),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: const Color(0xFF9B4DCC),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                          ),
-                          child: _loading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : const Text(
-                                  'Crear cuenta',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                      IconButton(
+                        onPressed: () =>
+                            GoRouter.of(context).go('/auth/sign_in'),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 10),
+
+                  /// LOGO + TITLE
+                  Column(
+                    children: [
+                      Container(
+                        height: 90,
+                        width: 90,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.pets_rounded,
+                          size: 42,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Registrar Comercio',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Completá tus datos para comenzar',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white.withOpacity(.85),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  /// CARD
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(.12),
+                          blurRadius: 25,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _styledInput(
+                          _emailController,
+                          'Email',
+                          Icons.email_outlined,
+                          darkMode: true,
+                          validator: _required,
+                        ),
+                        const SizedBox(height: 14),
+
+                        _styledInput(
+                          _passwordController,
+                          'Contraseña',
+                          Icons.lock_outline,
+                          obscure: _obscurePassword,
+                          isPassword: true,
+                          darkMode: true,
+                          validator: (v) =>
+                              v != null && v.length >= 6
+                                  ? null
+                                  : 'Mínimo 6 caracteres',
+                        ),
+                        const SizedBox(height: 14),
+
+                        _styledInput(
+                          _nombreController,
+                          'Nombre comercial',
+                          Icons.storefront_outlined,
+                          darkMode: true,
+                          validator: _required,
+                        ),
+                        const SizedBox(height: 14),
+
+                        _styledInput(
+                          _telefonoController,
+                          'Teléfono',
+                          Icons.phone_outlined,
+                          darkMode: true,
+                        ),
+                        const SizedBox(height: 14),
+
+                        _styledInput(
+                          _direccionController,
+                          'Dirección',
+                          Icons.location_city_outlined,
+                          darkMode: true,
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        _locationInput(),
+
+                        const SizedBox(height: 20),
+
+                        _imagePickerCard(),
+
+                        const SizedBox(height: 24),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: const Color(0xFF9B4DCC),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: _loading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    'Crear cuenta',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

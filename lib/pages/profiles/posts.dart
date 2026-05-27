@@ -301,14 +301,12 @@ SliverGrid(
                       )
 
                     : media.isVideo
-
-                        ? Stack(
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(0),
+                          child: Stack(
                             fit: StackFit.expand,
                             children: [
-
-                              Container(
-                                color: Colors.black,
-                              ),
+                              VideoThumbnail(url: media.url),
 
                               const Center(
                                 child: Icon(
@@ -318,7 +316,8 @@ SliverGrid(
                                 ),
                               ),
                             ],
-                          )
+                          ),
+                        )
 
                         : Image.network(
                             media.url,
@@ -1194,8 +1193,7 @@ GestureDetector(
       ],
     ),
   ),
-),
-                  ],
+),                  ],
                 ),
               ),
 
@@ -1572,6 +1570,77 @@ class _VideoPlayerWidgetState
             ),
           ),
         ],
+      ),
+    );
+  }
+}class VideoThumbnail extends StatefulWidget {
+  final String url;
+
+  const VideoThumbnail({super.key, required this.url});
+
+  @override
+  State<VideoThumbnail> createState() => _VideoThumbnailState();
+}
+
+class _VideoThumbnailState extends State<VideoThumbnail> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final c = VideoPlayerController.networkUrl(
+        Uri.parse(widget.url),
+      );
+
+      await c.initialize();
+
+      // Ir al primer frame
+      await c.seekTo(Duration.zero);
+      await c.pause();
+
+      if (!mounted) {
+        await c.dispose();
+        return;
+      }
+
+      setState(() {
+        _controller = c;
+        _ready = true;
+      });
+    } catch (e) {
+      debugPrint("Thumbnail error: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready || _controller == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    return FittedBox(
+      fit: BoxFit.cover,
+      child: SizedBox(
+        width: _controller!.value.size.width,
+        height: _controller!.value.size.height,
+        child: VideoPlayer(_controller!),
       ),
     );
   }
