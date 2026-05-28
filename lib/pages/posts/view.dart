@@ -797,109 +797,115 @@ post.medias.isNotEmpty && post.medias.first.isVideo
                 ),
 
           if (_isCommenting) _buildCommentOverlay(),
-        ],
-      ),
-      bottomNavigationBar: AnimatedPadding(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          color: Colors.white,
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                CustomAvatar(url: avatarUrl),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    maxLength: 256,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _addComment(),
-                    decoration: InputDecoration(
-                      hintText: 'Escribe un comentario...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.purple, Colors.pink],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _addComment,
-                  ),
-                ),
               ],
+            ),
+            bottomNavigationBar: AnimatedPadding(
+              duration: const Duration(milliseconds: 150),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.white,
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      CustomAvatar(url: avatarUrl),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          maxLength: 256,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _addComment(),
+                          decoration: InputDecoration(
+                            hintText: 'Escribe un comentario...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.purple, Colors.pink],
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.white),
+                          onPressed: _addComment,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        Widget _buildCommentOverlay() {
+          return Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.4),
+              child: Center(
+                child: Container(
+                  width: 220,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ValueListenableBuilder<double>(
+            valueListenable: _commentProgress,
+            builder: (_, value, __) => SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(
+                value: _commentMessage == 'Comentando...'
+                    ? (value == 0 ? null : value)
+                    : 1,
+                strokeWidth: 4,
+                color: Colors.purple,
+                backgroundColor: Colors.purple.shade50,
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildCommentOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.4),
-        child: Center(
-          child: Container(
-            width: 220,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 16),
+
+          Flexible(
+            child: Text(
+              _commentMessage,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ValueListenableBuilder<double>(
-                  valueListenable: _commentProgress,
-                  builder: (_, value, __) => SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: CircularProgressIndicator(
-                      value: _commentMessage == 'Comentando...'
-                          ? (value == 0 ? null : value)
-                          : 1,
-                      strokeWidth: 4,
-                      color: Colors.purple,
-                      backgroundColor: Colors.purple.shade50,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _commentMessage,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+          ),
+        ],
+      ),
           ),
         ),
       ),
