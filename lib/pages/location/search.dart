@@ -13,6 +13,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
   final TextEditingController _searchController = TextEditingController();
   List<LocationResult> _results = [];
   bool _isSearching = false;
+  bool _hasSearched = false;
   Timer? _debounce;
 
   @override
@@ -22,29 +23,54 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
+void _onSearchChanged(String query) {
+  setState(() {});
 
-    if (query.isEmpty) {
-      setState(() {
-        _results = [];
-        _isSearching = false;
-      });
-      return;
-    }
+  if (_debounce?.isActive ?? false) {
+    _debounce!.cancel();
+  }
 
-    setState(() => _isSearching = true);
+  final trimmed = query.trim();
 
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final results = await LocationService.searchLocation(query);
-      if (mounted) {
+  if (trimmed.isEmpty) {
+    setState(() {
+      _results = [];
+      _isSearching = false;
+      _hasSearched = false;
+    });
+    return;
+  }
+
+  setState(() {
+    _isSearching = true;
+    _hasSearched = true;
+  });
+
+  _debounce = Timer(
+    const Duration(milliseconds: 500),
+    () async {
+      try {
+        final results = await LocationService.searchLocation(
+          trimmed,
+        );
+
+        if (!mounted) return;
+
         setState(() {
           _results = results;
           _isSearching = false;
         });
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _results = [];
+          _isSearching = false;
+        });
       }
-    });
-  }
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -68,17 +94,26 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
           onChanged: _onSearchChanged,
         ),
         actions: [
-          if (_searchController.text.isNotEmpty)
-            IconButton(
-              icon: Icon(Icons.clear, color: Colors.grey),
-              onPressed: () {
-                _searchController.clear();
-                setState(() {
-                  _results = [];
-                  _isSearching = false;
-                });
-              },
-            ),
+        if (_searchController.text.isNotEmpty)
+        IconButton(
+          icon: const Icon(
+            Icons.clear,
+            color: Colors.grey,
+          ),
+          onPressed: () {
+            _searchController.clear();
+
+            FocusScope.of(context).requestFocus(
+              FocusNode(),
+            );
+
+            setState(() {
+              _results = [];
+              _isSearching = false;
+              _hasSearched = false;
+            });
+          },
+        ),
         ],
       ),
       body: Column(
@@ -91,7 +126,7 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                 child: CircularProgressIndicator(color: Colors.purple),
               ),
             )
-          else if (_results.isEmpty && _searchController.text.isNotEmpty)
+         else if (_results.isEmpty && _hasSearched)
             Padding(
               padding: EdgeInsets.all(16),
               child: Center(
@@ -150,7 +185,9 @@ class _LocationSearchPageState extends State<LocationSearchPage> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 14),
                         ),
-                        onTap: () {
+                       onTap: () async {
+                          FocusScope.of(context).unfocus();
+
                           Navigator.pop(context, result);
                         },
                       ),

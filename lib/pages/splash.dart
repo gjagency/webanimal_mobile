@@ -111,54 +111,64 @@ return Scaffold(
                 ),
 
                 // W
-                Positioned(
-                  left: 50,
-                  top: 10,
-                  child: Transform.rotate(
-                    angle: -0.00,
-                    child: Text(
-                      'W',
-                      style: GoogleFonts.cormorantGaramond(
-                        color: Colors.white,
-                        fontSize: 185,
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w700,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(3, 3),
-                          ),
-                        ],
-                      ),
-                    ),
+// WA centrado automáticamente
+Align(
+  alignment: Alignment.center,
+  child: Transform.translate(
+    offset: const Offset(0, -8),
+    child: SizedBox(
+      width: 220,
+     height: 260,
+      child: Stack(
+        children: [
+          // W
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Text(
+              'W',
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.white,
+                fontSize: 185,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w700,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(3, 3),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ),
 
-                // A
-                Positioned(
-                  left: 125,
-                  top: 62,
-                  child: Transform.rotate(
-                    angle: -0.00,
-                    child: Text(
-                      'A',
-                      style: GoogleFonts.cormorantGaramond(
-                        color: Colors.white,
-                        fontSize: 175,
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w700,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(3, 3),
-                          ),
-                        ],
-                      ),
-                    ),
+          // A
+          Positioned(
+            left: 82,
+            top: 50,
+            child: Text(
+              'A',
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.white,
+                fontSize: 175,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w700,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(3, 3),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+),
               ],
             ),
           ),

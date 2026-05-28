@@ -29,6 +29,8 @@ class PageHome extends StatefulWidget {
 class _PageHomeState extends State<PageHome> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _crearPostKey = GlobalKey();
+  final GlobalKey _filtrosKey = GlobalKey();
+  final GlobalKey _petSpaceKey = GlobalKey();
   bool _canShowTutorial = false;
   bool _showcaseStarted = false;
   bool _hideTopSection = false;
@@ -85,7 +87,7 @@ Future<void> _checkShowcase() async {
 
   int count = prefs.getInt('home_showcase_count') ?? 0;
 
-  if (count < 3) {
+  if (count < 30) {
     setState(() {
       _canShowTutorial = true;
     });
@@ -586,9 +588,13 @@ Future<void> _checkShowcase() async {
       if (_canShowTutorial && !_showcaseStarted) {
         _showcaseStarted = true;
 
-        ShowCaseWidget.of(
-          showcaseContext,
-        ).startShowCase([_crearPostKey]);
+       ShowCaseWidget.of(
+  showcaseContext,
+).startShowCase([
+  _crearPostKey,
+  _filtrosKey,
+  _petSpaceKey,
+]);
       }
     });
 
@@ -629,11 +635,19 @@ Future<void> _checkShowcase() async {
               ),
             ),
 
-            // Ejemplo de icono a la derecha
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications),
+           IconButton(
+            onPressed: () async {
+              await launchUrl(
+                Uri.parse('https://www.instagram.com/webanimalok/'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+            icon: const FaIcon(
+              FontAwesomeIcons.instagram,
+              color: Colors.pink,
+              size: 24,
             ),
+          ),
           ],
         ),
         actions: [
@@ -743,13 +757,47 @@ Future<void> _checkShowcase() async {
                           ),
                         ),
 
-                        IconButton(
-                          icon: const Icon(Icons.tune_rounded),
-                          onPressed: _showFilterBottomSheet,
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.grey[100],
-                          ),
-                        ),
+                      Showcase(
+  key: _filtrosKey,
+
+  title: '⚡ FILTROS',
+
+  description:
+      'Encontrá publicaciones mucho más rápido usando filtros.',
+
+  titleTextStyle: const TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w900,
+    color: Colors.black,
+  ),
+
+  descTextStyle: const TextStyle(
+    fontSize: 15,
+    height: 1.4,
+    color: Colors.black87,
+    fontWeight: FontWeight.w500,
+  ),
+
+  tooltipBackgroundColor: Colors.white,
+  overlayColor: Colors.black54,
+  textColor: Colors.black,
+
+  targetBorderRadius: BorderRadius.circular(18),
+  tooltipBorderRadius: BorderRadius.circular(24),
+
+  tooltipPadding: const EdgeInsets.symmetric(
+    horizontal: 22,
+    vertical: 20,
+  ),
+
+  child: IconButton(
+    icon: const Icon(Icons.tune_rounded),
+    onPressed: _showFilterBottomSheet,
+    style: IconButton.styleFrom(
+      backgroundColor: Colors.grey[100],
+    ),
+  ),
+),
                       ],
                     ),
                   ),
@@ -809,9 +857,43 @@ Future<void> _checkShowcase() async {
           /// DESCUENTOS (SIEMPRE FIJO)
           /// =========================
           if (selectedTypeId == null && !AuthService.esVeterinaria)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: GestureDetector(
+            Showcase(
+              key: _petSpaceKey,
+              showArrow: true,
+
+              title: '🐶 TODO PARA TU MASCOTA',
+
+              description:
+                  'Encontrá veterinarias, espacios pet friendly y promociones cerca tuyo.',
+
+              titleTextStyle: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+              ),
+
+              descTextStyle: const TextStyle(
+                fontSize: 15,
+                height: 1.4,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+
+              tooltipBackgroundColor: Colors.white,
+              overlayColor: Colors.black54,
+              textColor: Colors.black,
+
+              targetBorderRadius: BorderRadius.circular(18),
+              tooltipBorderRadius: BorderRadius.circular(24),
+
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 22,
+                vertical: 20,
+              ),
+
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: GestureDetector(
                 onTap: () {
                   context.push('/home/pet_spaces');
                 },
@@ -868,35 +950,8 @@ Future<void> _checkShowcase() async {
                   },
                 ),
               ),
-            ),
+            ),),
 
-      GestureDetector(
-        onTap: () async {
-          await launchUrl(
-            Uri.parse('https://www.instagram.com/webanimalok/'),
-            mode: LaunchMode.externalApplication,
-          );
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            FaIcon(
-              FontAwesomeIcons.instagram,
-              color: Colors.pink,
-              size: 18,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Seguinos @webanimalok',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ],
-        ),
-      ),
           /// =========================
           /// FEED
           /// =========================
@@ -1073,53 +1128,53 @@ class _SpeedDialCustomState extends State<SpeedDialCustom>
               ),
               const SizedBox(height: 8),
               // Botón principal
-Showcase(
-  key: widget.showcaseKey ?? GlobalKey(),
+              Showcase(
+                key: widget.showcaseKey ?? GlobalKey(),
 
-  title: '🐾 CONCURSO WEBANIMAL 🐾',
+                title: '🐾 CONCURSO WEBANIMAL 🐾',
 
-  description:
-      'Subí una foto de tu mascota desde el menú tipo de publicación (Concurso) y participá automáticamente. El post con más likes al final de ${DateFormat('MMMM', 'es_ES').format(DateTime.now())} gana un premio para su mascota 🎁',
+                description:
+                    'Subí una foto de tu mascota desde el menú tipo de publicación (Concurso) y participá automáticamente. El post con más likes al final de ${DateFormat('MMMM', 'es_ES').format(DateTime.now())} gana un premio para su mascota 🎁',
 
-  titleTextStyle: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w900,
-    color: Colors.black,
-  ),
+                titleTextStyle: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
 
-  descTextStyle: const TextStyle(
-    fontSize: 15,
-    height: 1.4,
-    color: Colors.black87,
-    fontWeight: FontWeight.w500,
-  ),
+                descTextStyle: const TextStyle(
+                  fontSize: 15,
+                  height: 1.4,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
 
-  tooltipBackgroundColor: Colors.white,
-  overlayColor: Colors.black54,
-  textColor: Colors.black,
+                tooltipBackgroundColor: Colors.white,
+                overlayColor: Colors.black54,
+                textColor: Colors.black,
 
-  targetBorderRadius: BorderRadius.circular(30),
-  tooltipBorderRadius: BorderRadius.circular(24),
+                targetBorderRadius: BorderRadius.circular(30),
+                tooltipBorderRadius: BorderRadius.circular(24),
 
-  tooltipPadding: const EdgeInsets.symmetric(
-    horizontal: 22,
-    vertical: 20,
-  ),
+                tooltipPadding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 20,
+                ),
 
-  child: Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      _fab(
-        icon: _isOpen ? Icons.close : Icons.add,
-        onTap: _toggleMenu,
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
-        ),
-        isMain: true,
-      ),
-    ],
-  ),
-),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _fab(
+                      icon: _isOpen ? Icons.close : Icons.add,
+                      onTap: _toggleMenu,
+                      gradient: const LinearGradient(
+                        colors: [Colors.purple, Colors.pink],
+                      ),
+                      isMain: true,
+                    ),
+                  ],
+                ),
+              ),
               
             ],
           ),

@@ -239,14 +239,20 @@ class _PagePetSpaceState extends State<PagePetSpace>
               },
             ),
           ),
-          SliverList.separated(
-            itemCount: negociosFiltrados.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 1),
-            itemBuilder: (context, i) => _NegocioSection(
-              data: negociosFiltrados[i],
-              selectedTab: _selectedTab,
-            ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 1),
+                child: _NegocioSection(
+                  data: negociosFiltrados[i],
+                  selectedTab: _selectedTab,
+                ),
+              );
+            },
+            childCount: negociosFiltrados.length,
           ),
+        ),
           SliverToBoxAdapter(
             child: SizedBox(height: MediaQuery.of(context).padding.bottom + 90),
           ),
@@ -1214,20 +1220,37 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     _debounce = Timer(const Duration(milliseconds: 500), () => _search(query));
   }
 
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) return;
-    setState(() {
-      _searching = true;
-      _error = null;
-      _results = [];
-    });
-    final results = await LocationService.searchLocation(query);
-    setState(() {
-      _results = results;
-      _searching = false;
-      if (results.isEmpty) _error = 'No se encontraron resultados';
-    });
-  }
+Future<void> _search(String query) async {
+  final results = await LocationService.searchLocation(query);
+
+  final resultsArgentina = results.where((r) {
+    final text = r.displayName.toLowerCase();
+    return text.contains('argentina');
+  }).toList();
+
+  // eliminar repetidos
+  final unique = <String>{};
+  final filtered = resultsArgentina.where((r) {
+    final key = r.displayName.toLowerCase().trim();
+
+    if (unique.contains(key)) {
+      return false;
+    }
+
+    unique.add(key);
+    return true;
+  }).toList();
+
+  if (!mounted) return;
+
+  setState(() {
+    _results = filtered;
+    _searching = false;
+    _error = filtered.isEmpty
+        ? 'No se encontraron resultados'
+        : null;
+  });
+}
 
   Future<void> _useCurrentLocation() async {
     setState(() => _searching = true);
@@ -1495,15 +1518,46 @@ class _LocationPickerDialogState extends State<_LocationPickerDialog> {
     _debounce = Timer(const Duration(milliseconds: 500), () => _search(query));
   }
 
-  Future<void> _search(String query) async {
-    final results = await LocationService.searchLocation(query);
-    if (!mounted) return;
-    setState(() {
-      _results = results;
-      _searching = false;
-      _error = results.isEmpty ? 'No se encontraron resultados' : null;
-    });
+Future<void> _search(String query) async {
+  setState(() => _searching = true);
+
+  final results = await LocationService.searchLocation(query);
+
+  final uniqueCities = <String>{};
+  final filtered = <LocationResult>[];
+
+  for (final r in results) {
+    final text = r.displayName.toLowerCase();
+
+    // Solo Argentina
+    if (!text.contains('argentina')) continue;
+
+    // Ciudad normalizada
+    final city = r.city
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .trim();
+
+    // Evitar repetidos
+    if (uniqueCities.contains(city)) continue;
+
+    uniqueCities.add(city);
+    filtered.add(r);
   }
+
+  if (!mounted) return;
+
+  setState(() {
+    _results = filtered;
+    _searching = false;
+    _error =
+        filtered.isEmpty ? 'No se encontraron resultados' : null;
+  });
+}
 
   Future<void> _useCurrentLocation() async {
     setState(() => _loadingLocation = true);
@@ -1531,25 +1585,49 @@ class _LocationPickerDialogState extends State<_LocationPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 40,
+      ),
       child: Container(
+        constraints: BoxConstraints(
+          maxHeight: height * 0.78,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
-            _buildSearchField(),
-            _buildCurrentLocationTile(),
-            if (_error != null) _buildError(),
-            if (_searching) _buildSearchingIndicator(),
-            if (_results.isNotEmpty) _buildResults(),
-            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildSearchField(),
+                    _buildCurrentLocationTile(),
+
+                    if (_error != null) _buildError(),
+
+                    if (_searching) _buildSearchingIndicator(),
+
+                    if (_results.isNotEmpty) _buildResults(),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1771,50 +1849,53 @@ class _LocationPickerDialogState extends State<_LocationPickerDialog> {
     );
   }
 
-  // ── Lista de resultados ───────────────────────────────────────
-  Widget _buildResults() {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 240),
-      child: ListView.separated(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        itemCount: _results.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (_, i) {
-          final r = _results[i];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 4,
-              vertical: 2,
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.location_on_outlined,
-                color: Colors.purple,
-                size: 16,
-              ),
-            ),
-            title: Text(
-              r.displayName.isNotEmpty ? r.displayName : '-',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-            trailing: const Icon(
-              Icons.north_west,
-              size: 14,
-              color: Colors.grey,
-            ),
-            onTap: () {
-              Navigator.pop(context);
-              widget.onLocationSelected(r.lat, r.lng, r.city);
-            },
-          );
+Widget _buildResults() {
+  return ListView.separated(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    itemCount: _results.length,
+    separatorBuilder: (_, __) => const Divider(height: 1),
+    itemBuilder: (_, i) {
+      final r = _results[i];
+
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: 2,
+        ),
+        leading: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.location_on_outlined,
+            color: Colors.purple,
+            size: 16,
+          ),
+        ),
+     title: Text(
+     r.city,
+     ),
+     subtitle: Text(
+     r.displayName
+     .replaceFirst(RegExp('^${RegExp.escape(r.city)},?\\s*', caseSensitive: false), ''),
+     maxLines: 1,
+     overflow: TextOverflow.ellipsis,
+    ),
+        trailing: const Icon(
+          Icons.north_west,
+          size: 14,
+          color: Colors.grey,
+        ),
+        onTap: () {
+          Navigator.pop(context);
+          widget.onLocationSelected(r.lat, r.lng, r.city);
         },
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 }

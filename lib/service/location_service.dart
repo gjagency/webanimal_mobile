@@ -32,44 +32,65 @@ class LocationResult {
         .replaceAll('Municipality of ', '')
         .trim();
 
-    return LocationResult(
-      displayName: '$city, $state, $country',
-      city: city,
-      state: state,
-      country: country,
-      lat: double.parse(json['lat'].toString()),
-      lng: double.parse(json['lon'].toString()),
-    );
+  return LocationResult(
+  displayName: [
+    city,
+    state,
+    country,
+  ].where((e) => e.toString().trim().isNotEmpty).join(', '),
+
+  city: city,
+  state: state,
+  country: country,
+
+  lat: double.parse(json['lat'].toString()),
+  lng: double.parse(json['lon'].toString()),
+);
   }
 }
 
 class LocationService {
-  static Future<List<LocationResult>> searchLocation(String query) async {
-    try {
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search'
-        '?q=$query'
-        '&format=jsonv2'
-        '&addressdetails=1'
-        '&limit=10',
-      );
+    static Future<List<LocationResult>> searchLocation(String query) async {
+      try {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search'
+          '?q=$query'
+          '&countrycodes=ar'
+          '&format=jsonv2'
+          '&addressdetails=1'
+          '&limit=10',
+        );
 
-      final response = await http.get(
-        url,
-        headers: {'User-Agent': 'webanimal-app'},
-      );
+        final response = await http.get(
+          url,
+          headers: {
+            'User-Agent': 'webanimal-app',
+          },
+        );
 
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+        if (response.statusCode == 200) {
+          final List data = jsonDecode(response.body);
 
-        return data.map((item) => LocationResult.fromJson(item)).toList();
+          final results = data
+          .map((item) => LocationResult.fromJson(item))
+          .where((item) =>
+              item.country.toLowerCase().contains('argentina'))
+          .toList();
+
+          final unique = <String, LocationResult>{};
+
+          for (final item in results) {
+            unique[item.displayName.toLowerCase()] = item;
+          }
+
+          return unique.values.toList();
+        }
+
+        return [];
+      } catch (e) {
+        return [];
       }
-
-      return [];
-    } catch (e) {
-      return [];
     }
-  }
 
   static Future<String> reverseGeocode(double lat, double lng) async {
     try {
@@ -100,7 +121,11 @@ class LocationService {
         final state = address['state'] ?? '';
         final country = address['country'] ?? '';
 
-        return '$city, $state, $country';
+        return [
+          city,
+          state,
+          country,
+        ].where((e) => e.toString().trim().isNotEmpty).join(', ');
       }
 
       return 'Ubicación no disponible';
