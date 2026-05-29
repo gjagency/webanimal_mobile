@@ -65,7 +65,7 @@ void initState() {
   int _currentMediaIndex = 0;
 
   bool _isUploading = false;
-  String _uploadMessage = 'Publicando...';
+  String _uploadMessage = 'Publicando, esto puede tardar un momento...';
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0.0);
 
   static const int maxVideoSizeMB = 100;
@@ -119,31 +119,227 @@ Future<void> _showAlert({
   );
 }
 Future<bool> _validateMediaSize(MediaItem item) async {
+
   final bytes = await item.file.length();
 
   final mb = bytes / 1024 / 1024;
 
-  if (item.isVideo && mb > maxVideoSizeMB) {
+  final bool tooBig =
+      item.isVideo
+          ? mb > maxVideoSizeMB
+          : mb > maxImageSizeMB;
 
-    await _showAlert(
-      title: 'Video demasiado grande',
-      message: 'El video supera los $maxVideoSizeMB MB',
-    );
-
-    return false;
+  if (!tooBig) {
+    return true;
   }
 
-  if (!item.isVideo && mb > maxImageSizeMB) {
+  final title = item.isVideo
+      ? 'Video demasiado grande'
+      : 'Imagen demasiado grande';
 
-    await _showAlert(
-      title: 'Imagen demasiado grande',
-      message: 'La imagen supera los $maxImageSizeMB MB',
-    );
+  final limit = item.isVideo
+      ? maxVideoSizeMB
+      : maxImageSizeMB;
 
-    return false;
-  }
+  await showDialog(
+    context: context,
+    builder: (_) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 24,
+        ),
 
-  return true;
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 420,
+          ),
+
+          child: Container(
+            width: double.infinity,
+
+            padding: const EdgeInsets.all(22),
+
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(.15),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                /// ICON
+                Container(
+                  width: 72,
+                  height: 72,
+
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+
+                    gradient: LinearGradient(
+                      colors: item.isVideo
+                          ? [
+                              Colors.redAccent,
+                              Colors.deepOrange,
+                            ]
+                          : [
+                              Colors.purple,
+                              Colors.pink,
+                            ],
+                    ),
+                  ),
+
+                  child: Icon(
+                    item.isVideo
+                        ? Icons.videocam_off
+                        : Icons.image_not_supported,
+                    color: Colors.white,
+                    size: 34,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// TITLE
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                /// MESSAGE
+                Text(
+                  item.isVideo
+                      ? 'El video seleccionado supera el límite permitido.'
+                      : 'La imagen seleccionada supera el límite permitido.',
+
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                /// INFO CARD
+                Container(
+                  width: double.infinity,
+
+                  padding: const EdgeInsets.all(16),
+
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+
+                  child: Column(
+                    children: [
+
+                      _infoRow(
+                        'Tamaño actual',
+                        '${mb.toStringAsFixed(1)} MB',
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      _infoRow(
+                        'Límite permitido',
+                        '$limit MB',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// BUTTON
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                      ),
+
+                      backgroundColor: item.isVideo
+                          ? Colors.redAccent
+                          : Colors.purple,
+
+                      foregroundColor: Colors.white,
+
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(18),
+                      ),
+                    ),
+
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  return false;
+}
+
+Widget _infoRow(String label, String value) {
+  return Row(
+    children: [
+
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontSize: 14,
+          ),
+        ),
+      ),
+
+      Text(
+        value,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+    ],
+  );
 }
 
 Future<void> _initLocation() async {
@@ -535,7 +731,7 @@ Future<void> _savePost() async {
 
     setState(() {
       _isUploading = false;
-      _uploadMessage = 'Publicando...';
+      _uploadMessage = 'Publicando, esto puede tardar un momento...';
     });
 
     return;
@@ -552,7 +748,7 @@ if (_selectedMedia.isEmpty) {
   });
 setState(() {
   _isUploading = true;
-  _uploadMessage = 'Publicando...';
+  _uploadMessage = 'Publicando, esto puede tardar un momento...';
   _uploadProgress.value = 0.0;
   _isLoading = true;
 });
@@ -676,7 +872,7 @@ setState(() {
 
     setState(() {
       _isUploading = false;
-      _uploadMessage = 'Publicando...';
+      _uploadMessage = 'Publicando, esto puede tardar un momento...';
     });
   }
   finally {

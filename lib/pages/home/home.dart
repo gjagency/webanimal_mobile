@@ -125,10 +125,6 @@ Future<void> _checkShowcase() async {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activá el GPS para crear un post')),
-        );
-
         /// abre configuración
         await Geolocator.openLocationSettings();
 

@@ -936,15 +936,15 @@ void _openImageViewer(Post post, int initialIndex) {
 
                       itemBuilder: (_) => const [
 
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Text(
-                            'Editar',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                           ///  PopupMenuItem(
+                           ///    value: 'edit',
+                           ///    child: Text(
+                            ///     'Editar',
+                             ///    style: TextStyle(
+                             ///      color: Colors.white,
+                             ///    ),
+                             ///  ),
+                          ///   ),
 
                         PopupMenuItem(
                           value: 'share',
@@ -1459,7 +1459,7 @@ class _VideoPlayerWidgetState
   bool initialized = false;
   bool paused = false;
   bool disposed = false;
-  bool muted = true;
+  bool muted = false;
 
   @override
   void initState() {
@@ -1489,7 +1489,7 @@ class _VideoPlayerWidgetState
       await c.setLooping(false);
       await c.setPlaybackSpeed(1.0);
       /// mute por defecto
-      await c.setVolume(0);
+      await c.setVolume(1);
 
       controller = c;
 
