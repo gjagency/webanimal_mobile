@@ -41,6 +41,15 @@ class PagePostCreate extends StatefulWidget {
 }
 
 class _PagePostCreateState extends State<PagePostCreate> {
+  @override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await _initLocation();
+    await _loadInitialData();
+  });
+}
   final _formKey = GlobalKey<FormState>();
   final FocusNode _descriptionFocusNode = FocusNode();
   final _descriptionController = TextEditingController();
@@ -52,7 +61,6 @@ class _PagePostCreateState extends State<PagePostCreate> {
   List<PetType> _petTypes = [];
   String? _selectedPostTypeId;
   String? _selectedPetTypeId;
-
   final List<MediaItem> _selectedMedia = [];
   int _currentMediaIndex = 0;
 
@@ -60,34 +68,84 @@ class _PagePostCreateState extends State<PagePostCreate> {
   String _uploadMessage = 'Publicando...';
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0.0);
 
-  static const int maxMedia = 3;
-
+  static const int maxVideoSizeMB = 100;
+  static const int maxImageSizeMB = 25;
+  static const int maxMedia = 10;
   double? _currentLat;
   double? _currentLng;
   bool _isLoading = false;
   bool _isLoadingTypes = true;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _initLocation();
-      await _loadInitialData();
-    });
+
+
+@override
+void dispose() {
+  _descriptionController.dispose();
+  _locationController.dispose();
+  _telefonoController.dispose();
+  _pageController.dispose();
+  _descriptionFocusNode.dispose();
+
+  _uploadProgress.dispose();
+
+  for (final m in _selectedMedia) {
+    m.dispose();
   }
 
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    _locationController.dispose();
-    _telefonoController.dispose();
-    _pageController.dispose();
-    _descriptionFocusNode.dispose();
-    for (final m in _selectedMedia) {
-      m.dispose();
-    }
-    super.dispose();
+  super.dispose();
+}
+
+Future<void> _showAlert({
+  required String title,
+  required String message,
+}) async {
+  if (!mounted) return;
+
+  await showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Aceptar'),
+        ),
+      ],
+    ),
+  );
+}
+Future<bool> _validateMediaSize(MediaItem item) async {
+  final bytes = await item.file.length();
+
+  final mb = bytes / 1024 / 1024;
+
+  if (item.isVideo && mb > maxVideoSizeMB) {
+
+    await _showAlert(
+      title: 'Video demasiado grande',
+      message: 'El video supera los $maxVideoSizeMB MB',
+    );
+
+    return false;
   }
+
+  if (!item.isVideo && mb > maxImageSizeMB) {
+
+    await _showAlert(
+      title: 'Imagen demasiado grande',
+      message: 'La imagen supera los $maxImageSizeMB MB',
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
 Future<void> _initLocation() async {
   try {
     LocationPermission permission = await Geolocator.checkPermission();
@@ -178,13 +236,15 @@ Future<void> _initLocation() async {
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _locationController.text = 'Permiso de ubicación denegado';
-          return;
-        }
-      }
 
+        await _showAlert(
+          title: 'Permiso requerido',
+          message: 'Debés permitir la ubicación para continuar',
+        );
+
+        _locationController.text = 'Permiso de ubicación denegado';
+        return;
+      }
       final position = await Geolocator.getCurrentPosition();
       _currentLat = position.latitude;
       _currentLng = position.longitude;
@@ -317,9 +377,21 @@ Future<void> _initLocation() async {
         final newItems = <MediaItem>[];
         for (final f in toAdd) {
           final isVideo = _isVideoPath(f.path);
-          final item = MediaItem(file: File(f.path), isVideo: isVideo);
-          if (isVideo) await item.initController();
-          newItems.add(item);
+
+          final item = MediaItem(
+            file: File(f.path),
+            isVideo: isVideo,
+          );
+
+          if (isVideo) {
+            await item.initController();
+          }
+
+          final valid = await _validateMediaSize(item);
+
+          if (valid) {
+            newItems.add(item);
+          }
         }
         if (!mounted) return;
         setState(() => _selectedMedia.addAll(newItems));
@@ -330,19 +402,50 @@ Future<void> _initLocation() async {
           maxWidth: 1600,
         );
         if (img == null) return;
+        final item = MediaItem(
+          file: File(img.path),
+          isVideo: false,
+        );
+
+        final valid = await _validateMediaSize(item);
+
+        if (!valid) {
+          await _showAlert(
+            title: 'Archivo inválido',
+            message: 'El archivo supera el tamaño permitido',
+          );
+          return;
+        }
+
         setState(() {
-          _selectedMedia.add(MediaItem(file: File(img.path), isVideo: false));
+          _selectedMedia.add(item);
         });
+    
       } else if (action == 'video') {
         final vid = await picker.pickVideo(
           source: ImageSource.camera,
           maxDuration: const Duration(seconds: 60),
         );
         if (vid == null) return;
-        final item = MediaItem(file: File(vid.path), isVideo: true);
+        final item = MediaItem(
+          file: File(vid.path),
+          isVideo: true,
+        );
+
         await item.initController();
+
+        final valid = await _validateMediaSize(item);
+
+        if (!valid) {
+          item.dispose();
+          return;
+        }
+
         if (!mounted) return;
-        setState(() => _selectedMedia.add(item));
+
+        setState(() {
+          _selectedMedia.add(item);
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -354,33 +457,40 @@ Future<void> _initLocation() async {
 
   bool _isVideoPath(String path) {
     final p = path.toLowerCase();
-    return p.endsWith('.mp4') ||
-        p.endsWith('.mov') ||
-        p.endsWith('.avi') ||
-        p.endsWith('.mkv') ||
-        p.endsWith('.webm') ||
-        p.endsWith('.m4v');
+
+  return p.endsWith('.mp4') ||
+      p.endsWith('.mov') ||
+      p.endsWith('.avi') ||
+      p.endsWith('.mkv') ||
+      p.endsWith('.webm') ||
+      p.endsWith('.m4v');
   }
 
-  void _removeMediaAt(int index) {
-    final item = _selectedMedia[index];
-    setState(() {
-      _selectedMedia.removeAt(index);
-      item.dispose();
-      if (_currentMediaIndex >= _selectedMedia.length) {
-        _currentMediaIndex = _selectedMedia.isEmpty
-            ? 0
-            : _selectedMedia.length - 1;
-      }
-    });
-    if (_selectedMedia.isNotEmpty && _pageController.hasClients) {
-      _pageController.animateToPage(
-        _currentMediaIndex,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+void _removeMediaAt(int index) {
+  if (index >= _selectedMedia.length) return;
+
+  final item = _selectedMedia[index];
+
+  setState(() {
+    _selectedMedia.removeAt(index);
+
+    item.dispose();
+
+    if (_currentMediaIndex >= _selectedMedia.length) {
+      _currentMediaIndex = _selectedMedia.isEmpty
+          ? 0
+          : _selectedMedia.length - 1;
     }
+  });
+
+  if (_selectedMedia.isNotEmpty && _pageController.hasClients) {
+    _pageController.animateToPage(
+      _currentMediaIndex,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
+}
 
   Widget _pickerTile({
     required IconData icon,
@@ -430,23 +540,25 @@ Future<void> _savePost() async {
 
     return;
   }
-
-  // Validar medios
-  if (_selectedMedia.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Agregá al menos una foto o video'),
-      ),
-    );
-    return;
-  }
-
+if (_selectedMedia.isEmpty) {
+  await _showAlert(
+    title: 'Contenido requerido',
+    message: 'Agregá al menos una foto o video',
+  );
+  return;
+}
   setState(() {
     _isUploading = true;
-    _uploadMessage = 'Publicando...';
-    _uploadProgress.value = 0.0;
   });
-
+setState(() {
+  _isUploading = true;
+  _uploadMessage = 'Publicando...';
+  _uploadProgress.value = 0.0;
+  _isLoading = true;
+});
+    setState(() {
+      _isLoading = true;
+    });
   try {
     final medias = <dynamic>[];
 
@@ -463,35 +575,35 @@ Future<void> _savePost() async {
                   _selectedMedia.length) *
               0.8;
 
-final uploaded = await MediaService.upload(
-  media.file,
+        final uploaded = await MediaService.upload(
+          media.file,
 
-  onProgress: (progress) {
+          onProgress: (progress) {
 
-    final baseProgress =
-        i / _selectedMedia.length;
+            final baseProgress =
+                i / _selectedMedia.length;
 
-    final currentFileProgress =
-        progress / _selectedMedia.length;
+            final currentFileProgress =
+                progress / _selectedMedia.length;
 
-    final totalProgress =
-        (baseProgress + currentFileProgress) * 0.8;
+            final totalProgress =
+                (baseProgress + currentFileProgress) * 0.8;
 
-    final safeProgress =
-        totalProgress.clamp(0.0, 0.8);
+            final safeProgress =
+                totalProgress.clamp(0.0, 0.8);
 
-    _uploadProgress.value = safeProgress;
+            _uploadProgress.value = safeProgress;
 
-    print(
-      'UPLOAD ${i + 1}/${_selectedMedia.length} '
-      '${(progress * 100).toStringAsFixed(0)}%',
-    );
+            print(
+              'UPLOAD ${i + 1}/${_selectedMedia.length} '
+              '${(progress * 100).toStringAsFixed(0)}%',
+            );
 
-    print(
-      'TOTAL ${(safeProgress * 100).toStringAsFixed(0)}%',
-    );
-  },
-);
+            print(
+              'TOTAL ${(safeProgress * 100).toStringAsFixed(0)}%',
+            );
+          },
+        );
 
       medias.add(uploaded);
 
@@ -499,8 +611,8 @@ final uploaded = await MediaService.upload(
       _uploadProgress.value =
           ((i + 1) / _selectedMedia.length) * 0.8;
           print('SUBIENDO MEDIA ${i + 1}/${_selectedMedia.length}');
-print('PROGRESO: ${(_uploadProgress.value * 100).toInt()}%');
-    }
+        print('PROGRESO: ${(_uploadProgress.value * 100).toInt()}%');
+            }
 
     // =========================
     // CREANDO PUBLICACIÓN
@@ -511,7 +623,7 @@ print('PROGRESO: ${(_uploadProgress.value * 100).toInt()}%');
     });
 
     _uploadProgress.value = 0.9;
-print('CREANDO POST...');
+      print('CREANDO POST...');
     await PostsService.createPost(
       postTypeId: _selectedPostTypeId!,
       petTypeId: _selectedPetTypeId!,
@@ -538,7 +650,9 @@ print('CREANDO POST...');
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
-
+setState(() {
+  _isUploading = false;
+});
     context.pop();
 
     await Future.delayed(const Duration(milliseconds: 300));
@@ -565,6 +679,13 @@ print('CREANDO POST...');
       _uploadMessage = 'Publicando...';
     });
   }
+  finally {
+  if (mounted) {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
 }
   // ============ BUILD ============
 
@@ -698,18 +819,30 @@ print('CREANDO POST...');
                       _sectionTitle('Descripción'),
                       const SizedBox(height: 16),
                       TextFormField(
-  controller: _descriptionController,
-  focusNode: _descriptionFocusNode,
-  maxLines: 4,
-  maxLength: 256,
-  validator: (value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'La descripción es obligatoria';
-    }
-    return null;
-  },
-  decoration: _inputDecoration('Describe tu publicación...'),
-),
+                        controller: _descriptionController,
+                        focusNode: _descriptionFocusNode,
+                        maxLines: 4,
+                        maxLength: 256,
+                        autovalidateMode: AutovalidateMode.disabled,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+
+                            Future.microtask(() async {
+                              await _showAlert(
+                                title: 'Descripción requerida',
+                                message: 'La descripción es obligatoria',
+                              );
+                            });
+
+                            return '';
+                          }
+
+                          return null;
+                        },
+                        decoration: _inputDecoration(
+                          'Describe tu publicación...',
+                        ),
+                      ),
                      
                       const SizedBox(height: 32),
                     ],
@@ -769,25 +902,33 @@ print('CREANDO POST...');
             height: 380,
             child: Stack(
               children: [
-                PageView.builder(
-                  controller: _pageController,
-                  itemCount: _selectedMedia.length,
-                  onPageChanged: (i) {
-                    // pausar todos los videos al cambiar
-                    for (final m in _selectedMedia) {
-                      if (m.isVideo && m.controller != null) {
-                        m.controller!.pause();
-                      }
-                    }
-                    setState(() => _currentMediaIndex = i);
-                  },
-                  itemBuilder: (context, index) {
-                    final item = _selectedMedia[index];
-                    return item.isVideo
-                        ? _VideoPreview(item: item)
-                        : Image.file(item.file, fit: BoxFit.cover);
-                  },
-                ),
+               PageView.builder(
+  controller: _pageController,
+  itemCount: _selectedMedia.length,
+onPageChanged: (i) {
+
+  // Pausar todos
+  for (final m in _selectedMedia) {
+    if (m.isVideo && m.controller != null) {
+      m.controller!.pause();
+    }
+  }
+
+  setState(() {
+    _currentMediaIndex = i;
+  });
+},
+  itemBuilder: (context, index) {
+    final item = _selectedMedia[index];
+
+    return item.isVideo
+        ? _VideoPreview(item: item)
+        : Image.file(
+            item.file,
+            fit: BoxFit.cover,
+          );
+  },
+),
                 // Contador estilo IG (1/10)
                 Positioned(
                   top: 12,
@@ -1129,18 +1270,18 @@ class _VideoPreview extends StatefulWidget {
 }
 
 class _VideoPreviewState extends State<_VideoPreview> {
+  @override
+  void deactivate() {
+    widget.item.controller?.pause();
+    super.deactivate();
+  }
   bool _showControls = true;
   Timer? _hideTimer;
 
 @override
 void initState() {
   super.initState();
-
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-
-  });
 }
-
   @override
   void dispose() {
     _hideTimer?.cancel();

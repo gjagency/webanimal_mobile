@@ -310,74 +310,159 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     );
   }
 
-  Widget _buildProfileSection() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.purple, Colors.pink],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+Widget _buildProfileSection() {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+
+      final bool small =
+          constraints.maxWidth < 360;
+
+      final double avatarRadius =
+          small ? 26 : 35;
+
+      final double spacing =
+          small ? 10 : 16;
+
+      return Container(
+        margin: const EdgeInsets.symmetric(
+          horizontal: 16,
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+
+        padding: const EdgeInsets.all(20),
+
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Colors.purple,
+              Colors.pink,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
+
+          borderRadius:
+              BorderRadius.circular(20),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.purple.withValues(
+                alpha: 0.3,
+              ),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: CircleAvatar(
-              radius: 35,
-              backgroundImage: NetworkImage(avatarUrl),
+          ],
+        ),
+
+        child: Row(
+          children: [
+
+            /// AVATAR RESPONSIVE
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+
+                border: Border.all(
+                  color: Colors.white,
+                  width: 3,
+                ),
+              ),
+
+              child: CircleAvatar(
+                radius: avatarRadius,
+
+                backgroundImage:
+                    NetworkImage(avatarUrl),
+              ),
             ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+
+            SizedBox(width: spacing),
+
+            /// INFO
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                mainAxisSize:
+                    MainAxisSize.min,
+
+                children: [
+
+                  /// NAME
+                  Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize:
+                          small ? 14 : 16,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  email,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
+
+                  const SizedBox(height: 4),
+
+                  /// EMAIL
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+
+                    style: TextStyle(
+                      color: Colors.white
+                          .withValues(
+                        alpha: 0.9,
+                      ),
+
+                      fontSize:
+                          small ? 12 : 14,
+                    ),
                   ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '$postsCount publicaciones',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 12,
+
+                  const SizedBox(height: 8),
+
+                  /// POSTS
+                  Text(
+                    '$postsCount publicaciones',
+
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+
+                    style: TextStyle(
+                      color: Colors.white
+                          .withValues(
+                        alpha: 0.8,
+                      ),
+
+                      fontSize:
+                          small ? 11 : 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
-        ],
-      ),
-    );
-  }
+
+            SizedBox(width: small ? 6 : 10),
+
+            /// ARROW
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+              size: small ? 14 : 18,
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildSection(String title, List<Widget> items) {
     return Column(

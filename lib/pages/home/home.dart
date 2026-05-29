@@ -87,6 +87,7 @@ Future<void> _checkShowcase() async {
 
   int count = prefs.getInt('home_showcase_count') ?? 0;
 
+   /// aca controlamos la cantidad de veces que aparecen los pop
   if (count < 30) {
     setState(() {
       _canShowTutorial = true;
@@ -600,79 +601,100 @@ Future<void> _checkShowcase() async {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        titleSpacing: 8,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Logo con gradiente
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.pink],
-                ),
-                borderRadius: BorderRadius.circular(12),
+appBar: AppBar(
+  titleSpacing: 6,
+
+  title: LayoutBuilder(
+    builder: (context, constraints) {
+      final small = constraints.maxWidth < 320;
+
+      return Row(
+        children: [
+          // LOGO
+          Container(
+            padding: EdgeInsets.all(small ? 6 : 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.purple, Colors.pink],
               ),
-              child: Image.asset(
-                "assets/logo6.png",
-                width: 22,
-                height: 22,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Image.asset(
+              "assets/logo6.png",
+              width: small ? 18 : 22,
+              height: small ? 18 : 22,
+            ),
+          ),
+
+          SizedBox(width: small ? 6 : 10),
+
+          // TEXTO
+          Expanded(
+            child: Text(
+              "WebAnimal",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: small ? 15 : 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
+          ),
 
-            const SizedBox(width: 10),
-
-            // Texto que NO rompe el layout
-            Expanded(
-              child: Text(
-                "WebAnimal",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-           IconButton(
+          // INSTAGRAM
+          IconButton(
+            constraints: const BoxConstraints(),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
             onPressed: () async {
               await launchUrl(
-                Uri.parse('https://www.instagram.com/webanimalok/'),
+                Uri.parse(
+                  'https://www.instagram.com/webanimalok/',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
-            icon: const FaIcon(
+            icon: FaIcon(
               FontAwesomeIcons.instagram,
               color: Colors.pink,
-              size: 24,
+              size: small ? 18 : 22,
             ),
           ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              context.push('/search/users');
-            },
-          ),
-          IconButton(
-            onPressed: () =>
-                context.push('/user-posts/${AuthService.currentUserId}'),
-            icon: CustomAvatar(loading: loadingProfile, url: avatarUrl),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              context.push('/account/settings');
-            },
-          ),
-
-          const SizedBox(width: 4),
         ],
+      );
+    },
+  ),
+
+  actions: [
+    IconButton(
+      visualDensity: VisualDensity.compact,
+      icon: const Icon(Icons.search),
+      onPressed: () {
+        context.push('/search/users');
+      },
+    ),
+
+    IconButton(
+      visualDensity: VisualDensity.compact,
+      onPressed: () =>
+          context.push('/user-posts/${AuthService.currentUserId}'),
+      icon: CustomAvatar(
+        loading: loadingProfile,
+        url: avatarUrl,
       ),
+    ),
+
+    IconButton(
+      visualDensity: VisualDensity.compact,
+      icon: const Icon(Icons.settings),
+      onPressed: () {
+        context.push('/account/settings');
+      },
+    ),
+
+    const SizedBox(width: 2),
+  ],
+),
       body: Column(
         children: [
           /// =========================
@@ -758,46 +780,46 @@ Future<void> _checkShowcase() async {
                         ),
 
                       Showcase(
-  key: _filtrosKey,
+                      key: _filtrosKey,
 
-  title: '⚡ FILTROS',
+                      title: '⚡ FILTROS',
 
-  description:
-      'Encontrá publicaciones mucho más rápido usando filtros.',
+                      description:
+                          'Encontrá publicaciones mucho más rápido usando filtros.',
 
-  titleTextStyle: const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w900,
-    color: Colors.black,
-  ),
+                      titleTextStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                      ),
 
-  descTextStyle: const TextStyle(
-    fontSize: 15,
-    height: 1.4,
-    color: Colors.black87,
-    fontWeight: FontWeight.w500,
-  ),
+                      descTextStyle: const TextStyle(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
 
-  tooltipBackgroundColor: Colors.white,
-  overlayColor: Colors.black54,
-  textColor: Colors.black,
+                      tooltipBackgroundColor: Colors.white,
+                      overlayColor: Colors.black54,
+                      textColor: Colors.black,
 
-  targetBorderRadius: BorderRadius.circular(18),
-  tooltipBorderRadius: BorderRadius.circular(24),
+                      targetBorderRadius: BorderRadius.circular(18),
+                      tooltipBorderRadius: BorderRadius.circular(24),
 
-  tooltipPadding: const EdgeInsets.symmetric(
-    horizontal: 22,
-    vertical: 20,
-  ),
+                      tooltipPadding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 20,
+                      ),
 
-  child: IconButton(
-    icon: const Icon(Icons.tune_rounded),
-    onPressed: _showFilterBottomSheet,
-    style: IconButton.styleFrom(
-      backgroundColor: Colors.grey[100],
-    ),
-  ),
-),
+                      child: IconButton(
+                        icon: const Icon(Icons.tune_rounded),
+                        onPressed: _showFilterBottomSheet,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                        ),
+                      ),
+                    ),
                       ],
                     ),
                   ),
@@ -926,22 +948,28 @@ Future<void> _checkShowcase() async {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'Busca Veterinarias, espacio Animal y descuentos',
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isSmall ? 11 : 11,
-                                fontWeight: FontWeight.bold,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Busca Veterinarias, espacio Animal y descuentos',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isSmall ? 13 : 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            
                           ),
 
                           const SizedBox(width: 8),
 
-                          Icon(Icons.map, color: Colors.white, size: 24),
+                          Icon(
+                            Icons.map,
+                            color: Colors.white,
+                            size: isSmall ? 20 : 24,
+                          ),
                         ],
                         
                       ),

@@ -410,69 +410,90 @@ void _openImagePopup(BuildContext context, int initialIndex) {
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        titleSpacing: 8,
-        title: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Logo con gradiente
-    Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Image.asset(
-        "assets/logo6.png",
-        width: 22,
-        height: 22,
+appBar: AppBar(
+  titleSpacing: 6,
+  toolbarHeight: 58,
+  title: LayoutBuilder(
+    builder: (context, constraints) {
+      final isSmall = MediaQuery.of(context).size.width < 370;
+
+      return Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(isSmall ? 6 : 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.purple, Colors.pink],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Image.asset(
+              "assets/logo6.png",
+              width: isSmall ? 18 : 22,
+              height: isSmall ? 18 : 22,
+            ),
+          ),
+
+          SizedBox(width: isSmall ? 6 : 10),
+
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "WebAnimal",
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: isSmall ? 15 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+
+  actions: [
+    IconButton(
+      iconSize: 22,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      icon: const Icon(Icons.search),
+      onPressed: () {
+        context.push('/search/users');
+      },
+    ),
+
+    const SizedBox(width: 10),
+
+    GestureDetector(
+      onTap: () {
+        context.push('/user-posts/${AuthService.currentUserId}');
+      },
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: CustomAvatar(url: avatarUrl),
       ),
     ),
 
     const SizedBox(width: 10),
 
-    // Texto que NO rompe el layout
-    Expanded(
-      child: Text(
-        "WebAnimal",
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
+    IconButton(
+      iconSize: 22,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      icon: const Icon(Icons.settings),
+      onPressed: () {
+        context.push('/account/settings');
+      },
     ),
 
-  
+    const SizedBox(width: 12),
   ],
 ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              context.push('/search/users');
-            },
-          ),
-          // ir a perfil
-          IconButton(
-            onPressed: () {
-              context.push('/user-posts/${AuthService.currentUserId}');
-            },
-            icon: CustomAvatar(url: avatarUrl),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              context.push('/account/settings');
-            },
-          ),
-
-          const SizedBox(width: 4),
-        ],
-      ),
       body: Stack(
         children: [
           _isLoading

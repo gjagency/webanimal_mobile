@@ -135,68 +135,110 @@ for (final post in _posts.take(3)) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        titleSpacing: 8,
-        title: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Logo con gradiente
-    Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
+  titleSpacing: 8,
+
+  title: Row(
+    children: [
+
+      /// LOGO
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Colors.purple,
+              Colors.pink,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(12),
+
+        child: Image.asset(
+          "assets/logo6.png",
+          width: 22,
+          height: 22,
+        ),
       ),
-      child: Image.asset(
-        "assets/logo6.png",
-        width: 22,
-        height: 22,
+
+      const SizedBox(width: 10),
+
+      /// TITLE RESPONSIVE
+      Expanded(
+        child: FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+
+          child: const Text(
+            "WeBaNiMaL",
+            maxLines: 1,
+
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+
+  actions: [
+
+    /// SEARCH
+    IconButton(
+      constraints: const BoxConstraints(
+        minWidth: 40,
+        minHeight: 40,
+      ),
+
+      padding: EdgeInsets.zero,
+
+      icon: const Icon(Icons.search),
+
+      onPressed: () {
+        context.push('/search/users');
+      },
+    ),
+
+    /// PROFILE
+    IconButton(
+      constraints: const BoxConstraints(
+        minWidth: 40,
+        minHeight: 40,
+      ),
+
+      padding: EdgeInsets.zero,
+
+      onPressed: () {
+        context.push(
+          '/user-posts/${AuthService.currentUserId}',
+        );
+      },
+
+      icon: CustomAvatar(
+        url: avatarUrl,
       ),
     ),
 
-    const SizedBox(width: 10),
-
-    // Texto que NO rompe el layout
-    Expanded(
-      child: Text(
-        "WeBaNiMaL",
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-        overflow: TextOverflow.ellipsis,
+    /// SETTINGS
+    IconButton(
+      constraints: const BoxConstraints(
+        minWidth: 40,
+        minHeight: 40,
       ),
+
+      padding: EdgeInsets.zero,
+
+      icon: const Icon(Icons.settings),
+
+      onPressed: () {
+        context.push('/account/settings');
+      },
     ),
 
+    const SizedBox(width: 6),
   ],
 ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              context.push('/search/users');
-            },
-          ),
-
-          // ir a perfil
-          IconButton(
-            onPressed: () {
-              context.push('/user-posts/${AuthService.currentUserId}');
-            },
-            icon: CustomAvatar(url: avatarUrl),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              context.push('/account/settings');
-            },
-          ),
-
-          const SizedBox(width: 4),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
@@ -474,35 +516,44 @@ SliverGrid(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Colors.purple, Colors.pink],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.edit, color: Colors.white),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Editar Post',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: () {
-  Navigator.pop(context);
-},
-                            icon: const Icon(Icons.close),
-                          ),
-                        ],
-                      ),
+                    Row(
+  children: [
+    Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.purple, Colors.pink],
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Icon(
+        Icons.edit,
+        color: Colors.white,
+      ),
+    ),
+
+    const SizedBox(width: 12),
+
+    Expanded(
+      child: Expanded(
+  child: Text(
+    'Editar Post',
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+  ),
+)
+    ),
+
+    IconButton(
+      constraints: const BoxConstraints(),
+      padding: EdgeInsets.zero,
+      onPressed: () {
+        Navigator.pop(context);
+      },
+      icon: const Icon(Icons.close),
+    ),
+  ],
+),
                       const SizedBox(height: 20),
 
                       TextFormField(
@@ -616,62 +667,58 @@ SliverGrid(
 
                       const SizedBox(height: 28),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                             onPressed: () {
-  Navigator.pop(context);
-},
-                              child: const Text('Cancelar'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isSavingEdit
-                                  ? null
-                                  : () async {
-                                      if (!formKey.currentState!.validate()) {
-                                        return;
-                                      }
+                     Row(
+  children: [
+    Expanded(
+      child: OutlinedButton(
+        onPressed: () {
+          Navigator.pop(context);
+        },
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Cancelar',
+            maxLines: 1,
+          ),
+        ),
+      ),
+    ),
 
-                                      formKey.currentState!.save();
-                                      setState(() => _isSavingEdit = true);
+    const SizedBox(width: 12),
 
-                                      try {
-                                        await PostsService.updatePost(
-                                          post.id.toString(),
-                                          description: description,
-                                          mediaIds: _medias
-                                              .map((m) => m.id)
-                                              .toList(),
-                                        );
+    Expanded(
+      child: ElevatedButton(
+        onPressed: _isSavingEdit
+            ? null
+            : () async {
+                // guardar
+              },
 
-                                        if (!context.mounted) return;
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.purple,
+          foregroundColor: Colors.white,
+        ),
 
-                                      Navigator.pop(context);
-                                      await _refresh();
-                             
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() => _isSavingEdit = false);
-                                        }
-                                      }
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: _isSavingEdit
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text('Guardar'),
-                            ),
-                          ),
-                        ],
-                      ),
+        child: _isSavingEdit
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Guardar',
+                  maxLines: 1,
+                ),
+              ),
+      ),
+    ),
+  ],
+)
                     ],
                   ),
                 ),
