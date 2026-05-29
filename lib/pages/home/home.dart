@@ -88,7 +88,7 @@ Future<void> _checkShowcase() async {
   int count = prefs.getInt('home_showcase_count') ?? 0;
 
    /// aca controlamos la cantidad de veces que aparecen los pop
-  if (count < 30) {
+  if (count < 3) {
     setState(() {
       _canShowTutorial = true;
     });
@@ -125,6 +125,7 @@ Future<void> _checkShowcase() async {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
+
         /// abre configuración
         await Geolocator.openLocationSettings();
 
