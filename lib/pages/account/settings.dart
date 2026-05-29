@@ -727,43 +727,304 @@ Widget _buildProfileSection() {
     );
   }
 
-  void _showHelpCenter() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+void _showHelpCenter() {
+  final screen = MediaQuery.of(context).size;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+
+    builder: (context) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.42,
+        minChildSize: 0.32,
+        maxChildSize: 0.85,
+
+        expand: false,
+
+        builder: (_, controller) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+            ),
+
+            child: SafeArea(
+              top: false,
+
+              child: SingleChildScrollView(
+                controller: controller,
+
+                padding: EdgeInsets.fromLTRB(
+                  screen.width * 0.06,
+                  14,
+                  screen.width * 0.06,
+                  28,
+                ),
+
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+
+                    /// HANDLE
+                    Container(
+                      width: screen.width * 0.14,
+                      height: 5,
+
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius:
+                            BorderRadius.circular(20),
+                      ),
+                    ),
+
+                    SizedBox(height: screen.height * 0.025),
+
+                    /// HEADER
+                    Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+
+                      children: [
+
+                        /// ICON
+                        Container(
+                          width: screen.width * 0.15,
+                          height: screen.width * 0.15,
+
+                          constraints: const BoxConstraints(
+                            maxWidth: 62,
+                            maxHeight: 62,
+                          ),
+
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(20),
+
+                            gradient:
+                                const LinearGradient(
+                              colors: [
+                                Colors.purple,
+                                Colors.pink,
+                              ],
+                            ),
+                          ),
+
+                          child: Icon(
+                            Icons.support_agent,
+                            color: Colors.white,
+                            size: screen.width * 0.075,
+                          ),
+                        ),
+
+                        SizedBox(width: screen.width * 0.04),
+
+                        /// TEXTS
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+
+                            children: [
+
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment:
+                                    Alignment.centerLeft,
+
+                                child: Text(
+                                  'Centro de ayuda',
+
+                                  maxLines: 1,
+
+                                  style: TextStyle(
+                                    fontSize:
+                                        screen.width *
+                                            0.06,
+
+                                    fontWeight:
+                                        FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+
+                             
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: screen.height * 0.03),
+
+                    /// CONTACT CARD
+                    Container(
+                      width: double.infinity,
+
+                      padding: EdgeInsets.all(
+                        screen.width * 0.045,
+                      ),
+
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+
+                        borderRadius:
+                            BorderRadius.circular(24),
+
+                        border: Border.all(
+                          color: Colors.grey.shade200,
+                        ),
+                      ),
+
+                      child: Row(
+                        children: [
+
+                          Container(
+                            width: screen.width * 0.13,
+                            height: screen.width * 0.13,
+
+                            constraints:
+                                const BoxConstraints(
+                              maxWidth: 54,
+                              maxHeight: 54,
+                            ),
+
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                16,
+                              ),
+                            ),
+
+                            child: Icon(
+                              Icons.email_outlined,
+                              color: Colors.purple,
+                              size: screen.width * 0.06,
+                            ),
+                          ),
+
+                          SizedBox(
+                            width: screen.width * 0.04,
+                          ),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+
+                              children: [
+
+                                Text(
+                                  'Contacto',
+
+                                  style: TextStyle(
+                                    color: Colors
+                                        .grey.shade700,
+
+                                    fontSize:
+                                        screen.width *
+                                            0.033,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment:
+                                      Alignment.centerLeft,
+
+                                  child: const SelectableText(
+                                    'webanimalok@gmail.com',
+
+                                    maxLines: 1,
+
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight:
+                                          FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: screen.height * 0.035),
+
+                    /// BUTTON
+                    SizedBox(
+                      width: double.infinity,
+
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+
+                        style:
+                            ElevatedButton.styleFrom(
+                          elevation: 0,
+
+                          backgroundColor:
+                              Colors.purple,
+
+                          foregroundColor:
+                              Colors.white,
+
+                          padding:
+                              EdgeInsets.symmetric(
+                            vertical:
+                                screen.height * 0.02,
+                          ),
+
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(
+                              18,
+                            ),
+                          ),
+                        ),
+
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+
+                          child: Text(
+                            'Cerrar',
+
+                            maxLines: 1,
+
+                            style: TextStyle(
+                              fontSize:
+                                  screen.width * 0.042,
+
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                'Centro de ayuda',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
-              _helpItem('Contacto', 'webanimalok@gmail.com.com'),
-              SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _helpItem(String title, String subtitle) {
     return Padding(
