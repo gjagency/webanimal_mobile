@@ -752,7 +752,7 @@ appBar: AppBar(
                                 ],
 
                                 ..._postTypes
-                                    .take(3)
+                                    .take(15)
                                     .map(
                                       (type) => Padding(
                                         padding: const EdgeInsets.only(

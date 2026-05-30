@@ -173,7 +173,7 @@ void _openImagePopup(BuildContext context, int initialIndex) {
 
                                               FeedVideoPlayer(
                                                 url: media.url,
-                                                autoplay: true,
+                                                autoplay: false,
                                               ),
 
                                               const Center(
@@ -358,6 +358,7 @@ void _openImagePopup(BuildContext context, int initialIndex) {
 
   @override
   Widget build(BuildContext context) {
+    
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text('Cargando...')),
@@ -601,67 +602,57 @@ appBar: AppBar(
 
                     const SizedBox(height: 14),
 
-            // MEDIA
 // MEDIA
-// MEDIA
-post.medias.isNotEmpty && post.medias.first.isVideo
-    ? ClipRect(
-        child: SizedBox(
+if (post.medias.isNotEmpty)
+  post.medias.first.isVideo
+      ? SizedBox(
           width: double.infinity,
           height: 400,
           child: Stack(
             fit: StackFit.expand,
-            clipBehavior: Clip.hardEdge,
             children: [
-
-              /// VIDEO
-              Positioned.fill(
+              ClipRect(
                 child: FeedVideoPlayer(
-  key: _videoKey,
-  url: post.medias.first.url,
-  autoplay: false,
-),
+                  key: _videoKey,
+                  url: post.medias.first.url,
+                  autoplay: false,
+                ),
               ),
 
-              /// TAP SOLO EN EL CENTRO
               Center(
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                onTap: () async {
+                  onTap: () async {
+                    await _videoKey.currentState?.pauseVideo();
 
-  await _videoKey.currentState?.pauseVideo();
+                    await Navigator.of(context).push(
+                      PageRouteBuilder(
+                        opaque: false,
+                        barrierColor: Colors.black,
+                        pageBuilder: (_, __, ___) =>
+                            FullScreenVideoPage(
+                          videoUrl: post.medias.first.url,
+                          liked: post.reacciones.isNotEmpty,
+                          likes: post.likes,
+                          comments: post.comments,
+                          userName: post.user.displayName,
+                          userAvatar:
+                              post.user.imageUrl ??
+                              'https://i.pravatar.cc/300',
+                          userId: post.user.id,
+                          description: post.description,
+                          onLike: () async {
+                            await _toggleLike();
+                          },
+                          onOpenPost: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                    );
 
-  await Navigator.of(context).push(
-   PageRouteBuilder(
-  opaque: false,
-  barrierColor: Colors.black,
-
-  pageBuilder: (_, __, ___) => FullScreenVideoPage(
-    videoUrl: post.medias.first.url,
-    liked: post.reacciones.isNotEmpty,
-    likes: post.likes,
-    comments: post.comments,
-    userName: post.user.displayName,
-    userAvatar:
-        post.user.imageUrl ??
-        'https://i.pravatar.cc/300',
-    userId: post.user.id,
-    description: post.description,
-
-    onLike: () async {
-      await _toggleLike();
-    },
-
-    onOpenPost: () {
-      Navigator.pop(context);
-    },
-  ),
-),
-  );
-
-  _videoKey.currentState?.playVideo();
-},
-
+                    await _videoKey.currentState?.playVideo();
+                  },
                   child: Container(
                     width: 180,
                     height: 180,
@@ -671,25 +662,17 @@ post.medias.isNotEmpty && post.medias.first.isVideo
               ),
             ],
           ),
+        )
+      : GestureDetector(
+          onTap: () {
+            _openImagePopup(context, 0);
+          },
+          child: Image.network(
+            post.medias.first.url,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
         ),
-      )
-
-    : GestureDetector(
-  onTap: () {
-    if (!post.medias.first.isVideo) {
-      _openImagePopup(context, 0);
-    }
-  },
-
-  child: Image.network(
-    post.medias.isNotEmpty
-        ? post.medias.first.url
-        : "https://via.placeholder.com/400x300?text=Sin+Imagen",
-
-    width: double.infinity,
-    fit: BoxFit.cover,
-  ),
-),
                     // Acciones
                     Padding(
                       padding: EdgeInsets.all(16),

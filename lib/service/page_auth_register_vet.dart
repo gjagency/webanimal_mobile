@@ -60,74 +60,101 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
   }
 
   /// 📍 Obtener ubicación actual con reverse geocoding
-  Future<void> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          if (!mounted) return;
+Future<void> _getCurrentLocation() async {
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-          final opened = await Geolocator.openLocationSettings();
+    if (!mounted) return;
 
-          if (opened) {
-            await Future.delayed(const Duration(seconds: 2));
-            return _getCurrentLocation(); // reintenta
-          }
+    if (!serviceEnabled) {
+      final opened = await Geolocator.openLocationSettings();
 
-          return;
-        }
+      if (!mounted) return;
 
-      LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
+      if (opened) {
+        await Future.delayed(const Duration(seconds: 2));
 
-          if (permission == LocationPermission.denied) {
-            if (!mounted) return;
+        if (!mounted) return;
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Permiso de ubicación denegado')),
-            );
-
-            GoRouter.of(context).push('/auth/sign_in');
-            return;
-          }
-        }
-
-        if (permission == LocationPermission.deniedForever) {
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permiso denegado permanentemente'),
-            ),
-          );
-
-          GoRouter.of(context).push('/auth/sign_in');
-          return;
-        }
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-      _lat = position.latitude;
-      _lng = position.longitude;
-
-      // Reverse geocoding para obtener dirección legible
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(_lat!, _lng!);
-
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        _label =
-            '${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}';
-        setState(() {
-          _locationController.text = _label!;
-        });
+        return _getCurrentLocation();
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo obtener la ubicación')),
-      );
+
+      return;
     }
+
+    LocationPermission permission =
+        await Geolocator.checkPermission();
+
+    if (!mounted) return;
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+
+      if (!mounted) return;
+
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permiso de ubicación denegado'),
+          ),
+        );
+
+        context.go('/auth/sign_in');
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permiso denegado permanentemente'),
+        ),
+      );
+
+      context.go('/auth/sign_in');
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    if (!mounted) return;
+
+    final placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (!mounted) return;
+
+    _lat = position.latitude;
+    _lng = position.longitude;
+
+    if (placemarks.isNotEmpty) {
+      final place = placemarks.first;
+
+      _label =
+          '${place.locality ?? ''}, '
+          '${place.administrativeArea ?? ''}, '
+          '${place.country ?? ''}';
+
+      setState(() {
+        _locationController.text = _label!;
+      });
+    }
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No se pudo obtener la ubicación'),
+      ),
+    );
   }
+}
 
   /// ✅ Registrar veterinaria
   Future<void> _submit() async {
@@ -163,8 +190,10 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
     } catch (e) {
       _showError(e.toString());
     } finally {
-      setState(() => _loading = false);
-    }
+  if (mounted) {
+    setState(() => _loading = false);
+  }
+}
   }
 
   void _showError(String msg) {
@@ -172,136 +201,143 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-Widget _imagePickerCard() {
-  return GestureDetector(
-    onTap: _pickImage,
-    child: Container(
-      height: 150,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        color: Colors.grey.shade100,
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
-        image: _imagen != null
-            ? DecorationImage(
-                image: FileImage(_imagen!),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: _imagen == null
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(
-                  Icons.add_a_photo_outlined,
-                  size: 38,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Agregar imagen',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
+    Widget _imagePickerCard() {
+      return GestureDetector(
+        onTap: _pickImage,
+        child: Container(
+          height: 150,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: Colors.grey.shade100,
+            border: Border.all(
+              color: Colors.grey.shade300,
+            ),
+            image: _imagen != null
+                ? DecorationImage(
+                    image: FileImage(_imagen!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+          ),
+          child: _imagen == null
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 38,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Agregar imagen',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                )
+              : Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
-              ],
-            )
-          : Align(
-              alignment: Alignment.topRight,
-              child: Container(
-                margin: const EdgeInsets.all(10),
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Icon(
-                  Icons.edit,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-            ),
-    ),
-  );
-}
+        ),
+      );
+    }
 
-Widget _locationInput() {
-  return TextFormField(
-    controller: _locationController,
-    style: const TextStyle(
-      color: Colors.black87,
-      fontWeight: FontWeight.w500,
-    ),
-    validator: (value) {
-      if (value == null || value.isEmpty) {
-        return 'La ubicación es obligatoria';
-      }
-      return null;
-    },
-    decoration: InputDecoration(
-      hintText: 'Ubicación automática',
-      hintStyle: const TextStyle(color: Colors.grey),
-      prefixIcon: const Icon(
-        Icons.location_on_outlined,
-        color: Colors.grey,
-      ),
-      suffixIcon: IconButton(
-        onPressed: _getCurrentLocation,
-        icon: const Icon(
-          Icons.my_location_rounded,
-          color: Color(0xFF9B4DCC),
+    Widget _locationInput() {
+      return TextFormField(
+        controller: _locationController,
+        style: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w500,
         ),
-      ),
-      filled: true,
-      fillColor: Colors.grey.shade100,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: Color(0xFF9B4DCC),
-          width: 1.5,
-        ),
-      ),
-    ),
-  );
-}
-@override
-Widget build(BuildContext context) {
-  return PopScope(
-    canPop: false,
-    onPopInvoked: (didPop) {
-      if (!didPop) {
-        GoRouter.of(context).go('/auth/sign_in');
-      }
-    },
-    child: Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF9B4DCC),
-              Color(0xFFE0528D),
-            ],
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'La ubicación es obligatoria';
+          }
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: 'Ubicación automática',
+          hintStyle: const TextStyle(color: Colors.grey),
+          prefixIcon: const Icon(
+            Icons.location_on_outlined,
+            color: Colors.grey,
+          ),
+          suffixIcon: IconButton(
+            onPressed: _getCurrentLocation,
+            icon: const Icon(
+              Icons.my_location_rounded,
+              color: Color(0xFF9B4DCC),
+            ),
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(
+              color: Color(0xFF9B4DCC),
+              width: 1.5,
+            ),
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      );
+    }
+    @override
+    Widget build(BuildContext context) {
+      return PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (!didPop) {
+            GoRouter.of(context).go('/auth/sign_in');
+          }
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF9B4DCC),
+                  Color(0xFFE0528D),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+        ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+      16,
+      8,
+      16,
+      MediaQuery.of(context).viewInsets.bottom + 20,
+    ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -491,11 +527,13 @@ Widget _styledInput(
                     : Icons.visibility_outlined,
                 color: darkMode ? Colors.grey[700] : Colors.white,
               ),
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
+             onPressed: () {
+  if (!mounted) return;
+
+  setState(() {
+    _obscurePassword = !_obscurePassword;
+  });
+},
             )
           : null,
       filled: true,

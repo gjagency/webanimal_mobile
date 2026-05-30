@@ -1164,6 +1164,8 @@ class FeedVideoPlayerState
   bool _disposed = false;
 
   bool _showPlayIcon = false;
+    bool _initializing = false;
+
 
   @override
   void initState() {
@@ -1172,61 +1174,59 @@ class FeedVideoPlayerState
     FeedVideoPlayer._instances.add(this);
   }
 
-  Future<void> _initialize() async {
-    if (_controller != null || _disposed) return;
+Future<void> _initialize() async {
 
-    try {
-      final controller =
-          VideoPlayerController.networkUrl(
-        Uri.parse(widget.url),
-
-        videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: false,
-          allowBackgroundPlayback: false,
-        ),
-      );
-
-      await controller.initialize();
-
-      if (_disposed) {
-        controller.dispose();
-        return;
-      }
-
-      await controller.setLooping(true);
-
-      await controller.setVolume(0);
-
-      _controller = controller;
-
-      if (!mounted) return;
-
-      setState(() {
-        _initialized = true;
-      });
-
-      if (_isVisible && widget.autoplay) {
-        FeedVideoPlayer.pauseAll();
-
-        await controller.play();
-
-        if (mounted) {
-          setState(() {
-            _showPlayIcon = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _showPlayIcon = true;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("VIDEO INIT ERROR: $e");
-    }
+  if (_controller != null ||
+      _disposed ||
+      _initializing) {
+    return;
   }
 
+  _initializing = true;
+
+  try {
+
+    debugPrint("🎥 INIT VIDEO ${widget.url}");
+
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.url),
+    );
+
+    await controller.initialize();
+
+    // 👇 AGREGAR ACÁ
+    debugPrint(
+      "VIDEO SIZE: "
+      "${controller.value.size.width}x"
+      "${controller.value.size.height}"
+    );
+
+    debugPrint(
+      "ASPECT: ${controller.value.aspectRatio}"
+    );
+
+    if (_disposed) {
+      await controller.dispose();
+      return;
+    }
+
+    await controller.setLooping(true);
+    await controller.setVolume(0);
+
+    _controller = controller;
+
+    if (!mounted) return;
+
+    setState(() {
+      _initialized = true;
+    });
+
+  } catch (e) {
+    debugPrint("VIDEO INIT ERROR: $e");
+  } finally {
+    _initializing = false;
+  }
+}
 Future<void> playVideo() async {
   final c = _controller;
 
@@ -1237,13 +1237,17 @@ Future<void> playVideo() async {
   await c.play();
 
   if (mounted) {
+    
     setState(() {
       _showPlayIcon = false;
     });
   }
 }
 
+
   Future<void> pauseVideo() async {
+      debugPrint("⏸️ PAUSE ${widget.url}");
+
     final c = _controller;
 
     if (c == null) return;
@@ -1260,7 +1264,11 @@ Future<void> playVideo() async {
   void _onVisibilityChanged(
     VisibilityInfo info,
   ) async {
-    final visible = info.visibleFraction > 0.70;
+      debugPrint(
+    "👀 VISIBILITY ${widget.url} "
+    "fraction=${info.visibleFraction}"
+  );
+    final visible = info.visibleFraction > 0.40;
 
     _isVisible = visible;
 
@@ -1270,6 +1278,8 @@ Future<void> playVideo() async {
     }
 
     if (_controller == null) {
+        debugPrint("▶️ PLAY ${widget.url}");
+     
       await _initialize();
     }
 
@@ -1313,6 +1323,12 @@ Future<void> playVideo() async {
 
   @override
   void dispose() {
+debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
+  debugPrint(
+    "🗑️ CONTROLLER EXISTS "
+    "${_controller != null}"
+  );
+
     _disposed = true;
 
     FeedVideoPlayer._instances.remove(this);
@@ -1330,6 +1346,11 @@ Future<void> playVideo() async {
 
   @override
   Widget build(BuildContext context) {
+      debugPrint(
+    "🏗️ BUILD VIDEO "
+    "initialized=$_initialized "
+    "controller=${_controller != null}"
+  );
     final c = _controller;
 
     return VisibilityDetector(
@@ -1353,16 +1374,10 @@ Future<void> playVideo() async {
             : Stack(
                 fit: StackFit.expand,
                 children: [
-                  FittedBox(
-                    fit: BoxFit.cover,
-
-                    child: SizedBox(
-                      width: c.value.size.width,
-                      height: c.value.size.height,
-
-                      child: VideoPlayer(c),
-                    ),
-                  ),
+                 AspectRatio(
+  aspectRatio: c.value.aspectRatio,
+  child: VideoPlayer(c),
+),
 
                   Positioned.fill(
                     child: GestureDetector(
@@ -1575,9 +1590,13 @@ Future<void> _togglePlayPause() async {
 
 @override
 void dispose() {
+
   FeedVideoPlayer.fullscreenOpen = false;
 
-  _controller.pause();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    FeedVideoPlayer.pauseAll();
+  });
+
   _controller.dispose();
 
   super.dispose();

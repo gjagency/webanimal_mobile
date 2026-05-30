@@ -348,7 +348,16 @@ SliverGrid(
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              VideoThumbnail(url: media.url),
+                             Container(
+                                      color: Colors.black,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    ),
 
                               const Center(
                                 child: Icon(
@@ -452,27 +461,27 @@ SliverGrid(
                     borderRadius:
                         BorderRadius.circular(20),
                   ),
-                  child: const Icon(
-                    Icons.videocam,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                                    child: const Icon(
+                                      Icons.videocam,
+                                      color: Colors.white,
+                                      size: 16,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                  childCount: _posts.length,
+                ),
+
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
                 ),
               ),
-          ],
-        ),
-      );
-    },
-    childCount: _posts.length,
-  ),
-
-  gridDelegate:
-      const SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: 3,
-    crossAxisSpacing: 4,
-    mainAxisSpacing: 4,
-  ),
-),
           ],
         ),
       ),
@@ -730,670 +739,21 @@ SliverGrid(
     );
   }
 void _openImageViewer(Post post, int initialIndex) {
-  final pageController = PageController(
-    initialPage: initialIndex,
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      opaque: false,
+      barrierDismissible: true,
+      barrierColor: Colors.black,
+      pageBuilder: (_, __, ___) {
+        return _FullScreenViewer(
+          post: post,
+          initialIndex: initialIndex,
+          onRefresh: _refresh,
+        );
+      },
+    ),
   );
-
-  final bool isMyPost =
-      widget.userId.toString() ==
-      AuthService.currentUserId.toString();
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.9),
-    builder: (context) {
-      double dragOffset = 0;
-      int currentIndex = initialIndex;
-
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Material(
-            color: Colors.transparent,
-            child: GestureDetector(
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  dragOffset += details.delta.dy;
-                });
-              },
-              onVerticalDragEnd: (_) async {
-                if (dragOffset > 150) {
-                  Navigator.pop(context);
-                  await _refresh();
-                } else {
-                  setState(() => dragOffset = 0);
-                }
-              },
-            child: AnimatedContainer(
-  duration: const Duration(milliseconds: 200),
-  transform: Matrix4.translationValues(0, dragOffset, 0),
-  color: Colors.black,
-  child: SafeArea(
-    child: Column(
-      children: [
-
-        /// ================= TOP BAR =================
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 10,
-          ),
-          color: Colors.black,
-          child: Row(
-            children: [
-
-              /// BACK
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-
-              /// WEBANIMAL CENTER
-              Expanded(
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Colors.purple,
-                              Colors.pink,
-                            ],
-                          ),
-                          borderRadius:
-                              BorderRadius.circular(10),
-                        ),
-                        child: Image.asset(
-                          "assets/logo6.png",
-                          width: 18,
-                          height: 18,
-                        ),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      const Text(
-                        "WeBaNiMaL",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              /// ACTIONS
-              Row(
-                children: [
-                  if (isMyPost)
-                    PopupMenuButton<String>(
-                      color: const Color.fromARGB(
-                        255,
-                        235,
-                        42,
-                        151,
-                      ),
-                      icon: const Icon(
-                        Icons.more_vert,
-                        color: Colors.white,
-                      ),
-                      onSelected: (value) async {
-
-                        if (value == 'edit') {
-                          Navigator.pop(context);
-                          _editarPost(post);
-                        }
-
-                        if (value == 'share' &&
-                            post.medias.isNotEmpty) {
-
-                          await SharePostHelper.sharePost(
-                            imageUrl: post
-                                .medias[currentIndex].url,
-                            postType:
-                                post.postType.name,
-                            fileName:
-                                'shared_${post.id}',
-                          );
-                        }
-
-                        if (value == 'view_post') {
-                          Navigator.pop(context);
-
-                          context.push(
-                            '/posts/${post.id}/view',
-                          );
-                        }
-
-                        if (value == 'delete') {
-
-                          final confirm =
-                              await showDialog<bool>(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text(
-                                'Eliminar post',
-                              ),
-                              content: const Text(
-                                '¿Seguro que querés eliminar este post?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(
-                                    context,
-                                    false,
-                                  ),
-                                  child: const Text(
-                                    'Cancelar',
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      Navigator.pop(
-                                    context,
-                                    true,
-                                  ),
-                                  style:
-                                      ElevatedButton
-                                          .styleFrom(
-                                    backgroundColor:
-                                        Colors.red,
-                                    foregroundColor:
-                                        Colors.white,
-                                  ),
-                                  child: const Text(
-                                    'Eliminar',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-
-                            Navigator.pop(context);
-
-                            await PostsService.deletePost(
-                              post.id.toString(),
-                            );
-
-                            await _refresh();
-                          }
-                        }
-                      },
-
-                      itemBuilder: (_) => const [
-
-                           ///  PopupMenuItem(
-                           ///    value: 'edit',
-                           ///    child: Text(
-                            ///     'Editar',
-                             ///    style: TextStyle(
-                             ///      color: Colors.white,
-                             ///    ),
-                             ///  ),
-                          ///   ),
-
-                        PopupMenuItem(
-                          value: 'share',
-                          child: Text(
-                            'Compartir',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-
-                        PopupMenuItem(
-                          value: 'view_post',
-                          child: Text(
-                            'Ver publicación',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(
-                            'Eliminar',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-
-                  else
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(
-                          255,
-                          235,
-                          42,
-                          151,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
-
-                      child: TextButton(
-                        onPressed: () {
-
-                          Navigator.pop(context);
-
-                          context.push(
-                            '/posts/${post.id}/view',
-                          );
-                        },
-
-                        style: TextButton.styleFrom(
-                          foregroundColor:
-                              Colors.white,
-
-                          padding:
-                              const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                        ),
-
-                        child: const Text(
-                          'Ver publicación',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        /// ================= MEDIA =================
-       /// ================= MEDIA =================
-Expanded(
-  child: Stack(
-    children: [
-
-      /// MEDIA
-      PageView.builder(
-        controller: pageController,
-        allowImplicitScrolling: false,
-        itemCount: post.medias.length,
-
-        onPageChanged: (i) {
-          setState(() => currentIndex = i);
-        },
-
-        itemBuilder: (context, index) {
-
-          final media = post.medias[index];
-
-          return Center(
-            child: Hero(
-              tag: '${post.id}_${media.id}',
-
-              child: media.isVideo
-
-                  ? SizedBox.expand(
-                      child: VideoPlayerWidget(
-                        url: media.url,
-                      ),
-                    )
-
-                  : InteractiveViewer(
-                      boundaryMargin:
-                          const EdgeInsets.all(20),
-
-                      minScale: 1,
-                      maxScale: 3,
-
-                      child: Image.network(
-                        media.url,
-                        fit: BoxFit.cover,
-
-                        loadingBuilder: (
-                          context,
-                          child,
-                          loadingProgress,
-                        ) {
-
-                          if (loadingProgress == null) {
-                            return child;
-                          }
-
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-            ),
-          );
-        },
-      ),
-
-      /// ================= OVERLAY BOTTOM =================
-      Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            20,
-            16,
-            26,
-          ),
-
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [
-                Colors.black.withOpacity(.85),
-                Colors.transparent,
-              ],
-            ),
-          ),
-
-          child: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.end,
-
-            children: [
-
-              /// INFO
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-
-                  mainAxisSize: MainAxisSize.min,
-
-                  children: [
-
-                    /// USER
-                    Row(
-                      children: [
-
-                        CustomAvatar(
-                          url: post.user.imageUrl,
-                        ),
-
-                        const SizedBox(width: 10),
-
-                        GestureDetector(
-                          onTap: () {
-
-                            Navigator.pop(context);
-
-                            context.push(
-                              '/user-posts/${post.user.id}',
-                            );
-                          },
-
-                          child: Text(
-                            post.user.displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight:
-                                  FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    /// DESCRIPTION
-                    if (post.description.isNotEmpty)
-                      Text(
-                        post.description,
-                        maxLines: 3,
-                        overflow:
-                            TextOverflow.ellipsis,
-
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-/// VER PUBLICACION
-GestureDetector(
-  onTap: () {
-
-    Navigator.pop(context);
-
-    context.push(
-      '/posts/${post.id}/view',
-    );
-  },
-
-  child: Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 14,
-      vertical: 10,
-    ),
-
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.15),
-
-      borderRadius:
-          BorderRadius.circular(14),
-
-      border: Border.all(
-        color: Colors.white24,
-      ),
-    ),
-
-    child: const Row(
-      mainAxisSize:
-          MainAxisSize.min,
-
-      children: [
-
-        Icon(
-          Icons.link,
-          color: Colors.white,
-          size: 18,
-        ),
-
-        SizedBox(width: 8),
-
-        Text(
-          'Ver publicación',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight:
-                FontWeight.w600,
-          ),
-        ),
-      ],
-    ),
-  ),
-),                  ],
-                ),
-              ),
-
-              const SizedBox(width: 20),
-
-              /// ACTIONS
-              Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-
-                children: [
-
-                  /// LIKE
-                  GestureDetector(
-                   onTap: () async {
-
-  await PostsService.addReaction(
-    int.parse(post.id),
-    1,
-  );
-
-  await _refresh();
-},
-                    child: Column(
-                      children: [
-
-                        const Icon(
-                          Icons.favorite_border,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          '${post.likes}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 26),
-
-                  /// COMMENTS
-                  GestureDetector(
-                    onTap: () {
-
-                      Navigator.pop(context);
-
-                      context.push(
-                        '/posts/${post.id}/view',
-                      );
-                    },
-
-                    child: Column(
-                      children: [
-
-                        const Icon(
-                          Icons.chat_bubble_outline,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          '${post.comments}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 26),
-
-                  /// SHARE
-                  GestureDetector(
-                    onTap: () async {
-
-                      if (post.medias.isEmpty) {
-                        return;
-                      }
-
-                      await SharePostHelper
-                          .sharePost(
-                        imageUrl:
-                            post.medias[
-                                    currentIndex]
-                                .url,
-
-                        postType:
-                            post.postType.name,
-
-                        fileName:
-                            'shared_${post.id}',
-                      );
-                    },
-
-                    child: const Column(
-                      children: [
-
-                        Icon(
-                          Icons.share,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-
-                        SizedBox(height: 4),
-
-                        Text(
-                          'Compartir',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-      ],
-    ),
-  ),
-),
-            ),
-          );
-        },
-      );
-    },
-  ).then((_) {
-    pageController.dispose();
-  });
 }
-
   Widget _imagePreview({
     required Widget image,
     required VoidCallback onDelete,
@@ -1471,12 +831,13 @@ class _VideoPlayerWidgetState
     try {
 
       /// CONTROLLER LIVIANO
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(widget.url),
-        videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: true,
-        ),
-      );
+    final c = VideoPlayerController.networkUrl(
+  Uri.parse(widget.url),
+  videoPlayerOptions: VideoPlayerOptions(
+    mixWithOthers: true,
+    allowBackgroundPlayback: false,
+  ),
+);
 
       await c.initialize();
 
@@ -1578,12 +939,16 @@ class _VideoPlayerWidgetState
         children: [
 
           /// VIDEO OPTIMIZADO
-          Center(
-            child: AspectRatio(
-              aspectRatio: c.value.aspectRatio,
-              child: VideoPlayer(c),
-            ),
-          ),
+       SizedBox.expand(
+  child: FittedBox(
+    fit: BoxFit.cover,
+    child: SizedBox(
+      width: c.value.size.width,
+      height: c.value.size.height,
+      child: VideoPlayer(c),
+    ),
+  ),
+),
 
           /// PLAY
           if (paused)
@@ -1688,6 +1053,341 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
         width: _controller!.value.size.width,
         height: _controller!.value.size.height,
         child: VideoPlayer(_controller!),
+      ),
+    );
+  }
+}
+
+class _FullScreenViewer extends StatefulWidget {
+  final Post post;
+  final int initialIndex;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(Post post)? onEdit;
+
+  const _FullScreenViewer({
+    required this.post,
+    required this.initialIndex,
+    required this.onRefresh,
+    this.onEdit,
+  });
+
+  @override
+  State<_FullScreenViewer> createState() => _FullScreenViewerState();
+}class _FullScreenViewerState extends State<_FullScreenViewer> {
+  late PageController controller;
+  int currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+    controller = PageController(initialPage: currentIndex);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final post = widget.post;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+
+            /// ================= MEDIA =================
+            PageView.builder(
+              controller: controller,
+              itemCount: post.medias.length,
+              onPageChanged: (i) => setState(() => currentIndex = i),
+              itemBuilder: (context, index) {
+                final media = post.medias[index];
+
+                return Center(
+                  child: Hero(
+                    tag: '${post.id}_${media.id}',
+
+                    child: media.isVideo
+                        ? VideoPlayerWidget(url: media.url)
+                        : InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Image.network(
+                              media.url,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                  ),
+                );
+              },
+            ),
+
+            /// ================= TOP BAR =================
+            Positioned(
+  top: 10,
+  left: 10,
+  right: 10,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+
+      /// CLOSE
+      IconButton(
+        icon: const Icon(Icons.close, color: Colors.white, size: 30),
+        onPressed: () => Navigator.pop(context),
+      ),
+
+      /// 3 DOTS (SOLO MIS POSTS)
+      if (widget.post.user.id.toString() ==
+          AuthService.currentUserId.toString())
+        PopupMenuButton<String>(
+          color: const Color.fromARGB(255, 235, 42, 151),
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          onSelected: (value) async {
+
+            if (value == 'edit') {
+              Navigator.pop(context);
+              await widget.onEdit?.call(widget.post);
+            }
+
+            if (value == 'share') {
+              if (widget.post.medias.isNotEmpty) {
+                await SharePostHelper.sharePost(
+                  imageUrl: widget.post.medias[currentIndex].url,
+                  postType: widget.post.postType.name,
+                  fileName: 'shared_${widget.post.id}',
+                );
+              }
+            }
+
+            if (value == 'view_post') {
+              Navigator.pop(context);
+              context.push('/posts/${widget.post.id}/view');
+            }
+
+            if (value == 'delete') {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Eliminar post'),
+                  content: const Text(
+                    '¿Seguro que querés eliminar este post?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () =>
+                          Navigator.pop(context, true),
+                      child: const Text('Eliminar'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                Navigator.pop(context);
+                await PostsService.deletePost(
+                  widget.post.id.toString(),
+                );
+                await widget.onRefresh();
+              }
+            }
+          },
+          itemBuilder: (_) => const [
+
+            PopupMenuItem(
+              value: 'share',
+              child: Text('Compartir',
+                  style: TextStyle(color: Colors.white)),
+            ),
+
+            PopupMenuItem(
+              value: 'view_post',
+              child: Text('Ver publicación',
+                  style: TextStyle(color: Colors.white)),
+            ),
+
+            PopupMenuItem(
+              value: 'delete',
+              child: Text('Eliminar',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+    ],
+  ),
+),
+            /// ================= BOTTOM OVERLAY (TU UI ORIGINAL) =================
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 26),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(.85),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+
+                    /// ================= INFO =================
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+
+                          /// USER
+                          Row(
+                            children: [
+                              CustomAvatar(url: post.user.imageUrl),
+                              const SizedBox(width: 10),
+                              Text(
+                                post.user.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          /// DESCRIPTION
+                          if (post.description.isNotEmpty)
+                            Text(
+                              post.description,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
+
+                          const SizedBox(height: 12),
+
+                          /// VER PUBLICACIÓN
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push('/posts/${post.id}/view');
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.link, color: Colors.white, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Ver publicación',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 20),
+
+                    /// ================= ACTIONS =================
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+
+                        /// LIKE
+                        GestureDetector(
+                          onTap: () async {
+                            await PostsService.addReaction(
+                              int.parse(post.id),
+                              1,
+                            );
+                            await widget.onRefresh();
+                            setState(() {});
+                          },
+                          child: Column(
+                            children: [
+                              const Icon(Icons.favorite_border,
+                                  color: Colors.white, size: 32),
+                              Text('${post.likes}',
+                                  style: const TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        /// COMMENTS
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push('/posts/${post.id}/view');
+                          },
+                          child: const Icon(
+                            Icons.chat_bubble_outline,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        /// SHARE
+                        GestureDetector(
+                          onTap: () async {
+                            if (post.medias.isEmpty) return;
+
+                            await SharePostHelper.sharePost(
+                              imageUrl: post.medias[currentIndex].url,
+                              postType: post.postType.name,
+                              fileName: 'shared_${post.id}',
+                            );
+                          },
+                          child: const Icon(
+                            Icons.share,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
