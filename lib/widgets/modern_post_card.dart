@@ -10,11 +10,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/painting.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class ModernPostCard extends StatefulWidget {
   final Post post;
   final VoidCallback? onEdit;
@@ -49,7 +50,25 @@ void initState() {
   }
 
 
+Future<void> _openWhatsapp(String phone) async {
+  String cleanPhone =
+      phone.replaceAll(RegExp(r'[^0-9]'), '');
 
+  if (!cleanPhone.startsWith('54')) {
+    cleanPhone = '54$cleanPhone';
+  }
+
+  final uri = Uri.parse(
+    'whatsapp://send?phone=$cleanPhone',
+  );
+
+  final ok = await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  );
+
+  debugPrint("WHATSAPP OPENED: $ok");
+}
   // ================= LIKE =================
 Future<void> _toggleLike() async {
 
@@ -787,28 +806,42 @@ GestureDetector(
 
             /// TELEFONO
             if (widget.post.telefono != null &&
-                widget.post.telefono!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.phone, size: 16, color: Colors.green),
-                    const SizedBox(width: 6),
+            widget.post.telefono!.isNotEmpty)
+           Padding(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 8,
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.start,
+    children: [
+      Text(
+        'Contacto:',
+        style: TextStyle(
+          color: Colors.grey.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(width: 10),
+      InkWell(
+        onTap: () {
+          _openWhatsapp(widget.post.telefono!);
+        },
+        borderRadius: BorderRadius.circular(50),
+        child: const Padding(
+          padding: EdgeInsets.all(4),
+          child: FaIcon(
+            FontAwesomeIcons.whatsapp,
+            color: Color(0xFF25D366),
+            size: 20,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
 
-                    Text(
-                      widget.post.telefono!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             const SizedBox(height: 12),
 
             if (widget.post.medias.isNotEmpty)

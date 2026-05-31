@@ -795,49 +795,49 @@ class _NegocioSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 3),
-                  if (selectedTab == 1)
-  Row(
-    children: [
-      Icon(
-        Icons.near_me,
-        size: 11,
-        color: Colors.grey[500],
-      ),
-      const SizedBox(width: 4),
-      Expanded(
-        child: Text(
-          'Horarios de Atención: 7:40 a 20:00',
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[500],
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    ],
-  ),
-                   if (selectedTab == 1)
-  Row(
-    children: [
-      Icon(
-        Icons.near_me,
-        size: 11,
-        color: Colors.grey[500],
-      ),
-      const SizedBox(width: 4),
-      Expanded(
-        child: Text(
-          'Dirección: ${data.direccion ?? "Sin dirección disponible"}',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[700],
-          ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-      ),
-    ],
-  ),
+                    if (selectedTab == 1)
+                      Row(
+                        spacing: 6,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 2,
+                            children: [
+                              Icon(
+                                Icons.near_me,
+                                size: 11,
+                                color: Colors.grey[500],
+                              ),                            ],
+                          ),
+                        ],
+                      ),
+                    if (selectedTab == 1)
+                      Row(
+                        spacing: 6,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 2,
+                            children: [
+                              Icon(
+                                Icons.near_me,
+                                size: 11,
+                                color: Colors.grey[500],
+                              ),
+                              Flexible(
+                                child: Text(
+                                  'Dirección: ${data.direccion ?? "Sin dirección disponible"}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

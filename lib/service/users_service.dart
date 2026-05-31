@@ -2,6 +2,31 @@ import 'dart:convert';
 
 import 'package:mobile_app/config.dart';
 import 'package:mobile_app/service/auth_service.dart';
+import 'package:http/http.dart' as http;
+class AppVersion {
+  final String androidVersionLatest;
+  final String androidVersionMinimal;
+  final String androidVersionUpdater;
+  final String playStoreUrl;
+  final String appStoreUrl;
+
+  AppVersion(
+      {required this.androidVersionLatest,
+      required this.androidVersionMinimal,
+      required this.androidVersionUpdater,
+      required this.playStoreUrl,
+      required this.appStoreUrl});
+
+      factory AppVersion.fromJson(Map<String, dynamic> parsedJson) {
+        return AppVersion(
+          androidVersionLatest: parsedJson['android_version_latest'] ?? '',
+          androidVersionMinimal: parsedJson['android_version_minimal'] ?? '',
+          androidVersionUpdater: parsedJson['android_version_updater'] ?? '',
+          playStoreUrl: parsedJson['play_store_url'] ?? '',
+          appStoreUrl: parsedJson['app_store_url'] ?? '',
+        );
+      }
+}
 
 class UserProfile {
   final String id;
@@ -86,4 +111,28 @@ class UserService {
 
     throw Exception('Error al cargar usuarios');
   }
+Future<AppVersion> appVersion() async {
+final response = await http.get(
+  Uri.parse('${Config.baseUrl}/api/app_version/'),
+);
+
+  print("📡 STATUS: ${response.statusCode}");
+  print("📦 BODY: ${response.body}");
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Error al obtener versión (${response.statusCode})',
+    );
+  }
+
+  final decoded = jsonDecode(response.body);
+
+  if (decoded['result'] == null) {
+    throw Exception('La API no devolvió result');
+  }
+
+  return AppVersion.fromJson(
+    decoded['result'] as Map<String, dynamic>,
+  );
+}
 }

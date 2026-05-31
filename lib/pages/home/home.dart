@@ -26,7 +26,8 @@ class PageHome extends StatefulWidget {
   State<PageHome> createState() => _PageHomeState();
 }
 
-class _PageHomeState extends State<PageHome> {
+class _PageHomeState extends State<PageHome> with WidgetsBindingObserver {
+  bool _waitingLocationForPost = false;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _crearPostKey = GlobalKey();
   final GlobalKey _filtrosKey = GlobalKey();
@@ -61,8 +62,9 @@ class _PageHomeState extends State<PageHome> {
   void initState() {
     super.initState();
 
-    _checkShowcase();
+    WidgetsBinding.instance.addObserver(this);
 
+    _checkShowcase();
     _init();
     _loadProfile();
     _loadData();
@@ -72,9 +74,27 @@ class _PageHomeState extends State<PageHome> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
+
+  @override
+void didChangeAppLifecycleState(AppLifecycleState state) async {
+  if (state != AppLifecycleState.resumed) return;
+
+  if (!_waitingLocationForPost) return;
+
+  final enabled = await Geolocator.isLocationServiceEnabled();
+
+  if (!enabled) return;
+
+  _waitingLocationForPost = false;
+
+  if (!mounted) return;
+
+  context.push('/posts/create/');
+}
 
   Future<void> _init() async {
     await AuthService.loadCurrentUser();
@@ -125,21 +145,12 @@ Future<void> _checkShowcase() async {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
+        _waitingLocationForPost = true;
 
-        /// abre configuración
         await Geolocator.openLocationSettings();
 
-        /// espera un poco al volver
-        await Future.delayed(const Duration(seconds: 2));
-
-        /// verifica nuevamente
-        serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-        if (!serviceEnabled) {
-          return false;
-        }
+        return false;
       }
-
       /// permisos
       LocationPermission permission = await Geolocator.checkPermission();
 

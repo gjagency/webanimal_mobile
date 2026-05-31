@@ -712,6 +712,16 @@ void _removeMediaAt(int index) {
   // ============ SUBIDA ============
 
 Future<void> _savePost() async {
+  final telefono = _telefonoController.text.trim();
+  if (telefono.isNotEmpty) {
+    if (!RegExp(r'^\d{10,15}$').hasMatch(telefono)) {
+      await _showAlert(
+        title: 'Número inválido',
+        message: 'Ingresá un número válido de WhatsApp',
+      );
+      return;
+    }
+  }
   if (!_formKey.currentState!.validate()) return;
 
   // Validar descripción
@@ -894,17 +904,20 @@ setState(() {
   titleSpacing: 0,
   title: Row(
     children: [
-      Expanded(
-        child: const Text(
-          'WeBaNiMaL',
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Colors.black,
-          ),
-        ),
-      ),
+    Container(
+  padding: const EdgeInsets.all(8),
+  decoration: BoxDecoration(
+    gradient: const LinearGradient(
+      colors: [Colors.purple, Colors.pink],
+    ),
+    borderRadius: BorderRadius.circular(10),
+  ),
+  child: Image.asset(
+    "assets/logo6.png",
+    width: 22,
+    height: 22,
+  ),
+)
     ],
   ),
   actions: [
@@ -1002,15 +1015,19 @@ setState(() {
                       const SizedBox(height: 24),
                       _sectionTitle('Teléfono'),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _telefonoController,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        maxLength: 10,
-                        decoration: _inputDecoration('Ingresa tu teléfono'),
+                     TextFormField(
+                      controller: _telefonoController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 15,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: _inputDecoration(
+                        'Ej: 2920123456',
+                        prefixIcon: const Icon(Icons.phone),
                       ),
+                    ),
+                      
                       const SizedBox(height: 8),
                       _sectionTitle('Descripción'),
                       const SizedBox(height: 16),
@@ -1079,7 +1096,7 @@ setState(() {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Hasta 10 archivos',
+                  'Hasta 3 archivos',
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
