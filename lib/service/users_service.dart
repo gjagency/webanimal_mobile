@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:mobile_app/config.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:http/http.dart' as http;
+
 class AppVersion {
   final String androidVersionLatest;
   final String androidVersionMinimal;
@@ -10,22 +11,23 @@ class AppVersion {
   final String playStoreUrl;
   final String appStoreUrl;
 
-  AppVersion(
-      {required this.androidVersionLatest,
-      required this.androidVersionMinimal,
-      required this.androidVersionUpdater,
-      required this.playStoreUrl,
-      required this.appStoreUrl});
+  AppVersion({
+    required this.androidVersionLatest,
+    required this.androidVersionMinimal,
+    required this.androidVersionUpdater,
+    required this.playStoreUrl,
+    required this.appStoreUrl,
+  });
 
-      factory AppVersion.fromJson(Map<String, dynamic> parsedJson) {
-        return AppVersion(
-          androidVersionLatest: parsedJson['android_version_latest'] ?? '',
-          androidVersionMinimal: parsedJson['android_version_minimal'] ?? '',
-          androidVersionUpdater: parsedJson['android_version_updater'] ?? '',
-          playStoreUrl: parsedJson['play_store_url'] ?? '',
-          appStoreUrl: parsedJson['app_store_url'] ?? '',
-        );
-      }
+  factory AppVersion.fromJson(Map<String, dynamic> parsedJson) {
+    return AppVersion(
+      androidVersionLatest: parsedJson['android_version_latest'] ?? '',
+      androidVersionMinimal: parsedJson['android_version_minimal'] ?? '',
+      androidVersionUpdater: parsedJson['android_version_updater'] ?? '',
+      playStoreUrl: parsedJson['play_store_url'] ?? '',
+      appStoreUrl: parsedJson['app_store_url'] ?? '',
+    );
+  }
 }
 
 class UserProfile {
@@ -74,7 +76,11 @@ class UserProfile {
 }
 
 class UserService {
-  static Future<List<UserProfile>> searchUsers(String query) async {
+  static Future<List<UserProfile>> searchUsers({
+    String query = "",
+    int take = 20,
+    int skip = 0,
+  }) async {
     final response = await AuthService.getWithToken(
       '/api/usuarios/?q=${Uri.encodeComponent(query)}',
     );
@@ -94,8 +100,13 @@ class UserService {
     throw Exception('Error al buscar usuarios');
   }
 
-  static Future<List<UserProfile>> getUsers() async {
-    final response = await AuthService.getWithToken('/api/usuarios/');
+  static Future<List<UserProfile>> getUsers({
+    int take = 20,
+    int skip = 0,
+  }) async {
+    final response = await AuthService.getWithToken(
+      '/api/usuarios/?take=$take&skip=$skip',
+    );
 
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
@@ -111,28 +122,25 @@ class UserService {
 
     throw Exception('Error al cargar usuarios');
   }
-Future<AppVersion> appVersion() async {
-final response = await http.get(
-  Uri.parse('${Config.baseUrl}/api/app_version/'),
-);
 
-  print("📡 STATUS: ${response.statusCode}");
-  print("📦 BODY: ${response.body}");
-
-  if (response.statusCode != 200) {
-    throw Exception(
-      'Error al obtener versión (${response.statusCode})',
+  Future<AppVersion> appVersion() async {
+    final response = await http.get(
+      Uri.parse('${Config.baseUrl}/api/app_version/'),
     );
+
+    print("📡 STATUS: ${response.statusCode}");
+    print("📦 BODY: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al obtener versión (${response.statusCode})');
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded['result'] == null) {
+      throw Exception('La API no devolvió result');
+    }
+
+    return AppVersion.fromJson(decoded['result'] as Map<String, dynamic>);
   }
-
-  final decoded = jsonDecode(response.body);
-
-  if (decoded['result'] == null) {
-    throw Exception('La API no devolvió result');
-  }
-
-  return AppVersion.fromJson(
-    decoded['result'] as Map<String, dynamic>,
-  );
-}
 }

@@ -12,67 +12,94 @@ class SearchUsersPage extends StatefulWidget {
 }
 
 class _SearchUsersPageState extends State<SearchUsersPage> {
-  final TextEditingController _controller = TextEditingController();
+  static const int _take = 6;
+
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
 
   List<UserProfile> _results = [];
-  bool _loading = false;
-  bool _initialLoading = true;
+  String _currentQuery = '';
+  int _skip = 0;
+  bool _hasMore = true;
+
+  bool _initialLoading = false;
+  bool _searchLoading = false;
+  bool _loadingMore = false;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialUsers(); // 👈 CARGA AUTOMÁTICA AL ENTRAR
-  }
-
-  Future<void> _loadInitialUsers() async {
-    setState(() => _initialLoading = true);
-
-    try {
-      final users = await UserService.getUsers();
-
-      setState(() {
-        _results = users;
-        _initialLoading = false;
-      });
-    } catch (e) {
-      setState(() => _initialLoading = false);
-    }
-  }
-
-  void _onSearchChanged(String value) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      _searchUsers(value);
-    });
-  }
-
-  Future<void> _searchUsers(String query) async {
-    if (query.isEmpty) {
-      _loadInitialUsers();
-      return;
-    }
-
-    setState(() => _loading = true);
-
-    try {
-      final users = await UserService.searchUsers(query);
-
-      setState(() {
-        _results = users;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() => _loading = false);
-    }
+    _scrollController.addListener(_onScroll);
+    _fetchUsers(reset: true);
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _controller.dispose();
+    _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      _fetchUsers();
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _currentQuery = value.trim();
+      _fetchUsers(reset: true);
+    });
+  }
+
+  Future<void> _fetchUsers({bool reset = false}) async {
+    if (!reset && (_loadingMore || !_hasMore)) return;
+    if (reset && (_initialLoading || _searchLoading)) return;
+
+    if (reset) {
+      setState(() {
+        _results = [];
+        _skip = 0;
+        _hasMore = true;
+        if (_currentQuery.isEmpty) {
+          _initialLoading = true;
+        } else {
+          _searchLoading = true;
+        }
+      });
+    } else {
+      setState(() => _loadingMore = true);
+    }
+
+    try {
+      final users = _currentQuery.isEmpty
+          ? await UserService.getUsers(take: _take, skip: _skip)
+          : await UserService.searchUsers(
+              query: _currentQuery,
+              take: _take,
+              skip: _skip,
+            );
+
+      setState(() {
+        _results.addAll(users);
+        _skip += users.length;
+        _hasMore = users.length == _take;
+        _initialLoading = false;
+        _searchLoading = false;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      setState(() {
+        _initialLoading = false;
+        _searchLoading = false;
+        _loadingMore = false;
+      });
+    }
   }
 
   @override
@@ -80,7 +107,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     return Scaffold(
       appBar: AppBar(
         title: TextField(
-          controller: _controller,
+          controller: _searchController,
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'Buscar usuarios...',
@@ -89,42 +116,48 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           onChanged: _onSearchChanged,
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _initialLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _results.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No se encontraron usuarios',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _results.length,
-                    itemBuilder: (context, index) {
-                      final user = _results[index];
+      body: _buildBody(),
+    );
+  }
 
-                      return ListTile(
-                        leading: CustomAvatar(url: user.imageUrl),
-                        title: Text(
-                          user.displayName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text('@${user.username}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          context.push('/user-posts/${user.id}');
-                        },
-                      );
-                    },
-                  ),
+  Widget _buildBody() {
+    if (_initialLoading || _searchLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_results.isEmpty) {
+      return const Center(
+        child: Text(
+          'No se encontraron usuarios',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: _results.length + (_loadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _results.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = _results[index];
+
+        return ListTile(
+          leading: CustomAvatar(url: user.imageUrl),
+          title: Text(
+            user.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-        ],
-      ),
+          subtitle: Text('@${user.username}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/user-posts/${user.id}'),
+        );
+      },
     );
   }
 }
