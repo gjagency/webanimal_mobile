@@ -44,11 +44,11 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
           await AuthService.getProfile(); // 🟢 Método que trae usuario
       setState(() {
         final firstName = profile['first_name'] ?? '';
-        final lastNameApi = profile['last_name'] ?? '';
+        final lastName = profile['last_name'] ?? '';
 
         displayName = [
           firstName,
-          lastNameApi,
+          lastName,
         ].where((e) => e.isNotEmpty).join(' ');
 
         username = profile['username'] ?? '';
@@ -94,40 +94,35 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Logo con gradiente
-    Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Logo con gradiente
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset("assets/logo6.png", width: 22, height: 22),
+            ),
+
+            const SizedBox(width: 10),
+
+            // Texto que NO rompe el layout
+            Expanded(
+              child: Text(
+                "WebAnimal",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Image.asset(
-        "assets/logo6.png",
-        width: 22,
-        height: 22,
-      ),
-    ),
-
-    const SizedBox(width: 10),
-
-    // Texto que NO rompe el layout
-    Expanded(
-      child: Text(
-        "WebAnimal",
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    ),
-
-  ],
-),
         backgroundColor: Colors.white,
         elevation: 0,
 
@@ -163,9 +158,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                   ),
                 ]),
                 SizedBox(height: 16),
-              _buildSection(
-                AuthService.esVeterinaria ? 'Veterinaria' : '',
-                [
+                _buildSection(AuthService.esVeterinaria ? 'Veterinaria' : '', [
                   if (loadingVets)
                     Padding(
                       padding: EdgeInsets.all(16),
@@ -177,19 +170,27 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                         onTap: () async {},
                         borderRadius: BorderRadius.circular(16),
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           child: Row(
                             children: [
                               Container(
                                 padding: EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: (vet.verified ? Colors.blue : Colors.purple)
-                                      .withValues(alpha: 0.1),
+                                  color:
+                                      (vet.verified
+                                              ? Colors.blue
+                                              : Colors.purple)
+                                          .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
                                   Icons.local_hospital,
-                                  color: vet.verified ? Colors.blue : Colors.purple,
+                                  color: vet.verified
+                                      ? Colors.blue
+                                      : Colors.purple,
                                   size: 22,
                                 ),
                               ),
@@ -233,9 +234,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                       ),
                     ),
                   ],
-                ],
-              ),
-
+                ]),
 
                 SizedBox(height: 16),
                 _buildSection('Ayuda y soporte', [
@@ -310,159 +309,126 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     );
   }
 
-Widget _buildProfileSection() {
-  return LayoutBuilder(
-    builder: (context, constraints) {
+  Widget _buildProfileSection() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool small = constraints.maxWidth < 360;
 
-      final bool small =
-          constraints.maxWidth < 360;
+        final double avatarRadius = small ? 26 : 35;
 
-      final double avatarRadius =
-          small ? 26 : 35;
+        final double spacing = small ? 10 : 16;
 
-      final double spacing =
-          small ? 10 : 16;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
 
-      return Container(
-        margin: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+          padding: const EdgeInsets.all(20),
 
-        padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.purple, Colors.pink],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
 
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Colors.purple,
-              Colors.pink,
+            borderRadius: BorderRadius.circular(20),
+
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
 
-          borderRadius:
-              BorderRadius.circular(20),
+          child: Row(
+            children: [
+              /// AVATAR RESPONSIVE
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
 
-          boxShadow: [
-            BoxShadow(
-              color: Colors.purple.withValues(
-                alpha: 0.3,
-              ),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
 
-        child: Row(
-          children: [
+                child: CircleAvatar(
+                  radius: avatarRadius,
 
-            /// AVATAR RESPONSIVE
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-
-                border: Border.all(
-                  color: Colors.white,
-                  width: 3,
+                  backgroundImage: NetworkImage(avatarUrl),
                 ),
               ),
 
-              child: CircleAvatar(
-                radius: avatarRadius,
+              SizedBox(width: spacing),
 
-                backgroundImage:
-                    NetworkImage(avatarUrl),
-              ),
-            ),
+              /// INFO
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
-            SizedBox(width: spacing),
+                  mainAxisSize: MainAxisSize.min,
 
-            /// INFO
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                  children: [
+                    /// NAME
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
 
-                mainAxisSize:
-                    MainAxisSize.min,
-
-                children: [
-
-                  /// NAME
-                  Text(
-                    displayName,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize:
-                          small ? 14 : 16,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  /// EMAIL
-                  Text(
-                    email,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-
-                    style: TextStyle(
-                      color: Colors.white
-                          .withValues(
-                        alpha: 0.9,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: small ? 14 : 16,
+                        fontWeight: FontWeight.bold,
                       ),
-
-                      fontSize:
-                          small ? 12 : 14,
                     ),
-                  ),
 
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 4),
 
-                  /// POSTS
-                  Text(
-                    '$postsCount publicaciones',
+                    /// EMAIL
+                    Text(
+                      email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
 
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
 
-                    style: TextStyle(
-                      color: Colors.white
-                          .withValues(
-                        alpha: 0.8,
+                        fontSize: small ? 12 : 14,
                       ),
-
-                      fontSize:
-                          small ? 11 : 12,
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 8),
+
+                    /// POSTS
+                    Text(
+                      '$postsCount publicaciones',
+
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+
+                        fontSize: small ? 11 : 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            SizedBox(width: small ? 6 : 10),
+              SizedBox(width: small ? 6 : 10),
 
-            /// ARROW
-            Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-              size: small ? 14 : 18,
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+              /// ARROW
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white,
+                size: small ? 14 : 18,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildSection(String title, List<Widget> items) {
     return Column(
@@ -727,229 +693,110 @@ Widget _buildProfileSection() {
     );
   }
 
-void _showHelpCenter() {
-  final screen = MediaQuery.of(context).size;
+  void _showHelpCenter() {
+    final screen = MediaQuery.of(context).size;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
 
-    builder: (context) {
-      return DraggableScrollableSheet(
-        initialChildSize: 0.42,
-        minChildSize: 0.32,
-        maxChildSize: 0.85,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.42,
+          minChildSize: 0.32,
+          maxChildSize: 0.85,
 
-        expand: false,
+          expand: false,
 
-        builder: (_, controller) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
 
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(32),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
               ),
-            ),
 
-            child: SafeArea(
-              top: false,
+              child: SafeArea(
+                top: false,
 
-              child: SingleChildScrollView(
-                controller: controller,
+                child: SingleChildScrollView(
+                  controller: controller,
 
-                padding: EdgeInsets.fromLTRB(
-                  screen.width * 0.06,
-                  14,
-                  screen.width * 0.06,
-                  28,
-                ),
+                  padding: EdgeInsets.fromLTRB(
+                    screen.width * 0.06,
+                    14,
+                    screen.width * 0.06,
+                    28,
+                  ),
 
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      /// HANDLE
+                      Container(
+                        width: screen.width * 0.14,
+                        height: 5,
 
-                    /// HANDLE
-                    Container(
-                      width: screen.width * 0.14,
-                      height: 5,
-
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius:
-                            BorderRadius.circular(20),
-                      ),
-                    ),
-
-                    SizedBox(height: screen.height * 0.025),
-
-                    /// HEADER
-                    Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                      children: [
-
-                        /// ICON
-                        Container(
-                          width: screen.width * 0.15,
-                          height: screen.width * 0.15,
-
-                          constraints: const BoxConstraints(
-                            maxWidth: 62,
-                            maxHeight: 62,
-                          ),
-
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(20),
-
-                            gradient:
-                                const LinearGradient(
-                              colors: [
-                                Colors.purple,
-                                Colors.pink,
-                              ],
-                            ),
-                          ),
-
-                          child: Icon(
-                            Icons.support_agent,
-                            color: Colors.white,
-                            size: screen.width * 0.075,
-                          ),
-                        ),
-
-                        SizedBox(width: screen.width * 0.04),
-
-                        /// TEXTS
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-
-                            children: [
-
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment:
-                                    Alignment.centerLeft,
-
-                                child: Text(
-                                  'Centro de ayuda',
-
-                                  maxLines: 1,
-
-                                  style: TextStyle(
-                                    fontSize:
-                                        screen.width *
-                                            0.06,
-
-                                    fontWeight:
-                                        FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-
-                             
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: screen.height * 0.03),
-
-                    /// CONTACT CARD
-                    Container(
-                      width: double.infinity,
-
-                      padding: EdgeInsets.all(
-                        screen.width * 0.045,
-                      ),
-
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-
-                        borderRadius:
-                            BorderRadius.circular(24),
-
-                        border: Border.all(
-                          color: Colors.grey.shade200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
 
-                      child: Row(
+                      SizedBox(height: screen.height * 0.025),
+
+                      /// HEADER
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+
                         children: [
-
+                          /// ICON
                           Container(
-                            width: screen.width * 0.13,
-                            height: screen.width * 0.13,
+                            width: screen.width * 0.15,
+                            height: screen.width * 0.15,
 
-                            constraints:
-                                const BoxConstraints(
-                              maxWidth: 54,
-                              maxHeight: 54,
+                            constraints: const BoxConstraints(
+                              maxWidth: 62,
+                              maxHeight: 62,
                             ),
 
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
 
-                              borderRadius:
-                                  BorderRadius.circular(
-                                16,
+                              gradient: const LinearGradient(
+                                colors: [Colors.purple, Colors.pink],
                               ),
                             ),
 
                             child: Icon(
-                              Icons.email_outlined,
-                              color: Colors.purple,
-                              size: screen.width * 0.06,
+                              Icons.support_agent,
+                              color: Colors.white,
+                              size: screen.width * 0.075,
                             ),
                           ),
 
-                          SizedBox(
-                            width: screen.width * 0.04,
-                          ),
+                          SizedBox(width: screen.width * 0.04),
 
+                          /// TEXTS
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
 
                               children: [
-
-                                Text(
-                                  'Contacto',
-
-                                  style: TextStyle(
-                                    color: Colors
-                                        .grey.shade700,
-
-                                    fontSize:
-                                        screen.width *
-                                            0.033,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  alignment:
-                                      Alignment.centerLeft,
+                                  alignment: Alignment.centerLeft,
 
-                                  child: const SelectableText(
-                                    'webanimalok@gmail.com',
+                                  child: Text(
+                                    'Centro de ayuda',
 
                                     maxLines: 1,
 
                                     style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight:
-                                          FontWeight.w600,
+                                      fontSize: screen.width * 0.06,
+
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
@@ -958,73 +805,142 @@ void _showHelpCenter() {
                           ),
                         ],
                       ),
-                    ),
 
-                    SizedBox(height: screen.height * 0.035),
+                      SizedBox(height: screen.height * 0.03),
 
-                    /// BUTTON
-                    SizedBox(
-                      width: double.infinity,
+                      /// CONTACT CARD
+                      Container(
+                        width: double.infinity,
 
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        padding: EdgeInsets.all(screen.width * 0.045),
 
-                        style:
-                            ElevatedButton.styleFrom(
-                          elevation: 0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
 
-                          backgroundColor:
-                              Colors.purple,
+                          borderRadius: BorderRadius.circular(24),
 
-                          foregroundColor:
-                              Colors.white,
-
-                          padding:
-                              EdgeInsets.symmetric(
-                            vertical:
-                                screen.height * 0.02,
-                          ),
-
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              18,
-                            ),
-                          ),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
 
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: screen.width * 0.13,
+                              height: screen.width * 0.13,
 
-                          child: Text(
-                            'Cerrar',
+                              constraints: const BoxConstraints(
+                                maxWidth: 54,
+                                maxHeight: 54,
+                              ),
 
-                            maxLines: 1,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
 
-                            style: TextStyle(
-                              fontSize:
-                                  screen.width * 0.042,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
 
-                              fontWeight:
-                                  FontWeight.w600,
+                              child: Icon(
+                                Icons.email_outlined,
+                                color: Colors.purple,
+                                size: screen.width * 0.06,
+                              ),
+                            ),
+
+                            SizedBox(width: screen.width * 0.04),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+
+                                children: [
+                                  Text(
+                                    'Contacto',
+
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+
+                                      fontSize: screen.width * 0.033,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 4),
+
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+
+                                    child: const SelectableText(
+                                      'webanimalok@gmail.com',
+
+                                      maxLines: 1,
+
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: screen.height * 0.035),
+
+                      /// BUTTON
+                      SizedBox(
+                        width: double.infinity,
+
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+
+                            backgroundColor: Colors.purple,
+
+                            foregroundColor: Colors.white,
+
+                            padding: EdgeInsets.symmetric(
+                              vertical: screen.height * 0.02,
+                            ),
+
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+
+                            child: Text(
+                              'Cerrar',
+
+                              maxLines: 1,
+
+                              style: TextStyle(
+                                fontSize: screen.width * 0.042,
+
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 
   Widget _helpItem(String title, String subtitle) {
     return Padding(

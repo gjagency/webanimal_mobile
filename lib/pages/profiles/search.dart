@@ -153,7 +153,6 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             user.displayName,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-          subtitle: Text('@${user.username}'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/user-posts/${user.id}'),
         );
