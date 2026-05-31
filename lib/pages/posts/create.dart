@@ -902,24 +902,7 @@ setState(() {
      appBar: AppBar(
   backgroundColor: Colors.grey[50],
   titleSpacing: 0,
-  title: Row(
-    children: [
-    Container(
-  padding: const EdgeInsets.all(8),
-  decoration: BoxDecoration(
-    gradient: const LinearGradient(
-      colors: [Colors.purple, Colors.pink],
-    ),
-    borderRadius: BorderRadius.circular(10),
-  ),
-  child: Image.asset(
-    "assets/logo6.png",
-    width: 22,
-    height: 22,
-  ),
-)
-    ],
-  ),
+
   actions: [
     GestureDetector(
       onTap: _openLocationSearch,
