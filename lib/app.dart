@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/deep_links_handler.dart';
 import 'package:mobile_app/router.dart';
 import 'package:mobile_app/widgets/UpdaterPopup.dart';
+
 class App extends StatefulWidget {
   const App({super.key});
 
@@ -24,17 +25,16 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
-@override
-Widget build(BuildContext context) {
-  print("🚀🚀🚀🚀 APP BUILD");
+  @override
+  Widget build(BuildContext context) {
+    print("🚀🚀🚀🚀 APP BUILD");
 
-return MaterialApp.router(
-  routerConfig: router,
-  builder: (context, child) {
-    return UpdaterPopup(
-      child: child,
+    return MaterialApp.router(
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return UpdaterPopup(child: child);
+      },
     );
-  },
-);
-}
+  }
 }
