@@ -12,6 +12,8 @@ import 'package:mobile_app/widgets/modern_post_card.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/painting.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 class PagePostView extends StatefulWidget {
   final String postId;
   const PagePostView({super.key, required this.postId});
@@ -48,6 +50,26 @@ class _PagePostViewState extends State<PagePostView> {
     super.dispose();
   }
 
+
+Future<void> _openWhatsapp(String phone) async {
+  String cleanPhone =
+      phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+  if (!cleanPhone.startsWith('54')) {
+    cleanPhone = '54$cleanPhone';
+  }
+
+  final uri = Uri.parse(
+    'whatsapp://send?phone=$cleanPhone',
+  );
+
+  final ok = await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  );
+
+  debugPrint("WHATSAPP OPENED: $ok");
+}
   Future<void> _shareToFacebookFeed() async {
     if (_post == null || _post!.medias.isEmpty) return;
 
@@ -580,20 +602,35 @@ appBar: AppBar(
                     // Teléfono
                     if (post.telefono != null && post.telefono!.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.phone,
-                              size: 16,
-                              color: Colors.green.shade700,
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              post.telefono!,
+                              'Contacto:',
                               style: TextStyle(
-                                color: Colors.green.shade700,
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            InkWell(
+                              onTap: () {
+                                _openWhatsapp(post.telefono!);
+                              },
+                              borderRadius: BorderRadius.circular(50),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: FaIcon(
+                                  FontAwesomeIcons.whatsapp,
+                                  color: Color(0xFF25D366),
+                                  size: 22,
+                                ),
                               ),
                             ),
                           ],
