@@ -59,6 +59,14 @@
                 <string>webanimal</string>
             </array>
         </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.472691331964-pb4h942hf3ioklokphfighhvcmm7ep0j</string>
+            </array>
+        </dict>
     </array>
 </dict>
 </plist>
