@@ -9,7 +9,8 @@ import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/avatar.dart';
 import 'package:video_player/video_player.dart';
-
+import 'dart:typed_data';
+import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 class UserPostsPage extends StatefulWidget {
   final String userId;
   const UserPostsPage({super.key, required this.userId});
@@ -343,32 +344,29 @@ SliverGrid(
                       )
 
                     : media.isVideo
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(0),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                             Container(
-                                      color: Colors.black,
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.play_circle_fill,
-                                          color: Colors.white,
-                                          size: 40,
-                                        ),
-                                      ),
-                                    ),
+                        ? ClipRRect(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
 
-                              const Center(
-                                child: Icon(
-                                  Icons.play_circle_fill,
-                                  color: Colors.white,
-                                  size: 40,
+                                VideoThumbnailWidget(
+                                  url: media.url,
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
+
+                                Container(
+                                  color: Colors.black26,
+                                ),
+
+                                const Center(
+                                  child: Icon(
+                                    Icons.play_circle_fill,
+                                    color: Colors.white,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
 
                         : Image.network(
                             media.url,
@@ -811,6 +809,7 @@ class VideoPlayerWidget extends StatefulWidget {
       _VideoPlayerWidgetState();
 }
 
+
 class _VideoPlayerWidgetState
     extends State<VideoPlayerWidget> {
 
@@ -985,7 +984,72 @@ class _VideoPlayerWidgetState
       ),
     );
   }
-}class VideoThumbnail extends StatefulWidget {
+}
+class VideoThumbnailWidget extends StatefulWidget {
+  final String url;
+
+  const VideoThumbnailWidget({
+    super.key,
+    required this.url,
+  });
+
+  @override
+  State<VideoThumbnailWidget> createState() =>
+      _VideoThumbnailWidgetState();
+}
+
+class _VideoThumbnailWidgetState
+    extends State<VideoThumbnailWidget> {
+
+  Uint8List? thumbnail;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  Future<void> _loadThumbnail() async {
+    try {
+      final bytes = await vt.VideoThumbnail.thumbnailData(
+        video: widget.url,
+        imageFormat: vt.ImageFormat.JPEG,
+        maxWidth: 400,
+        quality: 75,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        thumbnail = bytes;
+      });
+    } catch (e) {
+      debugPrint('Thumbnail error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (thumbnail == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return Image.memory(
+      thumbnail!,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+    );
+  }
+}
+
+class VideoThumbnail extends StatefulWidget {
   final String url;
 
   const VideoThumbnail({super.key, required this.url});
