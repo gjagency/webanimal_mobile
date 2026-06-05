@@ -22,7 +22,7 @@ class AuthService {
     serverClientId:
         '472691331964-c55775j6obsbcnugcfo4ac6d9nsf2s6r.apps.googleusercontent.com',
     clientId:
-        '472691331964-pb4h942hf3ioklokphfighhvcmm7ep0j.apps.googleusercontent.com',
+        '472691331964-v39lrtmpoddaidmr719f9a2nf9nfi9ik.apps.googleusercontent.com',
   );
 
   /// 👤 PERFIL DE OTRO USUARIO POR ID

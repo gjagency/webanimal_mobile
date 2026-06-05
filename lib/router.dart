@@ -195,7 +195,7 @@ final router = GoRouter(
 
     // 👉 Logueado → evitar auth (menos reset)
     if (token != null && isAuthRoute && !isReset && !isRecoverPassword) {
-      return '/';
+      return '/home';
     }
 
     return null;
