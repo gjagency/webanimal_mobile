@@ -33,7 +33,14 @@ class _AppState extends State<App> {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return UpdaterPopup(child: child);
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.0),
+          ),
+          child: UpdaterPopup(
+            child: child,
+          ),
+        );
       },
     );
   }

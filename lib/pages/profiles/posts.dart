@@ -583,94 +583,46 @@ SliverGrid(
 
                       const SizedBox(height: 20),
 
-                      const Text(
-                        'Imágenes',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
+                   const Text(
+                      'Imágenes',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
                       ),
-                      const SizedBox(height: 12),
+                    ),
 
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          ..._medias.map((media) {
-                            final isVideo = media.isVideo;
+                    const SizedBox(height: 12),
 
-                            return _imagePreview(
-                              image: isVideo
-                                  ? Container(
-                                      color: Colors.black,
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.play_circle_fill,
-                                          color: Colors.white,
-                                          size: 30,
-                                        ),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: _medias.map((media) {
+                        return Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: media.isVideo
+                                ? Container(
+                                    color: Colors.black,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.play_circle_fill,
+                                        color: Colors.white,
                                       ),
-                                    )
-                                  : Image.network(
-  media.url,
-  fit: BoxFit.cover,
-
-  cacheWidth: 300,
-
-  filterQuality: FilterQuality.low,
-
-  gaplessPlayback: true,
-),
-                              onDelete: () {
-                                setModalState(() {
-                                  _medias.remove(media);
-                                });
-                              },
-                            );
-                          }),
-
-                          if (_medias.length < 3)
-                            GestureDetector(
-                              onTap: () async {
-                                final picked = await picker.pickImage(
-                                  source: ImageSource.gallery,
-                                );
-
-                                if (picked != null) {
-                                  final media = await MediaService.upload(
-                                    File(picked.path),
-                                  );
-
-                                  setModalState(() {
-                                    _medias.add(
-                                      PostMedia(
-                                        id: media.id ?? "",
-                                        url: media.url ?? "",
-                                        mimeType: media.mimeType ?? "",
-                                        filename: media.filename ?? "",
-                                      ),
-                                    );
-                                  });
-                                }
-                              },
-                              child: Container(
-                                width: 90,
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
+                                    ),
+                                  )
+                                : Image.network(
+                                    media.url,
+                                    fit: BoxFit.cover,
                                   ),
-                                ),
-                                child: const Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  size: 30,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
 
                       const SizedBox(height: 28),
 
@@ -695,11 +647,39 @@ SliverGrid(
 
     Expanded(
       child: ElevatedButton(
-        onPressed: _isSavingEdit
-            ? null
-            : () async {
-                // guardar
-              },
+onPressed: _isSavingEdit
+    ? null
+    : () async {
+        if (!formKey.currentState!.validate()) return;
+
+        formKey.currentState!.save();
+
+        setState(() {
+          _isSavingEdit = true;
+        });
+
+        try {
+          await PostsService.updatePost(
+            post.id,
+            description: description,
+            mediaIds: _medias.map((e) => e.id).toList(),
+          );
+
+          if (!mounted) return;
+
+          Navigator.pop(context);
+          await _refresh();
+
+        } catch (e) {
+          debugPrint(e.toString());
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isSavingEdit = false;
+            });
+          }
+        }
+      },
 
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.purple,
@@ -743,11 +723,12 @@ void _openImageViewer(Post post, int initialIndex) {
       barrierDismissible: true,
       barrierColor: Colors.black,
       pageBuilder: (_, __, ___) {
-        return _FullScreenViewer(
-          post: post,
-          initialIndex: initialIndex,
-          onRefresh: _refresh,
-        );
+    return _FullScreenViewer(
+      post: post,
+      initialIndex: initialIndex,
+      onRefresh: _refresh,
+      onEdit: _editarPost,
+    );
       },
     ),
   );
@@ -1272,6 +1253,17 @@ class _FullScreenViewer extends StatefulWidget {
           },
           itemBuilder: (_) => const [
 
+
+                            PopupMenuItem(
+                          value: 'edit',
+                      child: Text(
+                        'Editar',
+                           style: TextStyle(
+                       color: Colors.white,
+                    ),
+                      ),
+                     ),
+               
             PopupMenuItem(
               value: 'share',
               child: Text('Compartir',
