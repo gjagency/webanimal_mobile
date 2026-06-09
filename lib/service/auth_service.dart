@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_app/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Servicio de autenticación
 class AuthService {
@@ -180,6 +181,55 @@ class AuthService {
       return false;
     } catch (e) {
       debugPrint('Google login exception: $e');
+      return false;
+    }
+  }
+
+  /* ==========================================================
+     LOGIN CON APPLE
+     ========================================================== */
+  static Future<dynamic> loginWithApple() async {
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        webAuthenticationOptions: WebAuthenticationOptions(
+          clientId: 'app.eco.agency.gj.webanimal',
+          redirectUri: Uri.parse(
+            'https://webanimal.com/api/auth/apple/callback',
+          ),
+        ),
+      );
+
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/api/auth/apple/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id_token': credential.identityToken,
+          'email': credential.email,
+          'first_name': credential.givenName,
+          'last_name': credential.familyName,
+          'apple_user_id': credential.userIdentifier,
+          'authorization_code': credential.authorizationCode,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        final access = data['access'];
+        final refresh = data['refresh'];
+
+        if (access != null && refresh != null) {
+          await _saveTokens(access, refresh);
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Apple login exception: $e');
       return false;
     }
   }

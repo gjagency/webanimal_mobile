@@ -4,6 +4,7 @@ import 'package:mobile_app/service/auth_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
+
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});
 
@@ -73,6 +74,24 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
     }
   }
 
+  Future<void> _loginWithApple() async {
+    setState(() => _loading = true);
+
+    try {
+      final success = await AuthService.loginWithApple();
+      if (success) {
+        _goHome();
+      } else {
+        _showError('No se pudo iniciar sesión con Apple');
+      }
+    } catch (e) {
+      _showError('Error con Apple Sign-In');
+      debugPrint('Apple login error: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
   void _goHome() {
     if (!mounted) return;
     GoRouter.of(context).go('/home');
@@ -86,290 +105,326 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-  gradient: LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF9B4DCC), // violeta
-      Color(0xFFE0528D), // rosa rojizo más visible
-    ],
-  ),
-),
-      child: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // LOGO
-                SizedBox(
-                  width: 280,
-                  height: 140,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // huellas fondo
-                      Positioned(
-                        top: 10,
-                        left: 20,
-                        child: Transform.rotate(
-                          angle: -0.3,
-                          child: Icon(
-                            Icons.pets,
-                            size: 70,
-                            color: Colors.white.withOpacity(0.06),
-                          ),
-                        ),
-                      ),
-
-                      Positioned(
-                        top: 50,
-                        right: 20,
-                        child: Transform.rotate(
-                          angle: 0.2,
-                          child: Icon(
-                            Icons.pets,
-                            size: 55,
-                            color: Colors.white.withOpacity(0.05),
-                          ),
-                        ),
-                      ),
-
-                      // W
-                      Positioned(
-                        left: 75,
-                        top: 1,
-                        child: Transform.rotate(
-                          angle: -0.00,
-                          child: Text(
-                            'W',
-                            style: GoogleFonts.cormorantGaramond(
-                              color: Colors.white,
-                              fontSize: 100,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w700,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                  offset: Offset(3, 3),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // A
-                      Positioned(
-                        left: 120,
-                        top: 20,
-                        child: Transform.rotate(
-                          angle: -0.00,
-                          child: Text(
-                            'A',
-                            style: GoogleFonts.cormorantGaramond(
-                              color: Colors.white,
-                              fontSize: 100,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w700,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                  offset: Offset(3, 3),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-
-                                // CARD LOGIN
-                // reemplazá TODO el Container del login por esto:
-
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.15),
-                    ),
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF9B4DCC), // violeta
+              Color(0xFFE0528D), // rosa rojizo más visible
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
-  children: [
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // LOGO
+                  SizedBox(
+                    width: 280,
+                    height: 140,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // huellas fondo
+                        Positioned(
+                          top: 10,
+                          left: 20,
+                          child: Transform.rotate(
+                            angle: -0.3,
+                            child: Icon(
+                              Icons.pets,
+                              size: 70,
+                              color: Colors.white.withOpacity(0.06),
+                            ),
+                          ),
+                        ),
 
-    /// ================= ACCESO COMERCIO =================
-    Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                        Positioned(
+                          top: 50,
+                          right: 20,
+                          child: Transform.rotate(
+                            angle: 0.2,
+                            child: Icon(
+                              Icons.pets,
+                              size: 55,
+                              color: Colors.white.withOpacity(0.05),
+                            ),
+                          ),
+                        ),
 
-          const Text(
-            "Acceso Comercio",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+                        // W
+                        Positioned(
+                          left: 75,
+                          top: 1,
+                          child: Transform.rotate(
+                            angle: -0.00,
+                            child: Text(
+                              'W',
+                              style: GoogleFonts.cormorantGaramond(
+                                color: Colors.white,
+                                fontSize: 100,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w700,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(3, 3),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
 
-          const SizedBox(height: 14),
-
-          TextField(
-            controller: _usernameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Usuario o Email',
-              hintStyle: TextStyle(color: Colors.white70),
-              prefixIcon: const Icon(Icons.person, color: Colors.white),
-              filled: true,
-              fillColor: Colors.white24,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          TextField(
-            controller: _passwordController,
-            obscureText: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Contraseña',
-              hintStyle: TextStyle(color: Colors.white70),
-              prefixIcon: const Icon(Icons.lock, color: Colors.white),
-              filled: true,
-              fillColor: Colors.white24,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _loading ? null : _login,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.purple,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: _loading
-                  ? const CircularProgressIndicator()
-                  : const Text(
-                      "Ingresar",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    ),
-
-    const SizedBox(height: 18),
-
-    /// ================= SEPARADOR =================
-    Row(
-      children: [
-        Expanded(child: Divider(color: Colors.white24)),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            "o continuar con",
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ),
-        Expanded(child: Divider(color: Colors.white24)),
-      ],
-    ),
-
-    const SizedBox(height: 18),
-
-    /// ================= GOOGLE LOGIN =================
-    SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton.icon(
-        icon: const FaIcon(
-          FontAwesomeIcons.google,
-          color: Colors.white,
-          size: 18,
-        ),
-        label: const Text(
-          'Ingresar con Google',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        onPressed: _loading ? null : _loginWithGoogle,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.white.withOpacity(0.3)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      ),
-    ),
-  ],
-),
-                    ),
-
-                const SizedBox(height: 24),
-
-                TextButton(
-                  onPressed: () => GoRouter.of(context)
-                      .go('/auth/register-vet'),
-                  child: const Text(
-                    'Registrar Comercio',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                        // A
+                        Positioned(
+                          left: 120,
+                          top: 20,
+                          child: Transform.rotate(
+                            angle: -0.00,
+                            child: Text(
+                              'A',
+                              style: GoogleFonts.cormorantGaramond(
+                                color: Colors.white,
+                                fontSize: 100,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w700,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(3, 3),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+
+                  // CARD LOGIN
+                  // reemplazá TODO el Container del login por esto:
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    ),
+                    child: Column(
+                      children: [
+                        /// ================= ACCESO COMERCIO =================
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.12),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Acceso Comercio",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              TextField(
+                                controller: _usernameController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Usuario o Email',
+                                  hintStyle: TextStyle(color: Colors.white70),
+                                  prefixIcon: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white24,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              TextField(
+                                controller: _passwordController,
+                                obscureText: true,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Contraseña',
+                                  hintStyle: TextStyle(color: Colors.white70),
+                                  prefixIcon: const Icon(
+                                    Icons.lock,
+                                    color: Colors.white,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white24,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: _loading ? null : _login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.purple,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  child: _loading
+                                      ? const CircularProgressIndicator()
+                                      : const Text(
+                                          "Ingresar",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        /// ================= SEPARADOR =================
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.white24)),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                "o continuar con",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.white24)),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        /// ================= GOOGLE LOGIN =================
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: OutlinedButton.icon(
+                            icon: const FaIcon(
+                              FontAwesomeIcons.google,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Ingresar con Google',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onPressed: _loading ? null : _loginWithGoogle,
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 12),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: OutlinedButton.icon(
+                            icon: const FaIcon(
+                              FontAwesomeIcons.apple,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Ingresar con Apple',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onPressed: _loading ? null : _loginWithApple,
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  TextButton(
+                    onPressed: () =>
+                        GoRouter.of(context).go('/auth/register-vet'),
+                    child: const Text(
+                      'Registrar Comercio',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }
