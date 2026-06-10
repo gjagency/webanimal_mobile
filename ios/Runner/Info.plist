@@ -4,24 +4,34 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
 	<key>CFBundleDisplayName</key>
 	<string>Web Animal</string>
+
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+
 	<key>CFBundleName</key>
 	<string>mobile_app</string>
+
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleSignature</key>
 	<string>????</string>
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -32,6 +42,7 @@
 				<string>webanimal</string>
 			</array>
 		</dict>
+
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -41,28 +52,42 @@
 			</array>
 		</dict>
 	</array>
+
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>GIDClientID</key>
 	<string>472691331964-v39lrtmpoddaidmr719f9a2nf9i9ik.apps.googleusercontent.com</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
 	<key>MinimumOSVersion</key>
 	<string>13.0</string>
+
 	<key>NSCameraUsageDescription</key>
-	<string>Necesitamos acceder a la cámara para tomar fotos.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Necesitamos tu ubicación para mostrar posts cercanos</string>
+	<string>Web Animal utiliza la cámara para que los usuarios puedan tomar fotografías de mascotas, comercios, veterinarias y publicaciones que serán compartidas dentro de la aplicación.</string>
+
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Necesitamos tu ubicación para mostrar posts cercanos</string>
+	<string>Web Animal utiliza tu ubicación para mostrar mascotas, comercios, veterinarias y publicaciones cercanas a tu ubicación actual.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Web Animal utiliza tu ubicación para mostrar mascotas, comercios, veterinarias y publicaciones cercanas a tu ubicación actual.</string>
+
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Web Animal utiliza tu ubicación para mostrar mascotas, comercios, veterinarias y publicaciones cercanas a tu ubicación actual.</string>
+
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Necesitamos guardar imágenes en tu galería.</string>
+	<string>Web Animal puede guardar imágenes relacionadas con mascotas, comercios y publicaciones en la galería del dispositivo cuando el usuario lo solicite.</string>
+
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Necesitamos acceder a tu galería para seleccionar imágenes.</string>
+	<string>Web Animal accede a tu galería para que puedas seleccionar fotografías de mascotas, comercios, veterinarias y publicaciones para compartir dentro de la aplicación.</string>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
+
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>
@@ -70,28 +95,36 @@
 				<dict>
 					<key>UISceneClassName</key>
 					<string>UIWindowScene</string>
+
 					<key>UISceneConfigurationName</key>
 					<string>flutter</string>
+
 					<key>UISceneDelegateClassName</key>
 					<string>FlutterSceneDelegate</string>
+
 					<key>UISceneStoryboardFile</key>
 					<string>Main</string>
 				</dict>
 			</array>
 		</dict>
 	</dict>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

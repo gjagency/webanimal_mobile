@@ -13,7 +13,8 @@ import 'package:mobile_app/pages/auth/sign_up.dart';
 import 'package:mobile_app/pages/auth/otp.dart';
 import 'package:mobile_app/pages/auth/reset_password.dart';
 import 'package:mobile_app/pages/auth/recover.dart';
-
+import 'package:mobile_app/pages/auth/terms_page.dart';
+import 'package:mobile_app/pages/auth/privacy_page.dart';
 // HOME
 import 'package:mobile_app/pages/splash.dart';
 import 'package:mobile_app/pages/home/home.dart';
@@ -61,6 +62,16 @@ final router = GoRouter(
       builder: (context, state) => const PagePetSpace(),
     ),
 
+    GoRoute(
+      path: '/auth/terms_page',
+      builder: (context, state) => const TermsPage(),
+    ),
+
+    GoRoute(
+      path: '/auth/privacy_page',
+      builder: (context, state) => const PrivacyPage(),
+    ),
+    
     /* =========================
        AUTH
        ========================= */
@@ -168,6 +179,8 @@ final router = GoRouter(
       path: '/api/auth/profile',
       builder: (context, state) => const PageEditProfile(),
     ),
+
+
   ],
 
   /* =========================

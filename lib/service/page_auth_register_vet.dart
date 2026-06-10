@@ -7,6 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_app/pages/auth/terms_page.dart';
+import 'package:mobile_app/pages/auth/privacy_page.dart';
+
 class PageAuthRegisterVet extends StatefulWidget {
   const PageAuthRegisterVet({super.key});
 
@@ -15,6 +18,7 @@ class PageAuthRegisterVet extends StatefulWidget {
 }
 
 class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
+  bool _acceptTerms = false;
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   final _emailController = TextEditingController();
@@ -105,18 +109,17 @@ Future<void> _getCurrentLocation() async {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permiso denegado permanentemente'),
+          content: Text(
+            'Debes habilitar la ubicación desde Configuración',
+          ),
         ),
       );
 
-      context.go('/auth/sign_in');
+      await Geolocator.openAppSettings();
       return;
     }
-
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -156,8 +159,20 @@ Future<void> _getCurrentLocation() async {
   }
 }
 
+
   /// ✅ Registrar veterinaria
   Future<void> _submit() async {
+
+      if (!_acceptTerms) {
+    _showError(
+      'Debes aceptar los Términos y Condiciones para continuar',
+    );
+    return;
+  }
+
+  if (!_formKey.currentState!.validate()) return;
+
+  setState(() => _loading = true);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
@@ -456,13 +471,67 @@ Future<void> _getCurrentLocation() async {
 
                         _imagePickerCard(),
 
-                        const SizedBox(height: 14),
+const SizedBox(height: 10),
+
+CheckboxListTile(
+  contentPadding: EdgeInsets.zero,
+  value: _acceptTerms,
+  activeColor: const Color(0xFF9B4DCC),
+  controlAffinity: ListTileControlAffinity.leading,
+  onChanged: (value) {
+    setState(() {
+      _acceptTerms = value ?? false;
+    });
+  },
+  title: Wrap(
+    children: [
+      const Text(
+        'Acepto los ',
+        style: TextStyle(fontSize: 13),
+      ),
+     GestureDetector(
+        onTap: () {
+          context.push('/auth/terms_page');
+        },
+        child: const Text(
+          'Términos y Condiciones',
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF9B4DCC),
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      ),
+      const Text(
+        ' y la ',
+        style: TextStyle(fontSize: 13),
+      ),
+     GestureDetector(
+          onTap: () {
+            context.push('/auth/privacy_page');
+          },
+          child: const Text(
+            'Política de Privacidad',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF9B4DCC),
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+    ],
+  ),
+),
 
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: _loading ? null : _submit,
+                            onPressed: (_loading || !_acceptTerms)
+                                ? null
+                                : _submit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF9B4DCC),
                               shape: RoundedRectangleBorder(

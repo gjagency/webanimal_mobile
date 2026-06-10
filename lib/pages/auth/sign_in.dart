@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_app/service/auth_service.dart';
@@ -28,6 +29,8 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
 
   /// 🔐 Login tradicional
   Future<void> _login() async {
+    FocusScope.of(context).unfocus();
+
     setState(() => _loading = true);
 
     final username = _usernameController.text.trim();
@@ -48,7 +51,6 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
       }
     } catch (e) {
       _showError('Error al iniciar sesión');
-      print('Login error: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -272,16 +274,29 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
 
                               const SizedBox(height: 12),
 
-                              TextField(
+                             TextField(
                                 controller: _passwordController,
-                                obscureText: true,
+                                obscureText: _obscurePassword,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   hintText: 'Contraseña',
-                                  hintStyle: TextStyle(color: Colors.white70),
+                                  hintStyle: const TextStyle(color: Colors.white70),
                                   prefixIcon: const Icon(
                                     Icons.lock,
                                     color: Colors.white,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
                                   ),
                                   filled: true,
                                   fillColor: Colors.white24,
@@ -343,63 +358,63 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
                         const SizedBox(height: 18),
 
                         /// ================= GOOGLE LOGIN =================
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton.icon(
-                            icon: const FaIcon(
-                              FontAwesomeIcons.google,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Ingresar con Google',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                          if (Platform.isAndroid)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton.icon(
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.google,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Ingresar con Google',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: _loading ? null : _loginWithGoogle,
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
                               ),
                             ),
-                            onPressed: _loading ? null : _loginWithGoogle,
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                            ),
-                          ),
-                        ),
 
-                        SizedBox(height: 12),
-
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton.icon(
-                            icon: const FaIcon(
-                              FontAwesomeIcons.apple,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Ingresar con Apple',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                          if (Platform.isIOS)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton.icon(
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.apple,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Ingresar con Apple',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: _loading ? null : _loginWithApple,
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
                               ),
                             ),
-                            onPressed: _loading ? null : _loginWithApple,
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

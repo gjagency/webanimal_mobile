@@ -8,7 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:mobile_app/service/mis_veterinarias_service.dart';
-
+import 'package:mobile_app/pages/auth/terms_page.dart';
+import 'package:mobile_app/pages/auth/privacy_page.dart';
 class MiVeterinariaCreate extends StatefulWidget {
   const MiVeterinariaCreate({super.key});
 

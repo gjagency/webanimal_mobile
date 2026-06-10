@@ -1002,43 +1002,118 @@ class CommentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+         Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (comment.userId != null) {
-                            context.push('/user-posts/${comment.userId}');
-                          }
-                        },
-                        child: Text(
-                          comment.displayName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (comment.userId != null) {
+                              context.push('/user-posts/${comment.userId}');
+                            }
+                          },
+                          child: Text(
+                            comment.displayName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
 
-                      SizedBox(height: 4),
-                      Text(comment.text, style: TextStyle(fontSize: 14)),
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_horiz,
+                          size: 18,
+                        ),
+                       onSelected: (value) async {
+
+  if (value == 'report') {
+
+   final ok = await AuthService.reportarComentario(
+  comentarioId: int.parse(comment.id),
+  motivo: 'Denuncia desde app',
+);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? 'Comentario denunciado'
+                : 'Error al denunciar',
+          ),
+        ),
+      );
+    }
+  }
+
+  if (value == 'block') {
+
+    if (comment.userId == null) return;
+
+final ok = await AuthService.bloquearUsuario(
+  int.parse(comment.userId!),
+);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? 'Usuario bloqueado'
+                : 'Error al bloquear',
+          ),
+        ),
+      );
+    }
+  }
+},
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'report',
+                            child: Text('Denunciar'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'block',
+                            child: Text('Bloquear usuario'),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ),
-                SizedBox(height: 4),
-                Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Text(
-                    _getTimeAgo(),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    comment.text,
+                    style: const TextStyle(fontSize: 14),
                   ),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 4),
+              child: Text(
+                _getTimeAgo(),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
                 ),
+              ),
+            ),
               ],
             ),
           ),
