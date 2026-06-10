@@ -67,6 +67,9 @@
 
 	<key>NSCameraUsageDescription</key>
 	<string>Web Animal utiliza la cámara para que los usuarios puedan tomar fotografías de mascotas, comercios, veterinarias y publicaciones que serán compartidas dentro de la aplicación.</string>
+	
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Web Animal utiliza el micrófono para grabar audio en los videos que los usuarios publiquen dentro de la aplicación.</string>
 
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Web Animal utiliza tu ubicación para mostrar mascotas, comercios, veterinarias y publicaciones cercanas a tu ubicación actual.</string>
