@@ -5,7 +5,8 @@ import 'package:mobile_app/service/auth_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
-
+import 'package:mobile_app/pages/auth/terms_page.dart';
+import 'package:mobile_app/pages/auth/privacy_page.dart';
 class PageAuthSignIn extends StatefulWidget {
   const PageAuthSignIn({super.key});
 
@@ -16,6 +17,7 @@ class PageAuthSignIn extends StatefulWidget {
 class _PageAuthSignInState extends State<PageAuthSignIn> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _acceptTerms = false;
   bool _obscurePassword = true;
 
   bool _loading = false;
@@ -57,42 +59,59 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
   }
 
   /// 🔵 Login con Google
-  Future<void> _loginWithGoogle() async {
-    setState(() => _loading = true);
+Future<void> _loginWithGoogle() async {
 
-    try {
-      final success = await AuthService.loginWithGoogle();
-
-      if (success) {
-        _goHome();
-      } else {
-        _showError('No se pudo iniciar sesión con Google');
-      }
-    } catch (e) {
-      _showError('Error con Google Sign-In');
-      debugPrint('Google login error: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
+  if (!_acceptTerms) {
+    _showError(
+      'Debes aceptar los Términos y Condiciones para continuar',
+    );
+    return;
   }
 
-  Future<void> _loginWithApple() async {
-    setState(() => _loading = true);
+  setState(() => _loading = true);
 
-    try {
-      final success = await AuthService.loginWithApple();
-      if (success) {
-        _goHome();
-      } else {
-        _showError('No se pudo iniciar sesión con Apple');
-      }
-    } catch (e) {
-      _showError('Error con Apple Sign-In');
-      debugPrint('Apple login error: $e');
-    } finally {
-      setState(() => _loading = false);
+  try {
+    final success = await AuthService.loginWithGoogle();
+
+    if (success) {
+      _goHome();
+    } else {
+      _showError('No se pudo iniciar sesión con Google');
     }
+  } catch (e) {
+    _showError('Error con Google Sign-In');
+    debugPrint('Google login error: $e');
+  } finally {
+    setState(() => _loading = false);
   }
+}
+
+Future<void> _loginWithApple() async {
+
+  if (!_acceptTerms) {
+    _showError(
+      'Debes aceptar los Términos y Condiciones para continuar',
+    );
+    return;
+  }
+
+  setState(() => _loading = true);
+
+  try {
+    final success = await AuthService.loginWithApple();
+
+    if (success) {
+      _goHome();
+    } else {
+      _showError('No se pudo iniciar sesión con Apple');
+    }
+  } catch (e) {
+    _showError('Error con Apple Sign-In');
+    debugPrint('Apple login error: $e');
+  } finally {
+    setState(() => _loading = false);
+  }
+}
 
   void _goHome() {
     if (!mounted) return;
@@ -313,7 +332,9 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
                                 width: double.infinity,
                                 height: 50,
                                 child: ElevatedButton(
-                                  onPressed: _loading ? null : _login,
+                                  onPressed: (_loading || !_acceptTerms)
+                                    ? null
+                                    : _login,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.purple,
@@ -357,6 +378,65 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
 
                         const SizedBox(height: 18),
 
+CheckboxListTile(
+  contentPadding: EdgeInsets.zero,
+  value: _acceptTerms,
+  activeColor: Colors.white,
+  checkColor: const Color(0xFF9B4DCC),
+  controlAffinity: ListTileControlAffinity.leading,
+  onChanged: (value) {
+    setState(() {
+      _acceptTerms = value ?? false;
+    });
+  },
+  title: Wrap(
+    children: [
+      const Text(
+        'Acepto los ',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.white,
+        ),
+      ),
+      GestureDetector(
+        onTap: () {
+          context.push('/auth/terms_page');
+        },
+        child: const Text(
+          'Términos y Condiciones',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      ),
+      const Text(
+        ' y la ',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.white,
+        ),
+      ),
+      GestureDetector(
+        onTap: () {
+          context.push('/auth/privacy_page');
+        },
+        child: const Text(
+          'Política de Privacidad',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
                         /// ================= GOOGLE LOGIN =================
                           if (Platform.isAndroid)
                             SizedBox(
@@ -375,7 +455,9 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                onPressed: _loading ? null : _loginWithGoogle,
+                               onPressed: (!_acceptTerms || _loading)
+                                ? null
+                                : _loginWithGoogle,
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
                                     color: Colors.white.withOpacity(0.3),
@@ -404,7 +486,9 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                onPressed: _loading ? null : _loginWithApple,
+                                onPressed: (!_acceptTerms || _loading)
+                                    ? null
+                                    : _loginWithApple,
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
                                     color: Colors.white.withOpacity(0.3),
