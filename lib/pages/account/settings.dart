@@ -156,6 +156,13 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                       _showChangePasswordModal();
                     },
                   ),
+                  _buildSettingItem(
+                    icon: Icons.block,
+                    title: 'Reportes y Bloqueos',
+                    onTap: () async {
+                      await context.push('/account/reports');
+                    },
+                  ),
                 ]),
                 SizedBox(height: 16),
                 _buildSection(AuthService.esVeterinaria ? 'Veterinaria' : '', [

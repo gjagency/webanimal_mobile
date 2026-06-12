@@ -16,6 +16,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/painting.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 class ModernPostCard extends StatefulWidget {
   final Post post;
   final VoidCallback? onEdit;
@@ -27,19 +28,17 @@ class ModernPostCard extends StatefulWidget {
 }
 
 class _ModernPostCardState extends State<ModernPostCard> {
-  
   static const _channel = MethodChannel('share_to_facebook');
   int _currentImageIndex = 0;
   bool liked = false;
   int likesIncrement = 0;
 
- @override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  liked = widget.post.reacciones.isNotEmpty;
-
-}
+    liked = widget.post.reacciones.isNotEmpty;
+  }
 
   // ================= TIEMPO =================
   String _getTimeAgo() {
@@ -49,51 +48,40 @@ void initState() {
     return 'hace ${diff.inMinutes}m';
   }
 
+  Future<void> _openWhatsapp(String phone) async {
+    String cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
-Future<void> _openWhatsapp(String phone) async {
-  String cleanPhone =
-      phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (!cleanPhone.startsWith('54')) {
+      cleanPhone = '54$cleanPhone';
+    }
 
-  if (!cleanPhone.startsWith('54')) {
-    cleanPhone = '54$cleanPhone';
+    final uri = Uri.parse('whatsapp://send?phone=$cleanPhone');
+
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    debugPrint("WHATSAPP OPENED: $ok");
   }
 
-  final uri = Uri.parse(
-    'whatsapp://send?phone=$cleanPhone',
-  );
-
-  final ok = await launchUrl(
-    uri,
-    mode: LaunchMode.externalApplication,
-  );
-
-  debugPrint("WHATSAPP OPENED: $ok");
-}
   // ================= LIKE =================
-Future<void> _toggleLike() async {
-
-  HapticFeedback.lightImpact();
-
-  setState(() {
-    liked = !liked;
-    likesIncrement += liked ? 1 : -1;
-  });
-
-  try {
-    await PostsService.addReaction(
-      int.parse(widget.post.id),
-      1,
-    );
-  } catch (e) {
-
-    if (!mounted) return;
+  Future<void> _toggleLike() async {
+    HapticFeedback.lightImpact();
 
     setState(() {
       liked = !liked;
       likesIncrement += liked ? 1 : -1;
     });
+
+    try {
+      await PostsService.addReaction(int.parse(widget.post.id), 1);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        liked = !liked;
+        likesIncrement += liked ? 1 : -1;
+      });
+    }
   }
-}
 
   // ================= SHARE =================
   Future<File> _createImageWithTexts({
@@ -232,481 +220,461 @@ Future<void> _toggleLike() async {
   }
 
   // ================= POPUP IMAGEN =================
-void _openImagePopup(BuildContext context, int initialIndex) {
+  void _openImagePopup(BuildContext context, int initialIndex) {
     FeedVideoPlayer.pauseAll();
-  final pageController = PageController(
-    initialPage: initialIndex,
-  );
+    final pageController = PageController(initialPage: initialIndex);
 
-  int currentIndex = initialIndex;
+    int currentIndex = initialIndex;
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.95),
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          return Material(
-            color: Colors.black,
-            child: SafeArea(
-              child: Stack(
-                children: [
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.95),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Material(
+              color: Colors.black,
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    /// SLIDER
+                    Positioned.fill(
+                      child: PageView.builder(
+                        controller: pageController,
+                        itemCount: widget.post.medias.length,
 
-                  /// SLIDER
-                  Positioned.fill(
-                    child: PageView.builder(
-                      controller: pageController,
-                      itemCount: widget.post.medias.length,
+                        onPageChanged: (i) {
+                          setModalState(() {
+                            currentIndex = i;
+                          });
+                        },
 
-                      onPageChanged: (i) {
-                        setModalState(() {
-                          currentIndex = i;
-                        });
-                      },
+                        itemBuilder: (_, index) {
+                          final media = widget.post.medias[index];
 
-                      itemBuilder: (_, index) {
-                        final media = widget.post.medias[index];
+                          /// VIDEO
+                          if (media.isVideo) {
+                            return FeedVideoPlayer(
+                              url: media.url,
+                              autoplay: true,
+                            );
+                          }
 
-                        /// VIDEO
-                        if (media.isVideo) {
-                          return FeedVideoPlayer(
-                            url: media.url,
-                            autoplay: true,
-                          );
-                        }
+                          /// IMAGEN
+                          return InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Center(
+                              child: CachedNetworkImage(
+                                imageUrl: media.url,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: double.infinity,
 
-                        /// IMAGEN
-                        return InteractiveViewer(
-                          minScale: 1,
-                          maxScale: 4,
-                          child: Center(
-                            child: CachedNetworkImage(
-                              imageUrl: media.url,
-                              fit: BoxFit.contain,
-                              width: double.infinity,
-                              height: double.infinity,
+                                memCacheWidth: 1600,
+                                maxWidthDiskCache: 1600,
 
-                              memCacheWidth: 1600,
-                              maxWidthDiskCache: 1600,
+                                placeholder: (_, __) => const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
 
-                              placeholder: (_, __) => const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                errorWidget: (_, __, ___) => const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white,
+                                  size: 60,
                                 ),
                               ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
 
-                              errorWidget: (_, __, ___) =>
-                                  const Icon(
-                                Icons.broken_image,
-                                color: Colors.white,
-                                size: 60,
+                    /// LOGO TOP CENTER
+                    Positioned(
+                      top: 12,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Colors.purple, Colors.pink],
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Image.asset(
+                                "assets/logo6.png",
+                                width: 18,
+                                height: 18,
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
 
-                  /// LOGO TOP CENTER
-                  Positioned(
-                    top: 12,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                            const SizedBox(width: 8),
+
+                            const Text(
+                              "WeBaNiMaL",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    /// CLOSE
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                    ),
+
+                    /// CONTADOR
+                    if (widget.post.medias.length > 1)
+                      Positioned(
+                        top: 60,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            '${currentIndex + 1} / ${widget.post.medias.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    /// INFO
+                    Positioned(
+                      left: 16,
+                      right: 90,
+                      bottom: 30,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.purple,
-                                  Colors.pink,
+                          /// USER
+                          Row(
+                            children: [
+                              CustomAvatar(
+                                url:
+                                    widget.post.user.imageUrl ??
+                                    'https://i.pravatar.cc/300',
+                              ),
+
+                              const SizedBox(width: 10),
+
+                              GestureDetector(
+                                onTap: () {
+                                  FeedVideoPlayer.pauseAll();
+
+                                  Navigator.pop(context);
+
+                                  Future.microtask(() {
+                                    if (mounted) {
+                                      context.push(
+                                        '/user-posts/${widget.post.user.id}',
+                                      );
+                                    }
+                                  });
+                                },
+
+                                child: Text(
+                                  widget.post.user.displayName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Text(
+                            widget.post.description,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          /// VER POST
+                          GestureDetector(
+                            onTap: () {
+                              FeedVideoPlayer.pauseAll();
+
+                              Navigator.pop(context);
+
+                              Future.microtask(() {
+                                if (mounted) {
+                                  GoRouter.of(
+                                    context,
+                                  ).push('/posts/${widget.post.id}/view');
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.link,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+
+                                  SizedBox(width: 8),
+
+                                  Text(
+                                    'Ver publicación',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Image.asset(
-                              "assets/logo6.png",
-                              width: 18,
-                              height: 18,
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          const Text(
-                            "WeBaNiMaL",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  /// CLOSE
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  /// CONTADOR
-                  if (widget.post.medias.length > 1)
+                    /// ACTIONS INSTAGRAM STYLE
                     Positioned(
-                      top: 60,
-                      right: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          '${currentIndex + 1} / ${widget.post.medias.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
+                      right: 20,
+                      bottom: 120,
+                      child: Column(
+                        children: [
+                          /// LIKE
+                          GestureDetector(
+                            onTap: () {
+                              _toggleLike();
+                              setModalState(() {});
+                            },
 
-                  /// INFO
-                  Positioned(
-                    left: 16,
-                    right: 90,
-                    bottom: 30,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-
-                        /// USER
-                        Row(
-                          children: [
-                            CustomAvatar(
-                              url: widget.post.user.imageUrl ??
-                                  'https://i.pravatar.cc/300',
-                            ),
-
-                            const SizedBox(width: 10),
-
-                            GestureDetector(
-                              onTap: () {
-                                FeedVideoPlayer.pauseAll();
-
-                                Navigator.pop(context);
-
-                                Future.microtask(() {
-                                  if (mounted) {
-                                    context.push('/user-posts/${widget.post.user.id}');
-                                  }
-                                });
-                              },
-
-                              child: Text(
-                                widget.post.user.displayName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                                                      ],
-                                                    ),
-
-                                                    const SizedBox(height: 12),
-
-                                                Text(
-                              widget.post.description,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                                                  
-
-                            const SizedBox(height: 14),
-
-                        /// VER POST
-                        GestureDetector(
-                          onTap: () {
-                            FeedVideoPlayer.pauseAll();
-
-                            Navigator.pop(context);
-
-                            Future.microtask(() {
-                              if (mounted) {
-                                GoRouter.of(context).push(
-                                  '/posts/${widget.post.id}/view',
-                                );
-                              }
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: Colors.white24,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
+                            child: Column(
                               children: [
                                 Icon(
-                                  Icons.link,
-                                  color: Colors.white,
-                                  size: 18,
+                                  liked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: liked ? Colors.red : Colors.white,
+                                  size: 32,
                                 ),
 
-                                SizedBox(width: 8),
+                                const SizedBox(height: 4),
 
                                 Text(
-                                  'Ver publicación',
-                                  style: TextStyle(
+                                  '${widget.post.likes + likesIncrement}',
+                                  style: const TextStyle(
                                     color: Colors.white,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 26),
+
+                          /// COMMENTS
+                          GestureDetector(
+                            onTap: () {
+                              FeedVideoPlayer.pauseAll();
+
+                              Navigator.pop(context);
+
+                              Future.microtask(() {
+                                if (mounted) {
+                                  GoRouter.of(
+                                    context,
+                                  ).push('/posts/${widget.post.id}/view');
+                                }
+                              });
+                            },
+
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.chat_bubble_outline,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  '${widget.post.comments}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 26),
+
+                          /// SHARE
+                          GestureDetector(
+                            onTap: _shareToFacebookFeed,
+
+                            child: Column(
+                              children: const [
+                                Icon(
+                                  Icons.share,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+
+                                SizedBox(height: 4),
+
+                                Text(
+                                  'Compartir',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  /// ACTIONS INSTAGRAM STYLE
-Positioned(
-  right: 20,
-  bottom: 120,
-  child: Column(
-    children: [
-
-      /// LIKE
-      GestureDetector(
-        onTap: () {
-          _toggleLike();
-          setModalState(() {});
-        },
-
-        child: Column(
-          children: [
-            Icon(
-              liked
-                  ? Icons.favorite
-                  : Icons.favorite_border,
-              color: liked
-                  ? Colors.red
-                  : Colors.white,
-              size: 32,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              '${widget.post.likes + likesIncrement}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-      const SizedBox(height: 26),
-
-      /// COMMENTS
-      GestureDetector(
-        onTap: () {
-          FeedVideoPlayer.pauseAll();
-
-          Navigator.pop(context);
-
-          Future.microtask(() {
-            if (mounted) {
-              GoRouter.of(context).push(
-                '/posts/${widget.post.id}/view',
-              );
-            }
-          });
-        },
-
-        child: Column(
-          children: [
-            const Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white,
-              size: 30,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              '${widget.post.comments}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      const SizedBox(height: 26),
-
-      /// SHARE
-      GestureDetector(
-        onTap: _shareToFacebookFeed,
-
-        child: Column(
-          children: const [
-            Icon(
-              Icons.share,
-              color: Colors.white,
-              size: 30,
-            ),
-
-            SizedBox(height: 4),
-
-            Text(
-              'Compartir',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
-),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
   Widget _buildHeader(Color color, IconData icon) {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-GestureDetector(
-  onTap: () {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: "avatar",
-      barrierColor: Colors.black.withOpacity(0.92),
-      transitionDuration: const Duration(milliseconds: 250),
+          GestureDetector(
+            onTap: () {
+              showGeneralDialog(
+                context: context,
+                barrierDismissible: true,
+                barrierLabel: "avatar",
+                barrierColor: Colors.black.withOpacity(0.92),
+                transitionDuration: const Duration(milliseconds: 250),
 
-      pageBuilder: (_, __, ___) {
-        return SafeArea(
-          child: Stack(
-            children: [
-            
+                pageBuilder: (_, __, ___) {
+                  return SafeArea(
+                    child: Stack(
+                      children: [
+                        /// IMAGEN
+                        Center(
+                          child: InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Container(
+                              width: 320,
+                              height: 320,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    blurRadius: 25,
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  widget.post.user.imageUrl ??
+                                      'https://i.pravatar.cc/300',
+                                  fit: BoxFit.cover,
 
-              /// IMAGEN
-              Center(
-                child: InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 4,
-                  child: Container(
-                    width: 320,
-                    height: 320,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 3,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 25,
+                                  errorBuilder: (_, __, ___) {
+                                    return Container(
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 80,
+                                        color: Colors.white,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: ClipOval(
-                      child: Image.network(
-                        widget.post.user.imageUrl ??
-                            'https://i.pravatar.cc/300',
-                        fit: BoxFit.cover,
+                  );
+                },
 
-                        errorBuilder: (_, __, ___) {
-                          return Container(
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.person,
-                              size: 80,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+                transitionBuilder: (_, animation, __, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+              );
+            },
 
-          
-            ],
+            child: CustomAvatar(
+              url: widget.post.user.imageUrl ?? 'https://i.pravatar.cc/300',
+            ),
           ),
-        );
-      },
-
-      transitionBuilder: (_, animation, __, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
-      },
-    );
-  },
-
-  child: CustomAvatar(
-    url: widget.post.user.imageUrl ??
-        'https://i.pravatar.cc/300',
-  ),
-),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -806,46 +774,46 @@ GestureDetector(
 
             /// TELEFONO
             if (widget.post.telefono != null &&
-            widget.post.telefono!.isNotEmpty)
-           Padding(
-  padding: const EdgeInsets.symmetric(
-    horizontal: 16,
-    vertical: 8,
-  ),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.start,
-    children: [
-      Text(
-        'Contacto:',
-        style: TextStyle(
-          color: Colors.grey.shade700,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const SizedBox(width: 10),
-      InkWell(
-        onTap: () {
-          _openWhatsapp(widget.post.telefono!);
-        },
-        borderRadius: BorderRadius.circular(50),
-        child: const Padding(
-          padding: EdgeInsets.all(4),
-          child: FaIcon(
-            FontAwesomeIcons.whatsapp,
-            color: Color(0xFF25D366),
-            size: 20,
-          ),
-        ),
-      ),
-    ],
-  ),
-),
+                widget.post.telefono!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Contacto:',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: () {
+                        _openWhatsapp(widget.post.telefono!);
+                      },
+                      borderRadius: BorderRadius.circular(50),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: FaIcon(
+                          FontAwesomeIcons.whatsapp,
+                          color: Color(0xFF25D366),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 12),
 
             if (widget.post.medias.isNotEmpty)
-            AutoAdaptiveMediaSlider(
+              AutoAdaptiveMediaSlider(
                 medias: widget.post.medias,
                 postId: widget.post.id,
                 currentIndex: _currentImageIndex,
@@ -872,8 +840,7 @@ GestureDetector(
                 userName: widget.post.user.displayName,
 
                 userAvatar:
-                    widget.post.user.imageUrl ??
-                    'https://i.pravatar.cc/300',
+                    widget.post.user.imageUrl ?? 'https://i.pravatar.cc/300',
 
                 userId: widget.post.user.id,
               ),
@@ -899,12 +866,8 @@ GestureDetector(
           Text('${widget.post.likes + likesIncrement}'),
           const SizedBox(width: 20),
           GestureDetector(
-  child: Row(
-    children: [
-      const Icon(Icons.chat_bubble_outline),
-    ],
-  ),
-),
+            child: Row(children: [const Icon(Icons.chat_bubble_outline)]),
+          ),
           const SizedBox(width: 4),
           Text('${widget.post.comments}'),
           const Spacer(),
@@ -968,8 +931,7 @@ class AutoAdaptiveMediaSlider extends StatefulWidget {
       _AutoAdaptiveMediaSliderState();
 }
 
-class _AutoAdaptiveMediaSliderState
-    extends State<AutoAdaptiveMediaSlider> {
+class _AutoAdaptiveMediaSliderState extends State<AutoAdaptiveMediaSlider> {
   final PageController _pageController = PageController();
 
   @override
@@ -1008,8 +970,7 @@ class _AutoAdaptiveMediaSliderState
                       context,
                       PageRouteBuilder(
                         opaque: false,
-                        pageBuilder: (_, __, ___) =>
-                            FullScreenVideoPage(
+                        pageBuilder: (_, __, ___) => FullScreenVideoPage(
                           videoUrl: media.url,
 
                           liked: widget.liked,
@@ -1024,9 +985,9 @@ class _AutoAdaptiveMediaSliderState
                           onLike: widget.onLike,
 
                           onOpenPost: () {
-                            GoRouter.of(context).push(
-                              '/posts/${widget.postId}/view',
-                            );
+                            GoRouter.of(
+                              context,
+                            ).push('/posts/${widget.postId}/view');
                           },
                         ),
                       ),
@@ -1038,14 +999,9 @@ class _AutoAdaptiveMediaSliderState
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        FeedVideoPlayer(
-                          url: media.url,
-                          autoplay: false,
-                        ),
+                        FeedVideoPlayer(url: media.url, autoplay: false),
 
-                        Container(
-                          color: Colors.black.withOpacity(0.12),
-                        ),
+                        Container(color: Colors.black.withOpacity(0.12)),
 
                         const Center(
                           child: Icon(
@@ -1091,24 +1047,19 @@ class _AutoAdaptiveMediaSliderState
                         memCacheWidth: 1200,
                         maxWidthDiskCache: 1200,
 
-                        fadeInDuration:
-                            const Duration(milliseconds: 120),
+                        fadeInDuration: const Duration(milliseconds: 120),
 
                         fadeOutDuration: Duration.zero,
 
                         placeholder: (_, __) => Container(
                           color: Colors.black,
                           child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
 
                         errorWidget: (_, __, ___) =>
-                            const Icon(
-                          Icons.broken_image,
-                        ),
+                            const Icon(Icons.broken_image),
                       ),
                     ),
                   ),
@@ -1135,10 +1086,7 @@ class _AutoAdaptiveMediaSliderState
 
                 child: Text(
                   '${widget.currentIndex + 1} / ${widget.medias.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ),
             ),
@@ -1170,22 +1118,22 @@ class FeedVideoPlayer extends StatefulWidget {
 
   /// TODOS LOS VIDEOS ACTIVOS
   static final List<FeedVideoPlayerState> _instances = [];
-    static bool fullscreenOpen = false;
+  static bool fullscreenOpen = false;
+
   /// PAUSAR TODOS
-static void pauseAll([FeedVideoPlayerState? except]) {
-  for (final instance in _instances) {
-    if (instance != except) {
-      instance.pauseVideo();
+  static void pauseAll([FeedVideoPlayerState? except]) {
+    for (final instance in _instances) {
+      if (instance != except) {
+        instance.pauseVideo();
+      }
     }
   }
-}
+
   @override
-  State<FeedVideoPlayer> createState() =>
-      FeedVideoPlayerState();
+  State<FeedVideoPlayer> createState() => FeedVideoPlayerState();
 }
 
-class FeedVideoPlayerState
-    extends State<FeedVideoPlayer> {
+class FeedVideoPlayerState extends State<FeedVideoPlayer> {
   VideoPlayerController? _controller;
 
   bool _initialized = false;
@@ -1197,8 +1145,7 @@ class FeedVideoPlayerState
   bool _disposed = false;
 
   bool _showPlayIcon = false;
-    bool _initializing = false;
-
+  bool _initializing = false;
 
   @override
   void initState() {
@@ -1207,79 +1154,71 @@ class FeedVideoPlayerState
     FeedVideoPlayer._instances.add(this);
   }
 
-Future<void> _initialize() async {
-
-  if (_controller != null ||
-      _disposed ||
-      _initializing) {
-    return;
-  }
-
-  _initializing = true;
-
-  try {
-
-    debugPrint("🎥 INIT VIDEO ${widget.url}");
-
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.url),
-    );
-
-    await controller.initialize();
-
-    // 👇 AGREGAR ACÁ
-    debugPrint(
-      "VIDEO SIZE: "
-      "${controller.value.size.width}x"
-      "${controller.value.size.height}"
-    );
-
-    debugPrint(
-      "ASPECT: ${controller.value.aspectRatio}"
-    );
-
-    if (_disposed) {
-      await controller.dispose();
+  Future<void> _initialize() async {
+    if (_controller != null || _disposed || _initializing) {
       return;
     }
 
-    await controller.setLooping(true);
-    await controller.setVolume(0);
+    _initializing = true;
 
-    _controller = controller;
+    try {
+      debugPrint("🎥 INIT VIDEO ${widget.url}");
 
-    if (!mounted) return;
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.url),
+      );
 
-    setState(() {
-      _initialized = true;
-    });
+      await controller.initialize();
 
-  } catch (e) {
-    debugPrint("VIDEO INIT ERROR: $e");
-  } finally {
-    _initializing = false;
+      // 👇 AGREGAR ACÁ
+      debugPrint(
+        "VIDEO SIZE: "
+        "${controller.value.size.width}x"
+        "${controller.value.size.height}",
+      );
+
+      debugPrint("ASPECT: ${controller.value.aspectRatio}");
+
+      if (_disposed) {
+        await controller.dispose();
+        return;
+      }
+
+      await controller.setLooping(true);
+      await controller.setVolume(0);
+
+      _controller = controller;
+
+      if (!mounted) return;
+
+      setState(() {
+        _initialized = true;
+      });
+    } catch (e) {
+      debugPrint("VIDEO INIT ERROR: $e");
+    } finally {
+      _initializing = false;
+    }
   }
-}
-Future<void> playVideo() async {
-  final c = _controller;
 
-  if (c == null) return;
+  Future<void> playVideo() async {
+    final c = _controller;
 
-  FeedVideoPlayer.pauseAll(this);
+    if (c == null) return;
 
-  await c.play();
+    FeedVideoPlayer.pauseAll(this);
 
-  if (mounted) {
-    
-    setState(() {
-      _showPlayIcon = false;
-    });
+    await c.play();
+
+    if (mounted) {
+      setState(() {
+        _showPlayIcon = false;
+      });
+    }
   }
-}
-
 
   Future<void> pauseVideo() async {
-      debugPrint("⏸️ PAUSE ${widget.url}");
+    debugPrint("⏸️ PAUSE ${widget.url}");
 
     final c = _controller;
 
@@ -1294,13 +1233,11 @@ Future<void> playVideo() async {
     }
   }
 
-  void _onVisibilityChanged(
-    VisibilityInfo info,
-  ) async {
-      debugPrint(
-    "👀 VISIBILITY ${widget.url} "
-    "fraction=${info.visibleFraction}"
-  );
+  void _onVisibilityChanged(VisibilityInfo info) async {
+    debugPrint(
+      "👀 VISIBILITY ${widget.url} "
+      "fraction=${info.visibleFraction}",
+    );
     final visible = info.visibleFraction > 0.40;
 
     _isVisible = visible;
@@ -1311,13 +1248,13 @@ Future<void> playVideo() async {
     }
 
     if (_controller == null) {
-        debugPrint("▶️ PLAY ${widget.url}");
-     
+      debugPrint("▶️ PLAY ${widget.url}");
+
       await _initialize();
     }
 
-   if (FeedVideoPlayer.fullscreenOpen) {
-    await pauseVideo();
+    if (FeedVideoPlayer.fullscreenOpen) {
+      await pauseVideo();
       return;
     }
 
@@ -1356,11 +1293,11 @@ Future<void> playVideo() async {
 
   @override
   void dispose() {
-debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
-  debugPrint(
-    "🗑️ CONTROLLER EXISTS "
-    "${_controller != null}"
-  );
+    debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
+    debugPrint(
+      "🗑️ CONTROLLER EXISTS "
+      "${_controller != null}",
+    );
 
     _disposed = true;
 
@@ -1379,11 +1316,11 @@ debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
 
   @override
   Widget build(BuildContext context) {
-      debugPrint(
-    "🏗️ BUILD VIDEO "
-    "initialized=$_initialized "
-    "controller=${_controller != null}"
-  );
+    debugPrint(
+      "🏗️ BUILD VIDEO "
+      "initialized=$_initialized "
+      "controller=${_controller != null}",
+    );
     final c = _controller;
 
     return VisibilityDetector(
@@ -1399,31 +1336,26 @@ debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
                 color: Colors.black,
 
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               )
             : Stack(
                 fit: StackFit.expand,
                 children: [
-                 AspectRatio(
-  aspectRatio: c.value.aspectRatio,
-  child: VideoPlayer(c),
-),
+                  AspectRatio(
+                    aspectRatio: c.value.aspectRatio,
+                    child: VideoPlayer(c),
+                  ),
 
                   Positioned.fill(
                     child: GestureDetector(
                       onTap: _togglePlayPause,
-                      child: Container(
-                        color: Colors.transparent,
-                      ),
+                      child: Container(color: Colors.transparent),
                     ),
                   ),
 
                   AnimatedOpacity(
-                    duration:
-                        const Duration(milliseconds: 180),
+                    duration: const Duration(milliseconds: 180),
 
                     opacity: _showPlayIcon ? 1 : 0,
 
@@ -1454,9 +1386,7 @@ debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
                         ),
 
                         child: Icon(
-                          _muted
-                              ? Icons.volume_off
-                              : Icons.volume_up,
+                          _muted ? Icons.volume_off : Icons.volume_up,
                           color: Colors.white,
                         ),
                       ),
@@ -1468,6 +1398,7 @@ debugPrint("🗑️ DISPOSE VIDEO ${widget.url}");
     );
   }
 }
+
 class FullScreenVideoPage extends StatefulWidget {
   final String videoUrl;
 
@@ -1492,18 +1423,14 @@ class FullScreenVideoPage extends StatefulWidget {
     required this.onLike,
     required this.userId,
     required this.onOpenPost,
-
   });
 
   @override
-  State<FullScreenVideoPage> createState() =>
-      _FullScreenVideoPageState();
+  State<FullScreenVideoPage> createState() => _FullScreenVideoPageState();
 }
 
-class _FullScreenVideoPageState
-    extends State<FullScreenVideoPage> {
-
-   late VideoPlayerController _controller;
+class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
+  late VideoPlayerController _controller;
 
   bool _initialized = false;
   bool _muted = false;
@@ -1522,61 +1449,55 @@ class _FullScreenVideoPageState
 
     _initialize();
   }
-void _handleLike() {
-  HapticFeedback.lightImpact();
 
-  setState(() {
-    localLiked = !localLiked;
-    localLikes += localLiked ? 1 : -1;
-  });
+  void _handleLike() {
+    HapticFeedback.lightImpact();
 
-  widget.onLike();
-}
-Future<void> _shareVideo() async {
-  try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    setState(() {
+      localLiked = !localLiked;
+      localLikes += localLiked ? 1 : -1;
+    });
 
-    final dir = await getTemporaryDirectory();
+    widget.onLike();
+  }
 
-    final filePath =
-        '${dir.path}/fullscreen_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
-
-    final file = File(filePath);
-
-    if (!await file.exists()) {
-      final request = await HttpClient().getUrl(
-        Uri.parse(widget.videoUrl),
+  Future<void> _shareVideo() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
-      final response = await request.close();
+      final dir = await getTemporaryDirectory();
 
-      await response.pipe(file.openWrite());
+      final filePath =
+          '${dir.path}/fullscreen_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+      final file = File(filePath);
+
+      if (!await file.exists()) {
+        final request = await HttpClient().getUrl(Uri.parse(widget.videoUrl));
+
+        final response = await request.close();
+
+        await response.pipe(file.openWrite());
+      }
+
+      if (mounted) Navigator.pop(context);
+
+      await Share.shareXFiles([XFile(file.path)], text: '🐾 @WeBaNiMaL');
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+
+      debugPrint('ERROR SHARE VIDEO: $e');
     }
-
-    if (mounted) Navigator.pop(context);
-
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: '🐾 @WeBaNiMaL',
-    );
-  } catch (e) {
-    if (mounted) Navigator.pop(context);
-
-    debugPrint('ERROR SHARE VIDEO: $e');
   }
-}
+
   Future<void> _initialize() async {
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(widget.videoUrl),
-      videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: true,
-      ),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
 
     await _controller.initialize();
@@ -1590,29 +1511,31 @@ Future<void> _shareVideo() async {
       _initialized = true;
     });
   }
-Future<void> _togglePlayPause() async {
-  final c = _controller;
 
-  if (c == null) return;
+  Future<void> _togglePlayPause() async {
+    final c = _controller;
 
-  if (c.value.isPlaying) {
-    await c.pause();
+    if (c == null) return;
 
-    if (mounted) {
-      setState(() {
-        _showPlayIcon = true;
-      });
-    }
-  } else {
-    await c.play();
+    if (c.value.isPlaying) {
+      await c.pause();
 
-    if (mounted) {
-      setState(() {
-        _showPlayIcon = false;
-      });
+      if (mounted) {
+        setState(() {
+          _showPlayIcon = true;
+        });
+      }
+    } else {
+      await c.play();
+
+      if (mounted) {
+        setState(() {
+          _showPlayIcon = false;
+        });
+      }
     }
   }
-}
+
   Future<void> _toggleMute() async {
     _muted = !_muted;
 
@@ -1621,37 +1544,36 @@ Future<void> _togglePlayPause() async {
     setState(() {});
   }
 
-@override
-void dispose() {
+  @override
+  void dispose() {
+    FeedVideoPlayer.fullscreenOpen = false;
 
-  FeedVideoPlayer.fullscreenOpen = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FeedVideoPlayer.pauseAll();
+    });
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    FeedVideoPlayer.pauseAll();
-  });
+    _controller.dispose();
 
-  _controller.dispose();
+    super.dispose();
+  }
 
-  super.dispose();
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
 
       body: GestureDetector(
-      onVerticalDragEnd: (_) async {
-  await _controller.pause();
+        onVerticalDragEnd: (_) async {
+          await _controller.pause();
 
-  if (mounted) {
-    Navigator.pop(context);
-  }
-},
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        },
 
         child: Stack(
           fit: StackFit.expand,
           children: [
-
             /// VIDEO
             if (_initialized)
               Center(
@@ -1661,9 +1583,7 @@ void dispose() {
                 ),
               )
             else
-              const Center(
-                child: CircularProgressIndicator(),
-              ),
+              const Center(child: CircularProgressIndicator()),
 
             /// TAP PLAY
             Positioned.fill(
@@ -1675,7 +1595,7 @@ void dispose() {
 
             /// PLAY ICON
             if (_initialized)
-         AnimatedOpacity(
+              AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: _showPlayIcon ? 1 : 0,
                 child: const IgnorePointer(
@@ -1689,180 +1609,163 @@ void dispose() {
                 ),
               ),
 
-/// LOGO TOP CENTER
-Positioned(
-  top: 50,
-  left: 0,
-  right: 0,
-  child: IgnorePointer(
-    child: Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Colors.purple,
-                  Colors.pink,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Image.asset(
-              "assets/logo6.png",
-              width: 18,
-              height: 18,
-            ),
-          ),
+            /// LOGO TOP CENTER
+            Positioned(
+              top: 50,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Colors.purple, Colors.pink],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Image.asset(
+                          "assets/logo6.png",
+                          width: 18,
+                          height: 18,
+                        ),
+                      ),
 
-          const SizedBox(width: 8),
+                      const SizedBox(width: 8),
 
-          const Text(
-            "WeBaNiMaL",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-        ],
-      ),
-    ),
-  ),
-),
-
-
-/// INFO BOTTOM
-Positioned(
-  left: 16,
-  right: 90,
-  bottom: 90,
-
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-
-      /// USER
-      Row(
-        children: [
-          CustomAvatar(
-            url: widget.userAvatar,
-          ),
-
-          const SizedBox(width: 10),
-
-        GestureDetector(
-      onTap: () async {
-        await _controller.pause();
-
-        if (!mounted) return;
-
-        context.push('/user-posts/${widget.userId}');
-      },
-  child: Text(
-    widget.userName,
-    style: const TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      fontSize: 15,
-    ),
-  ),
-),
-        ],
-      ),
-
-      const SizedBox(height: 12),
-
-      /// DESCRIPCION
-      if (widget.description.isNotEmpty)
-        Text(
-          widget.description,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            height: 1.3,
-          ),
-        ),
-
-      const SizedBox(height: 12),
-
-      /// VER POST
-      GestureDetector(
-        onTap: () async {
-  await _controller.pause();
-
-  if (!mounted) return;
-
-  widget.onOpenPost();
-},
-
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
-
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white24,
-            ),
-          ),
-
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.link,
-                color: Colors.white,
-                size: 18,
-              ),
-
-              SizedBox(width: 8),
-
-              Text(
-                'Ver publicación',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                      const Text(
+                        "WeBaNiMaL",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-),
+            ),
 
-/// CLOSE
-Positioned(
-  top: 50,
-  left: 20,
+            /// INFO BOTTOM
+            Positioned(
+              left: 16,
+              right: 90,
+              bottom: 90,
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// USER
+                  Row(
+                    children: [
+                      CustomAvatar(url: widget.userAvatar),
+
+                      const SizedBox(width: 10),
+
+                      GestureDetector(
+                        onTap: () async {
+                          await _controller.pause();
+
+                          if (!mounted) return;
+
+                          context.push('/user-posts/${widget.userId}');
+                        },
+                        child: Text(
+                          widget.userName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  /// DESCRIPCION
+                  if (widget.description.isNotEmpty)
+                    Text(
+                      widget.description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        height: 1.3,
+                      ),
+                    ),
+
+                  const SizedBox(height: 12),
+
+                  /// VER POST
+                  GestureDetector(
+                    onTap: () async {
+                      await _controller.pause();
+
+                      if (!mounted) return;
+
+                      widget.onOpenPost();
+                    },
+
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white24),
+                      ),
+
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.link, color: Colors.white, size: 18),
+
+                          SizedBox(width: 8),
+
+                          Text(
+                            'Ver publicación',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            /// CLOSE
+            Positioned(
+              top: 50,
+              left: 20,
               child: GestureDetector(
                 onTap: () async {
-                await _controller.pause();
-                
-                if (mounted) {
-                  Navigator.pop(context);
-                }
-              },
+                  await _controller.pause();
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.close, color: Colors.white),
                 ),
               ),
             ),
@@ -1880,114 +1783,101 @@ Positioned(
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _muted
-                        ? Icons.volume_off
-                        : Icons.volume_up,
+                    _muted ? Icons.volume_off : Icons.volume_up,
                     color: Colors.white,
                   ),
                 ),
               ),
             ),
-/// ACTIONS INSTAGRAM STYLE
-Positioned(
-  right: 20,
-  bottom: 120,
-  child: Column(
-    children: [
 
-      /// LIKE
-      GestureDetector(
-        onTap: _handleLike,
+            /// ACTIONS INSTAGRAM STYLE
+            Positioned(
+              right: 20,
+              bottom: 120,
+              child: Column(
+                children: [
+                  /// LIKE
+                  GestureDetector(
+                    onTap: _handleLike,
 
-        child: Column(
-          children: [
-            Icon(
-              localLiked
-                  ? Icons.favorite
-                  : Icons.favorite_border,
-              color: localLiked
-                  ? Colors.red
-                  : Colors.white,
-              size: 32,
-            ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          localLiked ? Icons.favorite : Icons.favorite_border,
+                          color: localLiked ? Colors.red : Colors.white,
+                          size: 32,
+                        ),
 
-            const SizedBox(height: 4),
+                        const SizedBox(height: 4),
 
-            Text(
-              '$localLikes',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+                        Text(
+                          '$localLikes',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  /// COMMENTS
+                  GestureDetector(
+                    onTap: () async {
+                      await _controller.pause();
+
+                      if (!mounted) return;
+
+                      widget.onOpenPost();
+                    },
+
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          '${widget.comments}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  /// SHARE
+                  GestureDetector(
+                    onTap: _shareVideo,
+
+                    child: Column(
+                      children: const [
+                        Icon(Icons.share, color: Colors.white, size: 30),
+
+                        SizedBox(height: 4),
+
+                        Text(
+                          'Compartir',
+                          style: TextStyle(color: Colors.white, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
-
-      const SizedBox(height: 26),
-
-      /// COMMENTS
-      GestureDetector(
-        onTap: () async {
-          await _controller.pause();
-
-          if (!mounted) return;
-
-          widget.onOpenPost();
-        },
-
-        child: Column(
-          children: [
-            const Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white,
-              size: 30,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              '${widget.comments}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      const SizedBox(height: 26),
-
-      /// SHARE
-      GestureDetector(
-        onTap: _shareVideo,
-
-        child: Column(
-          children: const [
-            Icon(
-              Icons.share,
-              color: Colors.white,
-              size: 30,
-            ),
-
-            SizedBox(height: 4),
-
-            Text(
-              'Compartir',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
-),
           ],
         ),
       ),

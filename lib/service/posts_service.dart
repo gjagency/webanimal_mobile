@@ -170,6 +170,7 @@ class Post {
   final int likes;
   final int comments;
   final List<String> reacciones;
+  final bool sensured;
 
   Post({
     required this.id,
@@ -184,17 +185,19 @@ class Post {
     this.comments = 0,
     this.reacciones = const [],
     this.medias = const [],
+    this.sensured = false,
   });
 }
 
 class Comment {
   final String id;
-  final String? userId;
+  final String userId;
   final String username;
   final String displayName;
   final String? avatar;
   final String text;
   final DateTime timestamp;
+  final bool sensured;
 
   Comment({
     required this.id,
@@ -204,6 +207,7 @@ class Comment {
     required this.avatar,
     required this.text,
     required this.timestamp,
+    required this.sensured,
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) {
@@ -223,7 +227,7 @@ class Comment {
 
     return Comment(
       id: json['id'].toString(),
-      userId: json['user_id']?.toString(),
+      userId: json['user_id']?.toString() ?? "",
       username: user['username'] ?? 'unknown',
       displayName:
           json['display_name'] ??
@@ -231,23 +235,23 @@ class Comment {
       avatar: avatar,
       text: json['body'] ?? '',
       timestamp: DateTime.parse(json['fecha_creacion']),
+      sensured: json['sensured'] ?? false,
     );
   }
 }
+
 class PostsPagination {
   final List<Post> posts;
   final String? next;
 
-  PostsPagination({
-    required this.posts,
-    required this.next,
-  });
+  PostsPagination({required this.posts, required this.next});
 
   bool get hasNext => next != null;
 }
+
 class PostsService {
   // POSTS GET
-    static Future<List<Post>> getPostsByUser(String userId) async {
+  static Future<List<Post>> getPostsByUser(String userId) async {
     final response = await AuthService.getWithToken(
       '/api/posteos/?usuario=$userId',
     );
@@ -255,79 +259,65 @@ class PostsService {
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
 
-      final List data = decoded is Map
-          ? decoded['results']
-          : decoded;
+      final List data = decoded is Map ? decoded['results'] : decoded;
 
       return data.map<Post>((json) => _parsePost(json)).toList();
     }
 
-    throw Exception(
-      'Error cargando posts del usuario: ${response.statusCode}',
+    throw Exception('Error cargando posts del usuario: ${response.statusCode}');
+  }
+
+  static Future<PostsPagination> getPosts({
+    String? postType,
+    String? petType,
+    String? userId,
+    String? esVeterinaria,
+    String? vet,
+    double? lat,
+    double? lng,
+    String? cityId,
+    int page = 1,
+  }) async {
+    final Map<String, String> queryParams = {};
+
+    if (postType != null) queryParams['posteo_tipo'] = postType;
+    if (petType != null) queryParams['mascota_tipo'] = petType;
+
+    if (esVeterinaria != null) {
+      queryParams['usuario__veterinaria'] = esVeterinaria;
+    }
+
+    if (userId != null) queryParams['usuario'] = userId;
+
+    if (lat != null) queryParams['lat'] = lat.toString();
+    if (lng != null) queryParams['lng'] = lng.toString();
+
+    if (cityId != null) {
+      queryParams['ciudad_id'] = cityId;
+    }
+
+    queryParams['page'] = page.toString();
+
+    final uri = Uri.parse(
+      '${Config.baseUrl}/api/posteos/',
+    ).replace(queryParameters: queryParams);
+
+    final response = await AuthService.getWithToken(
+      '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
     );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      final List data = decoded['results'];
+
+      final posts = data.map<Post>((json) => _parsePost(json)).toList();
+
+      return PostsPagination(posts: posts, next: decoded['next']);
+    }
+
+    throw Exception('Error al cargar posts: ${response.statusCode}');
   }
-
-
-static Future<PostsPagination> getPosts({
-  String? postType,
-  String? petType,
-  String? userId,
-  String? esVeterinaria,
-  String? vet,
-  double? lat,
-  double? lng,
-  String? cityId,
-  int page = 1,
-}) async {
-
-  final Map<String, String> queryParams = {};
-
-  if (postType != null) queryParams['posteo_tipo'] = postType;
-  if (petType != null) queryParams['mascota_tipo'] = petType;
-
-  if (esVeterinaria != null) {
-    queryParams['usuario__veterinaria'] = esVeterinaria;
-  }
-
-  if (userId != null) queryParams['usuario'] = userId;
-
-  if (lat != null) queryParams['lat'] = lat.toString();
-  if (lng != null) queryParams['lng'] = lng.toString();
-
-  if (cityId != null) {
-    queryParams['ciudad_id'] = cityId;
-  }
-
-  queryParams['page'] = page.toString();
-
-  final uri = Uri.parse(
-    '${Config.baseUrl}/api/posteos/',
-  ).replace(queryParameters: queryParams);
-
-  final response = await AuthService.getWithToken(
-    '/api/posteos/${uri.hasQuery ? "?${uri.query}" : ""}',
-  );
-
-  if (response.statusCode == 200) {
-
-    final decoded = jsonDecode(response.body);
-
-    final List data = decoded['results'];
-
-    final posts = data
-        .map<Post>((json) => _parsePost(json))
-        .toList();
-
-    return PostsPagination(
-      posts: posts,
-      next: decoded['next'],
-    );
-  }
-
-  throw Exception(
-    'Error al cargar posts: ${response.statusCode}',
-  );
-}
 
   static Future<List<Post>> getMisPosts() async {
     final token = await AuthService.getAccessToken();
@@ -361,54 +351,55 @@ static Future<PostsPagination> getPosts({
 
   // POST EDIT
 
-static Future<Post> createPost({
-  required String postTypeId,
-  required String petTypeId,
-  required String description,
-  required String telefono,
-  required List<String> mediaIds,
-  required double lat,
-  required double lng,
-  required String locationLabel,
-}) async {
-  final response = await AuthService.postWithToken('/api/posteos/', {
-    'posteo_tipo': postTypeId,
-    'mascota_tipo': petTypeId,
-    'descripcion': description,
-    'telefono': telefono,
-    'medias': mediaIds,
-    'ubicacion_lat': lat,
-    'ubicacion_lng': lng,
-    'ubicacion_label': locationLabel,
-  });
+  static Future<Post> createPost({
+    required String postTypeId,
+    required String petTypeId,
+    required String description,
+    required String telefono,
+    required List<String> mediaIds,
+    required double lat,
+    required double lng,
+    required String locationLabel,
+  }) async {
+    final response = await AuthService.postWithToken('/api/posteos/', {
+      'posteo_tipo': postTypeId,
+      'mascota_tipo': petTypeId,
+      'descripcion': description,
+      'telefono': telefono,
+      'medias': mediaIds,
+      'ubicacion_lat': lat,
+      'ubicacion_lng': lng,
+      'ubicacion_label': locationLabel,
+    });
 
-  debugPrint(response.body);
+    debugPrint(response.body);
 
-  if (response.statusCode == 201) {
-    return _parsePost(jsonDecode(response.body));
-  }
-
-  final body = jsonDecode(response.body);
-
-  // Mostrar error específico del backend
-  if (body is Map<String, dynamic>) {
-    if (body.containsKey('descripcion')) {
-      throw Exception(body['descripcion'][0]);
+    if (response.statusCode == 201) {
+      return _parsePost(jsonDecode(response.body));
     }
 
-    // fallback: primer error encontrado
-    final firstKey = body.keys.first;
-    final firstValue = body[firstKey];
+    final body = jsonDecode(response.body);
 
-    if (firstValue is List && firstValue.isNotEmpty) {
-      throw Exception(firstValue.first.toString());
+    // Mostrar error específico del backend
+    if (body is Map<String, dynamic>) {
+      if (body.containsKey('descripcion')) {
+        throw Exception(body['descripcion'][0]);
+      }
+
+      // fallback: primer error encontrado
+      final firstKey = body.keys.first;
+      final firstValue = body[firstKey];
+
+      if (firstValue is List && firstValue.isNotEmpty) {
+        throw Exception(firstValue.first.toString());
+      }
+
+      throw Exception(firstValue.toString());
     }
 
-    throw Exception(firstValue.toString());
+    throw Exception('Error al crear post');
   }
 
-  throw Exception('Error al crear post');
-}
   static Future<Post> updatePost(
     String postId, {
     String? description,
@@ -594,6 +585,7 @@ static Future<Post> createPost({
       reacciones:
           (json['reacciones'] as List?)?.map((e) => e.toString()).toList() ??
           [],
+      sensured: json['sensured'] ?? false,
     );
-  }  }
-
+  }
+}

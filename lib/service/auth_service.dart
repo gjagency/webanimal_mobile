@@ -89,37 +89,6 @@ class AuthService {
     }
   }
 
-static Future<bool> bloquearUsuario(int usuarioId) async {
-try {
-  final response = await postWithToken(
-    '/api/usuarios/$usuarioId/bloquear/',
-    {},
-  );
-
-  return response.statusCode == 200;
-} catch (e) {
-  debugPrint('Error bloqueando usuario: $e');
-  return false;
-}
-}
-static Future<bool> reportarComentario({
-  required int comentarioId,
-  String motivo = '',
-}) async {
-  try {
-    final response = await AuthService.postWithToken(
-      '/api/comentarios/$comentarioId/reportar/',
-      {
-        'motivo': motivo,
-      },
-    );
-
-    return response.statusCode == 200;
-  } catch (e) {
-    debugPrint('Error reportando comentario: $e');
-    return false;
-  }
-}
   /* ==========================================================
      RECOVER PASSWORD
      ========================================================== */

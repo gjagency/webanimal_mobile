@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_app/pages/account/reports.dart';
 import 'package:mobile_app/pages/account/veterinaria_create.dart';
 import 'package:mobile_app/pages/account/veterinaria_modify.dart';
 import 'package:mobile_app/pages/auth/PageEditProfile.dart';
@@ -71,7 +72,7 @@ final router = GoRouter(
       path: '/auth/privacy_page',
       builder: (context, state) => const PrivacyPage(),
     ),
-    
+
     /* =========================
        AUTH
        ========================= */
@@ -128,6 +129,10 @@ final router = GoRouter(
       builder: (context, state) => const PageAccountNotifications(),
     ),
     GoRoute(
+      path: '/account/reports',
+      builder: (context, state) => const PageReportsSettings(),
+    ),
+    GoRoute(
       path: '/account/mis_veterinarias/create',
       builder: (context, state) => const MiVeterinariaCreate(),
     ),
@@ -179,8 +184,6 @@ final router = GoRouter(
       path: '/api/auth/profile',
       builder: (context, state) => const PageEditProfile(),
     ),
-
-
   ],
 
   /* =========================

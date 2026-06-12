@@ -3,14 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_app/service/media_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'package:mobile_app/service/auth_service.dart';
+import 'package:mobile_app/service/reports_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/avatar.dart';
+import 'package:mobile_app/widgets/report_popup.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:typed_data';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
+
 class UserPostsPage extends StatefulWidget {
   final String userId;
   const UserPostsPage({super.key, required this.userId});
@@ -52,52 +54,46 @@ class _UserPostsPageState extends State<UserPostsPage> {
     }
   }
 
-Future<void> _load() async {
-  try {
-    final results = await Future.wait([
-      PostsService.getPostsByUser(widget.userId),
-      AuthService.getUserById(widget.userId),
-    ]);
+  Future<void> _load() async {
+    try {
+      final results = await Future.wait([
+        PostsService.getPostsByUser(widget.userId),
+        AuthService.getUserById(widget.userId),
+      ]);
 
-    _posts = results[0] as List<Post>;
-    _profile = results[1] as Map<String, dynamic>?;
+      _posts = results[0] as List<Post>;
+      _profile = results[1] as Map<String, dynamic>?;
 
-    /// PRECACHE SOLO PRIMERAS IMÁGENES
-for (final post in _posts.take(3)) {
-  final media = post.medias.isNotEmpty
-      ? post.medias.first
-      : null;
+      /// PRECACHE SOLO PRIMERAS IMÁGENES
+      for (final post in _posts.take(3)) {
+        final media = post.medias.isNotEmpty ? post.medias.first : null;
 
-  if (media != null && !media.isVideo) {
-    precacheImage(
-      ResizeImage(
-        NetworkImage(media.url),
-        width: 300,
-      ),
-      context,
-    );
+        if (media != null && !media.isVideo) {
+          precacheImage(
+            ResizeImage(NetworkImage(media.url), width: 300),
+            context,
+          );
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        loadingProfile = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+        loadingProfile = false;
+      });
+    }
   }
-}
 
-    if (!mounted) return;
-
-    setState(() {
-      _loading = false;
-      loadingProfile = false;
-      _error = null;
-    });
-
-  } catch (e) {
-
-    if (!mounted) return;
-
-    setState(() {
-      _error = e.toString();
-      _loading = false;
-      loadingProfile = false;
-    });
-  }
-}
   Future<void> _refresh() async {
     setState(() => _loading = true);
     await _load();
@@ -136,110 +132,85 @@ for (final post in _posts.take(3)) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-  titleSpacing: 8,
+        titleSpacing: 8,
 
-  title: Row(
-    children: [
+        title: Row(
+          children: [
+            /// LOGO
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.pink],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
 
-      /// LOGO
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Colors.purple,
-              Colors.pink,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-
-        child: Image.asset(
-          "assets/logo6.png",
-          width: 22,
-          height: 22,
-        ),
-      ),
-
-      const SizedBox(width: 10),
-
-      /// TITLE RESPONSIVE
-      Expanded(
-        child: FittedBox(
-          alignment: Alignment.centerLeft,
-          fit: BoxFit.scaleDown,
-
-          child: const Text(
-            "WeBaNiMaL",
-            maxLines: 1,
-
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              child: Image.asset("assets/logo6.png", width: 22, height: 22),
             ),
-          ),
+
+            const SizedBox(width: 10),
+
+            /// TITLE RESPONSIVE
+            Expanded(
+              child: FittedBox(
+                alignment: Alignment.centerLeft,
+                fit: BoxFit.scaleDown,
+
+                child: const Text(
+                  "WeBaNiMaL",
+                  maxLines: 1,
+
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ),
+
+        actions: [
+          /// SEARCH
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+
+            padding: EdgeInsets.zero,
+
+            icon: const Icon(Icons.search),
+
+            onPressed: () {
+              context.push('/search/users');
+            },
+          ),
+
+          /// PROFILE
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+
+            padding: EdgeInsets.zero,
+
+            onPressed: () {
+              context.push('/user-posts/${AuthService.currentUserId}');
+            },
+
+            icon: CustomAvatar(url: avatarUrl),
+          ),
+
+          /// SETTINGS
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+
+            padding: EdgeInsets.zero,
+
+            icon: const Icon(Icons.settings),
+
+            onPressed: () {
+              context.push('/account/settings');
+            },
+          ),
+
+          const SizedBox(width: 6),
+        ],
       ),
-    ],
-  ),
-
-  actions: [
-
-    /// SEARCH
-    IconButton(
-      constraints: const BoxConstraints(
-        minWidth: 40,
-        minHeight: 40,
-      ),
-
-      padding: EdgeInsets.zero,
-
-      icon: const Icon(Icons.search),
-
-      onPressed: () {
-        context.push('/search/users');
-      },
-    ),
-
-    /// PROFILE
-    IconButton(
-      constraints: const BoxConstraints(
-        minWidth: 40,
-        minHeight: 40,
-      ),
-
-      padding: EdgeInsets.zero,
-
-      onPressed: () {
-        context.push(
-          '/user-posts/${AuthService.currentUserId}',
-        );
-      },
-
-      icon: CustomAvatar(
-        url: avatarUrl,
-      ),
-    ),
-
-    /// SETTINGS
-    IconButton(
-      constraints: const BoxConstraints(
-        minWidth: 40,
-        minHeight: 40,
-      ),
-
-      padding: EdgeInsets.zero,
-
-      icon: const Icon(Icons.settings),
-
-      onPressed: () {
-        context.push('/account/settings');
-      },
-    ),
-
-    const SizedBox(width: 6),
-  ],
-),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
@@ -252,31 +223,52 @@ for (final post in _posts.take(3)) {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         /// AVATAR
-                        CustomAvatar(url: profileAvatarUrl),
-
-                        const SizedBox(width: 20),
+                        CustomAvatar(url: profileAvatarUrl, size: 60),
 
                         /// STATS
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _stat(
-                                _profile?['posts_count']?.toString() ?? "0",
-                                "Posts",
-                              ),
-                              _stat(
-                                _profile?['followers_count']?.toString() ?? "-",
-                                "Seguidores",
-                              ),
-                              _stat(
-                                _profile?['following_count']?.toString() ?? "-",
-                                "Siguiendo",
-                              ),
-                            ],
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          spacing: 6,
+                          children: [
+                            _stat(
+                              _profile?['posts_count']?.toString() ?? "0",
+                              "Posteos",
+                            ),
+                            _stat(
+                              _profile?['followers_count']?.toString() ?? "-",
+                              "Seguidores",
+                            ),
+                            _stat(
+                              _profile?['following_count']?.toString() ?? "-",
+                              "Siguiendo",
+                            ),
+                          ],
+                        ),
+
+                        PopupMenuButton<String>(
+                          padding: EdgeInsetsGeometry.all(0.0),
+                          menuPadding: EdgeInsets.all(0.0),
+                          icon: const Icon(Icons.more_vert, size: 14),
+                          onSelected: (value) async {
+                            if (value == "block") {
+                              await ReportPopup.show(
+                                context,
+                                type: UserReportType.BLOQUEO_USUARIO,
+                                id: widget.userId,
+                                onSent: () => Navigator.pop(context),
+                              );
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'block',
+                              child: Text('Bloquear usuario'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -315,171 +307,136 @@ for (final post in _posts.take(3)) {
             ),
 
             /// ================= GRID POSTS =================
-SliverGrid(
-  delegate: SliverChildBuilderDelegate(
-    (context, index) {
+            SliverGrid(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final post = _posts[index];
 
-      final post = _posts[index];
+                final media = post.medias.isNotEmpty ? post.medias.first : null;
 
-      final media =
-          post.medias.isNotEmpty
-              ? post.medias.first
-              : null;
+                return GestureDetector(
+                  onTap: () => _openImageViewer(post, 0),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Hero(
+                          tag: media != null
+                              ? '${post.id}_${media.id}'
+                              : '${post.id}_empty',
 
-      return GestureDetector(
-        onTap: () => _openImageViewer(post, 0),
-        child: Stack(
-          children: [
+                          child: media == null
+                              ? Container(color: Colors.grey.shade300)
+                              : media.isVideo
+                              ? ClipRRect(
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      VideoThumbnailWidget(url: media.url),
 
-            Positioned.fill(
-              child: Hero(
-                tag: media != null
-                    ? '${post.id}_${media.id}'
-                    : '${post.id}_empty',
+                                      Container(color: Colors.black26),
 
-                child: media == null
-
-                    ? Container(
-                        color: Colors.grey.shade300,
-                      )
-
-                    : media.isVideo
-                        ? ClipRRect(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-
-                                VideoThumbnailWidget(
-                                  url: media.url,
-                                ),
-
-                                Container(
-                                  color: Colors.black26,
-                                ),
-
-                                const Center(
-                                  child: Icon(
-                                    Icons.play_circle_fill,
-                                    color: Colors.white,
-                                    size: 40,
+                                      const Center(
+                                        child: Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                )
+                              : Image.network(
+                                  media.url,
+                                  fit: BoxFit.cover,
+
+                                  cacheWidth: 250,
+
+                                  filterQuality: FilterQuality.low,
+
+                                  gaplessPlayback: true,
+
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null) {
+                                          return child;
+                                        }
+
+                                        return Container(
+                                          color: Colors.grey.shade200,
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        );
+                                      },
+
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade300,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ],
+                        ),
+                      ),
+
+                      /// MULTIMEDIA
+                      if (post.medias.length > 1)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          )
-
-                        : Image.network(
-                            media.url,
-                            fit: BoxFit.cover,
-
-                            cacheWidth: 250,
-
-                            filterQuality:
-                                FilterQuality.low,
-
-                            gaplessPlayback: true,
-
-                            loadingBuilder: (
-                              context,
-                              child,
-                              loadingProgress,
-                            ) {
-
-                              if (loadingProgress == null) {
-                                return child;
-                              }
-
-                              return Container(
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child:
-                                      CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              );
-                            },
-
-                            errorBuilder: (
-                              context,
-                              error,
-                              stackTrace,
-                            ) {
-
-                              return Container(
-                                color: Colors.grey.shade300,
-                                child: const Icon(
-                                  Icons.broken_image,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '+${post.medias.length - 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
+                        ),
+
+                      /// VIDEO
+                      if (media?.isVideo == true)
+                        Positioned(
+                          bottom: 6,
+                          left: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.videocam,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }, childCount: _posts.length),
+
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
               ),
             ),
-
-            /// MULTIMEDIA
-            if (post.medias.length > 1)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius:
-                        BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '+${post.medias.length - 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-            /// VIDEO
-            if (media?.isVideo == true)
-              Positioned(
-                bottom: 6,
-                left: 6,
-                child: Container(
-                  padding:
-                      const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius:
-                        BorderRadius.circular(20),
-                  ),
-                                    child: const Icon(
-                                      Icons.videocam,
-                                      color: Colors.white,
-                                      size: 16,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                  childCount: _posts.length,
-                ),
-
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 4,
-                  mainAxisSpacing: 4,
-                ),
-              ),
           ],
         ),
       ),
@@ -523,44 +480,41 @@ SliverGrid(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    Row(
-  children: [
-    Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.pink],
-        ),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: const Icon(
-        Icons.edit,
-        color: Colors.white,
-      ),
-    ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.purple, Colors.pink],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.edit, color: Colors.white),
+                          ),
 
-    const SizedBox(width: 12),
+                          const SizedBox(width: 12),
 
-    Expanded(
-      child: Expanded(
-  child: Text(
-    'Editar Post',
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-  ),
-)
-    ),
+                          Expanded(
+                            child: Expanded(
+                              child: Text(
+                                'Editar Post',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
 
-    IconButton(
-      constraints: const BoxConstraints(),
-      padding: EdgeInsets.zero,
-      onPressed: () {
-        Navigator.pop(context);
-      },
-      icon: const Icon(Icons.close),
-    ),
-  ],
-),
+                          IconButton(
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 20),
 
                       TextFormField(
@@ -583,129 +537,122 @@ SliverGrid(
 
                       const SizedBox(height: 20),
 
-                   const Text(
-                      'Imágenes',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                      const Text(
+                        'Imágenes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: _medias.map((media) {
-                        return Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: media.isVideo
-                                ? Container(
-                                    color: Colors.black,
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.play_circle_fill,
-                                        color: Colors.white,
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _medias.map((media) {
+                          return Container(
+                            width: 90,
+                            height: 90,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: media.isVideo
+                                  ? Container(
+                                      color: Colors.black,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                : Image.network(
-                                    media.url,
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                                    )
+                                  : Image.network(media.url, fit: BoxFit.cover),
+                            ),
+                          );
+                        }).toList(),
+                      ),
 
                       const SizedBox(height: 28),
 
-                     Row(
-  children: [
-    Expanded(
-      child: OutlinedButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
-        child: const FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Cancelar',
-            maxLines: 1,
-          ),
-        ),
-      ),
-    ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('Cancelar', maxLines: 1),
+                              ),
+                            ),
+                          ),
 
-    const SizedBox(width: 12),
+                          const SizedBox(width: 12),
 
-    Expanded(
-      child: ElevatedButton(
-onPressed: _isSavingEdit
-    ? null
-    : () async {
-        if (!formKey.currentState!.validate()) return;
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isSavingEdit
+                                  ? null
+                                  : () async {
+                                      if (!formKey.currentState!.validate())
+                                        return;
 
-        formKey.currentState!.save();
+                                      formKey.currentState!.save();
 
-        setState(() {
-          _isSavingEdit = true;
-        });
+                                      setState(() {
+                                        _isSavingEdit = true;
+                                      });
 
-        try {
-          await PostsService.updatePost(
-            post.id,
-            description: description,
-            mediaIds: _medias.map((e) => e.id).toList(),
-          );
+                                      try {
+                                        await PostsService.updatePost(
+                                          post.id,
+                                          description: description,
+                                          mediaIds: _medias
+                                              .map((e) => e.id)
+                                              .toList(),
+                                        );
 
-          if (!mounted) return;
+                                        if (!mounted) return;
 
-          Navigator.pop(context);
-          await _refresh();
+                                        Navigator.pop(context);
+                                        await _refresh();
+                                      } catch (e) {
+                                        debugPrint(e.toString());
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isSavingEdit = false;
+                                          });
+                                        }
+                                      }
+                                    },
 
-        } catch (e) {
-          debugPrint(e.toString());
-        } finally {
-          if (mounted) {
-            setState(() {
-              _isSavingEdit = false;
-            });
-          }
-        }
-      },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
+                                foregroundColor: Colors.white,
+                              ),
 
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.purple,
-          foregroundColor: Colors.white,
-        ),
-
-        child: _isSavingEdit
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Guardar',
-                  maxLines: 1,
-                ),
-              ),
-      ),
-    ),
-  ],
-)
+                              child: _isSavingEdit
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text('Guardar', maxLines: 1),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -716,23 +663,25 @@ onPressed: _isSavingEdit
       ),
     );
   }
-void _openImageViewer(Post post, int initialIndex) {
-  Navigator.of(context).push(
-    PageRouteBuilder(
-      opaque: false,
-      barrierDismissible: true,
-      barrierColor: Colors.black,
-      pageBuilder: (_, __, ___) {
-    return _FullScreenViewer(
-      post: post,
-      initialIndex: initialIndex,
-      onRefresh: _refresh,
-      onEdit: _editarPost,
+
+  void _openImageViewer(Post post, int initialIndex) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black,
+        pageBuilder: (_, __, ___) {
+          return _FullScreenViewer(
+            post: post,
+            initialIndex: initialIndex,
+            onRefresh: _refresh,
+            onEdit: _editarPost,
+          );
+        },
+      ),
     );
-      },
-    ),
-  );
-}
+  }
+
   Widget _imagePreview({
     required Widget image,
     required VoidCallback onDelete,
@@ -780,20 +729,13 @@ void _openImageViewer(Post post, int initialIndex) {
 class VideoPlayerWidget extends StatefulWidget {
   final String url;
 
-  const VideoPlayerWidget({
-    super.key,
-    required this.url,
-  });
+  const VideoPlayerWidget({super.key, required this.url});
 
   @override
-  State<VideoPlayerWidget> createState() =>
-      _VideoPlayerWidgetState();
+  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
 }
 
-
-class _VideoPlayerWidgetState
-    extends State<VideoPlayerWidget> {
-
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? controller;
 
   bool initialized = false;
@@ -809,15 +751,14 @@ class _VideoPlayerWidgetState
 
   Future<void> _init() async {
     try {
-
       /// CONTROLLER LIVIANO
-    final c = VideoPlayerController.networkUrl(
-  Uri.parse(widget.url),
-  videoPlayerOptions: VideoPlayerOptions(
-    mixWithOthers: true,
-    allowBackgroundPlayback: false,
-  ),
-);
+      final c = VideoPlayerController.networkUrl(
+        Uri.parse(widget.url),
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: true,
+          allowBackgroundPlayback: false,
+        ),
+      );
 
       await c.initialize();
 
@@ -829,6 +770,7 @@ class _VideoPlayerWidgetState
       /// CONFIG
       await c.setLooping(false);
       await c.setPlaybackSpeed(1.0);
+
       /// mute por defecto
       await c.setVolume(1);
 
@@ -842,7 +784,6 @@ class _VideoPlayerWidgetState
       setState(() {
         initialized = true;
       });
-
     } catch (e) {
       debugPrint("VIDEO ERROR: $e");
     }
@@ -898,16 +839,13 @@ class _VideoPlayerWidgetState
 
   @override
   Widget build(BuildContext context) {
-
     final c = controller;
 
     if (!initialized || c == null) {
       return Container(
         color: Colors.black,
         child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-          ),
+          child: CircularProgressIndicator(color: Colors.white),
         ),
       );
     }
@@ -917,18 +855,17 @@ class _VideoPlayerWidgetState
       child: Stack(
         fit: StackFit.expand,
         children: [
-
           /// VIDEO OPTIMIZADO
-       SizedBox.expand(
-  child: FittedBox(
-    fit: BoxFit.cover,
-    child: SizedBox(
-      width: c.value.size.width,
-      height: c.value.size.height,
-      child: VideoPlayer(c),
-    ),
-  ),
-),
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: c.value.size.width,
+                height: c.value.size.height,
+                child: VideoPlayer(c),
+              ),
+            ),
+          ),
 
           /// PLAY
           if (paused)
@@ -953,9 +890,7 @@ class _VideoPlayerWidgetState
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  muted
-                      ? Icons.volume_off
-                      : Icons.volume_up,
+                  muted ? Icons.volume_off : Icons.volume_up,
                   color: Colors.white,
                 ),
               ),
@@ -966,22 +901,17 @@ class _VideoPlayerWidgetState
     );
   }
 }
+
 class VideoThumbnailWidget extends StatefulWidget {
   final String url;
 
-  const VideoThumbnailWidget({
-    super.key,
-    required this.url,
-  });
+  const VideoThumbnailWidget({super.key, required this.url});
 
   @override
-  State<VideoThumbnailWidget> createState() =>
-      _VideoThumbnailWidgetState();
+  State<VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
 }
 
-class _VideoThumbnailWidgetState
-    extends State<VideoThumbnailWidget> {
-
+class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
   Uint8List? thumbnail;
 
   @override
@@ -1014,19 +944,11 @@ class _VideoThumbnailWidgetState
     if (thumbnail == null) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-          ),
-        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
-    return Image.memory(
-      thumbnail!,
-      fit: BoxFit.cover,
-      gaplessPlayback: true,
-    );
+    return Image.memory(thumbnail!, fit: BoxFit.cover, gaplessPlayback: true);
   }
 }
 
@@ -1051,9 +973,7 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
 
   Future<void> _init() async {
     try {
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(widget.url),
-      );
+      final c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
 
       await c.initialize();
 
@@ -1086,9 +1006,7 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
     if (!_ready || _controller == null) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
@@ -1118,7 +1036,9 @@ class _FullScreenViewer extends StatefulWidget {
 
   @override
   State<_FullScreenViewer> createState() => _FullScreenViewerState();
-}class _FullScreenViewerState extends State<_FullScreenViewer> {
+}
+
+class _FullScreenViewerState extends State<_FullScreenViewer> {
   late PageController controller;
   int currentIndex = 0;
 
@@ -1144,7 +1064,6 @@ class _FullScreenViewer extends StatefulWidget {
       body: SafeArea(
         child: Stack(
           children: [
-
             /// ================= MEDIA =================
             PageView.builder(
               controller: controller,
@@ -1174,118 +1093,122 @@ class _FullScreenViewer extends StatefulWidget {
 
             /// ================= TOP BAR =================
             Positioned(
-  top: 10,
-  left: 10,
-  right: 10,
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-
-      /// CLOSE
-      IconButton(
-        icon: const Icon(Icons.close, color: Colors.white, size: 30),
-        onPressed: () => Navigator.pop(context),
-      ),
-
-      /// 3 DOTS (SOLO MIS POSTS)
-      if (widget.post.user.id.toString() ==
-          AuthService.currentUserId.toString())
-        PopupMenuButton<String>(
-          color: const Color.fromARGB(255, 235, 42, 151),
-          icon: const Icon(Icons.more_vert, color: Colors.white),
-          onSelected: (value) async {
-
-            if (value == 'edit') {
-              Navigator.pop(context);
-              await widget.onEdit?.call(widget.post);
-            }
-
-            if (value == 'share') {
-              if (widget.post.medias.isNotEmpty) {
-                await SharePostHelper.sharePost(
-                  imageUrl: widget.post.medias[currentIndex].url,
-                  postType: widget.post.postType.name,
-                  fileName: 'shared_${widget.post.id}',
-                );
-              }
-            }
-
-            if (value == 'view_post') {
-              Navigator.pop(context);
-              context.push('/posts/${widget.post.id}/view');
-            }
-
-            if (value == 'delete') {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Eliminar post'),
-                  content: const Text(
-                    '¿Seguro que querés eliminar este post?',
+              top: 10,
+              left: 10,
+              right: 10,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  /// CLOSE
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context, false),
-                      child: const Text('Cancelar'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () =>
-                          Navigator.pop(context, true),
-                      child: const Text('Eliminar'),
-                    ),
-                  ],
-                ),
-              );
 
-              if (confirm == true) {
-                Navigator.pop(context);
-                await PostsService.deletePost(
-                  widget.post.id.toString(),
-                );
-                await widget.onRefresh();
-              }
-            }
-          },
-          itemBuilder: (_) => const [
+                  /// 3 DOTS (SOLO MIS POSTS)
+                  if (widget.post.user.id.toString() ==
+                      AuthService.currentUserId.toString())
+                    PopupMenuButton<String>(
+                      color: const Color.fromARGB(255, 235, 42, 151),
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          Navigator.pop(context);
+                          await widget.onEdit?.call(widget.post);
+                        }
 
+                        if (value == 'share') {
+                          if (widget.post.medias.isNotEmpty) {
+                            await SharePostHelper.sharePost(
+                              imageUrl: widget.post.medias[currentIndex].url,
+                              postType: widget.post.postType.name,
+                              fileName: 'shared_${widget.post.id}',
+                            );
+                          }
+                        }
 
-                            PopupMenuItem(
+                        if (value == 'view_post') {
+                          Navigator.pop(context);
+                          context.push('/posts/${widget.post.id}/view');
+                        }
+
+                        if (value == 'delete') {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Eliminar post'),
+                              content: const Text(
+                                '¿Seguro que querés eliminar este post?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Eliminar'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            Navigator.pop(context);
+                            await PostsService.deletePost(
+                              widget.post.id.toString(),
+                            );
+                            await widget.onRefresh();
+                          }
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
                           value: 'edit',
-                      child: Text(
-                        'Editar',
-                           style: TextStyle(
-                       color: Colors.white,
+                          child: Text(
+                            'Editar',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+
+                        PopupMenuItem(
+                          value: 'share',
+                          child: Text(
+                            'Compartir',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+
+                        PopupMenuItem(
+                          value: 'view_post',
+                          child: Text(
+                            'Ver publicación',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            'Eliminar',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
-                      ),
-                     ),
-               
-            PopupMenuItem(
-              value: 'share',
-              child: Text('Compartir',
-                  style: TextStyle(color: Colors.white)),
+                ],
+              ),
             ),
 
-            PopupMenuItem(
-              value: 'view_post',
-              child: Text('Ver publicación',
-                  style: TextStyle(color: Colors.white)),
-            ),
-
-            PopupMenuItem(
-              value: 'delete',
-              child: Text('Eliminar',
-                  style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-    ],
-  ),
-),
             /// ================= BOTTOM OVERLAY (TU UI ORIGINAL) =================
             Positioned(
               left: 0,
@@ -1297,23 +1220,18 @@ class _FullScreenViewer extends StatefulWidget {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(.85),
-                      Colors.transparent,
-                    ],
+                    colors: [Colors.black.withOpacity(.85), Colors.transparent],
                   ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-
                     /// ================= INFO =================
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-
                           /// USER
                           Row(
                             children: [
@@ -1337,9 +1255,7 @@ class _FullScreenViewer extends StatefulWidget {
                               post.description,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                              ),
+                              style: const TextStyle(color: Colors.white),
                             ),
 
                           const SizedBox(height: 12),
@@ -1363,7 +1279,11 @@ class _FullScreenViewer extends StatefulWidget {
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.link, color: Colors.white, size: 18),
+                                  Icon(
+                                    Icons.link,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 8),
                                   Text(
                                     'Ver publicación',
@@ -1383,7 +1303,6 @@ class _FullScreenViewer extends StatefulWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-
                         /// LIKE
                         GestureDetector(
                           onTap: () async {
@@ -1396,10 +1315,15 @@ class _FullScreenViewer extends StatefulWidget {
                           },
                           child: Column(
                             children: [
-                              const Icon(Icons.favorite_border,
-                                  color: Colors.white, size: 32),
-                              Text('${post.likes}',
-                                  style: const TextStyle(color: Colors.white)),
+                              const Icon(
+                                Icons.favorite_border,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                              Text(
+                                '${post.likes}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ],
                           ),
                         ),
@@ -1431,10 +1355,7 @@ class _FullScreenViewer extends StatefulWidget {
                               fileName: 'shared_${post.id}',
                             );
                           },
-                          child: const Icon(
-                            Icons.share,
-                            color: Colors.white,
-                          ),
+                          child: const Icon(Icons.share, color: Colors.white),
                         ),
                       ],
                     ),
