@@ -29,7 +29,6 @@ class _PromocionesPorVeterinariaWidgetState
   double _currentHeight = 420;
   int _currentIndex = 0;
   bool _isDeleting = false;
-  String? _deletingId;
 
   @override
   void initState() {
@@ -83,8 +82,10 @@ class _PromocionesPorVeterinariaWidgetState
     }
   }
 
-  Future<void> _confirmAndDelete(Promocion promo) async {
-    if (_isDeleting) return;
+  Future<void> _confirmAndDelete() async {
+    final promociones = widget.grupo.promociones;
+    if (_isDeleting || promociones.isEmpty) return;
+    final promo = promociones[_currentIndex];
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -112,20 +113,14 @@ class _PromocionesPorVeterinariaWidgetState
 
     if (confirmed != true) return;
 
-    setState(() {
-      _isDeleting = true;
-      _deletingId = promo.id;
-    });
+    setState(() => _isDeleting = true);
 
     final ok = await PromocionesService.eliminarPromocion(promo.id);
 
     if (!mounted) return;
 
     if (!ok) {
-      setState(() {
-        _isDeleting = false;
-        _deletingId = null;
-      });
+      setState(() => _isDeleting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo eliminar la promoción')),
       );
@@ -133,13 +128,15 @@ class _PromocionesPorVeterinariaWidgetState
     }
 
     setState(() {
-      widget.grupo.promociones.removeWhere((p) => p.id == promo.id);
+      widget.grupo.promociones.removeAt(_currentIndex);
       _rebuildKeys();
       _isDeleting = false;
-      _deletingId = null;
 
-      if (widget.grupo.promociones.isNotEmpty &&
-          _currentIndex >= widget.grupo.promociones.length) {
+      if (widget.grupo.promociones.isEmpty) {
+        return;
+      }
+
+      if (_currentIndex >= widget.grupo.promociones.length) {
         _currentIndex = widget.grupo.promociones.length - 1;
       }
     });
@@ -240,35 +237,16 @@ class _PromocionesPorVeterinariaWidgetState
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.touch_app_rounded,
-                  size: 13,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Tocá una promo para ver el detalle',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade400,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const SizedBox(width: 6),
+                _DeleteIconButton(
+                  isBusy: _isDeleting,
+                  onTap: _confirmAndDelete,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
           // CAROUSEL
           Expanded(
@@ -279,7 +257,6 @@ class _PromocionesPorVeterinariaWidgetState
                   itemCount: promociones.length,
                   onPageChanged: _updateHeight,
                   itemBuilder: (context, index) {
-                    final promo = promociones[index];
                     return AnimatedScale(
                       duration: const Duration(milliseconds: 250),
                       scale: _currentIndex == index ? 1 : 0.96,
@@ -289,9 +266,7 @@ class _PromocionesPorVeterinariaWidgetState
                           physics: const NeverScrollableScrollPhysics(),
                           child: PromocionCard(
                             key: _cardKeys[index],
-                            promocion: promo,
-                            isDeleting: _deletingId == promo.id,
-                            onDelete: () => _confirmAndDelete(promo),
+                            promocion: promociones[index],
                           ),
                         ),
                       ),
@@ -350,6 +325,45 @@ class _PromocionesPorVeterinariaWidgetState
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _DeleteIconButton extends StatelessWidget {
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  const _DeleteIconButton({
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.red.shade50,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: isBusy ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: isBusy
+              ? const SizedBox(
+                  width: 15,
+                  height: 15,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.red),
+                  ),
+                )
+              : Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red.shade400,
+                  size: 18,
+                ),
+        ),
       ),
     );
   }
