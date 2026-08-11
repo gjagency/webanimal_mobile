@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
-import 'promocion_card.dart';
+import 'package:mobile_app/config.dart';
 
 const _kBrandStart = Color(0xFF9B4DCC);
 const _kBrandEnd = Color(0xFFE0528D);
+
+String _fullImageUrl(String? path) {
+  if (path == null || path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  return '${Config.baseUrl}$path';
+}
 
 class PromocionesPorVeterinariaWidget extends StatefulWidget {
   final PromocionesPorVeterinaria grupo;
@@ -23,69 +29,12 @@ class PromocionesPorVeterinariaWidget extends StatefulWidget {
 
 class _PromocionesPorVeterinariaWidgetState
     extends State<PromocionesPorVeterinariaWidget> {
-  late final PageController _pageController;
-  Map<int, GlobalKey> _cardKeys = {};
-
-  double _currentHeight = 420;
-  int _currentIndex = 0;
+  int _selectedIndex = 0;
   bool _isDeleting = false;
+  String? _deletingId;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _pageController = PageController(
-      viewportFraction: 0.90,
-    );
-
-    _rebuildKeys();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateHeight(0);
-    });
-  }
-
-  void _rebuildKeys() {
-    _cardKeys = {
-      for (int i = 0; i < widget.grupo.promociones.length; i++) i: GlobalKey(),
-    };
-  }
-
-  void _updateHeight(int index) {
-    final key = _cardKeys[index];
-
-    if (key?.currentContext != null) {
-      final box = key!.currentContext!.findRenderObject() as RenderBox;
-
-      setState(() {
-        _currentHeight = box.size.height + 90;
-        _currentIndex = index;
-      });
-    }
-  }
-
-  void _nextPage() {
-    if (_currentIndex < widget.grupo.promociones.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  void _prevPage() {
-    if (_currentIndex > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  Future<void> _confirmAndDelete() async {
-    final promociones = widget.grupo.promociones;
-    if (_isDeleting || promociones.isEmpty) return;
-    final promo = promociones[_currentIndex];
+  Future<void> _confirmAndDelete(Promocion promo) async {
+    if (_isDeleting) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -113,14 +62,20 @@ class _PromocionesPorVeterinariaWidgetState
 
     if (confirmed != true) return;
 
-    setState(() => _isDeleting = true);
+    setState(() {
+      _isDeleting = true;
+      _deletingId = promo.id;
+    });
 
     final ok = await PromocionesService.eliminarPromocion(promo.id);
 
     if (!mounted) return;
 
     if (!ok) {
-      setState(() => _isDeleting = false);
+      setState(() {
+        _isDeleting = false;
+        _deletingId = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo eliminar la promoción')),
       );
@@ -128,36 +83,19 @@ class _PromocionesPorVeterinariaWidgetState
     }
 
     setState(() {
-      widget.grupo.promociones.removeAt(_currentIndex);
-      _rebuildKeys();
+      widget.grupo.promociones.removeWhere((p) => p.id == promo.id);
       _isDeleting = false;
+      _deletingId = null;
 
-      if (widget.grupo.promociones.isEmpty) {
-        return;
-      }
-
-      if (_currentIndex >= widget.grupo.promociones.length) {
-        _currentIndex = widget.grupo.promociones.length - 1;
+      if (widget.grupo.promociones.isNotEmpty &&
+          _selectedIndex >= widget.grupo.promociones.length) {
+        _selectedIndex = widget.grupo.promociones.length - 1;
       }
     });
 
     if (widget.grupo.promociones.isEmpty) {
       widget.onEmpty?.call();
-      return;
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(_currentIndex);
-      }
-      _updateHeight(_currentIndex);
-    });
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   @override
@@ -168,11 +106,12 @@ class _PromocionesPorVeterinariaWidgetState
       return const SizedBox.shrink();
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+    final index = _selectedIndex.clamp(0, promociones.length - 1);
+    final selected = promociones[index];
+
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      padding: const EdgeInsets.only(top: 14, bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -185,8 +124,9 @@ class _PromocionesPorVeterinariaWidgetState
           ),
         ],
       ),
-      height: _currentHeight,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // HEADER
           Padding(
@@ -229,7 +169,7 @@ class _PromocionesPorVeterinariaWidgetState
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Text(
-                    '${_currentIndex + 1}/${promociones.length}',
+                    '${promociones.length}',
                     style: TextStyle(
                       color: Colors.grey.shade700,
                       fontWeight: FontWeight.w600,
@@ -237,130 +177,308 @@ class _PromocionesPorVeterinariaWidgetState
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                _DeleteIconButton(
-                  isBusy: _isDeleting,
-                  onTap: _confirmAndDelete,
-                ),
               ],
             ),
           ),
 
           const SizedBox(height: 14),
 
-          // CAROUSEL
-          Expanded(
-            child: Stack(
-              children: [
-                PageView.builder(
-                  controller: _pageController,
-                  itemCount: promociones.length,
-                  onPageChanged: _updateHeight,
-                  itemBuilder: (context, index) {
-                    return AnimatedScale(
-                      duration: const Duration(milliseconds: 250),
-                      scale: _currentIndex == index ? 1 : 0.96,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: PromocionCard(
-                            key: _cardKeys[index],
-                            promocion: promociones[index],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                if (promociones.length > 1) ...[
-                  Positioned(
-                    left: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _ModernArrowButton(
-                        icon: Icons.chevron_left_rounded,
-                        onTap: _prevPage,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _ModernArrowButton(
-                        icon: Icons.chevron_right_rounded,
-                        onTap: _nextPage,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+          // "STORIES" SELECTOR
+          SizedBox(
+            height: 88,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: promociones.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              itemBuilder: (context, i) {
+                final promo = promociones[i];
+                final isSelected = i == index;
+                return _PromoBubble(
+                  promo: promo,
+                  isSelected: isSelected,
+                  onTap: () => setState(() => _selectedIndex = i),
+                );
+              },
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          // INDICADORES
-          if (promociones.length > 1)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                promociones.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentIndex == index ? 20 : 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: _currentIndex == index
-                        ? _kBrandStart
-                        : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: _PromoDetailPanel(
+                key: ValueKey(selected.id),
+                promocion: selected,
+                isDeleting: _deletingId == selected.id,
+                onDelete: () => _confirmAndDelete(selected),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _DeleteIconButton extends StatelessWidget {
-  final bool isBusy;
+class _PromoBubble extends StatelessWidget {
+  final Promocion promo;
+  final bool isSelected;
   final VoidCallback onTap;
 
-  const _DeleteIconButton({
-    required this.isBusy,
+  const _PromoBubble({
+    required this.promo,
+    required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _fullImageUrl(promo.imagen);
+    final hasImage = promo.imagen != null && imageUrl.isNotEmpty;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [_kBrandStart, _kBrandEnd],
+                      )
+                    : null,
+                color: isSelected ? null : Colors.grey.shade200,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+                child: ClipOval(
+                  child: hasImage
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
+                      : _placeholder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              promo.titulo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.black87 : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.grey.shade100,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.local_offer_rounded,
+        color: Colors.grey.shade400,
+        size: 22,
+      ),
+    );
+  }
+}
+
+class _PromoDetailPanel extends StatelessWidget {
+  final Promocion promocion;
+  final bool isDeleting;
+  final VoidCallback onDelete;
+
+  const _PromoDetailPanel({
+    super.key,
+    required this.promocion,
+    required this.isDeleting,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = _fullImageUrl(promocion.imagen);
+    final hasImage = promocion.imagen != null && imageUrl.isNotEmpty;
+    final hasPrice =
+        promocion.precio != null && promocion.precio.toString().isNotEmpty;
+    final hasDesc = promocion.descripcion.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF9FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasImage)
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: Image.network(
+                    imageUrl,
+                    width: double.infinity,
+                    height: 180,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 180,
+                      color: Colors.grey.shade200,
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.grey.shade400,
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _DeleteButton(busy: isDeleting, onTap: onDelete),
+                ),
+              ],
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        promocion.nombreComercio.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: _kBrandStart,
+                          letterSpacing: 1.1,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (!hasImage) _DeleteButton(busy: isDeleting, onTap: onDelete),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  promocion.titulo,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (hasDesc) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    promocion.descripcion,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _InfoChip(
+                      icon: Icons.calendar_month_rounded,
+                      label: '${_formatDate(promocion.fechadesde)} - ${_formatDate(promocion.fechahasta)}',
+                    ),
+                    if (hasPrice)
+                      _InfoChip(
+                        icon: Icons.sell_rounded,
+                        label: '\$ ${promocion.precio}',
+                        emphasized: true,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String? date) {
+    if (date == null || date.isEmpty) return '--';
+    try {
+      final parsed = DateTime.parse(date);
+      return '${parsed.day.toString().padLeft(2, '0')}/'
+          '${parsed.month.toString().padLeft(2, '0')}/'
+          '${parsed.year}';
+    } catch (_) {
+      return date;
+    }
+  }
+}
+
+class _DeleteButton extends StatelessWidget {
+  final bool busy;
+  final VoidCallback onTap;
+
+  const _DeleteButton({required this.busy, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return Material(
-      color: Colors.red.shade50,
+      color: Colors.white,
       shape: const CircleBorder(),
+      elevation: 3,
+      shadowColor: Colors.black26,
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: isBusy ? null : onTap,
+        onTap: busy ? null : onTap,
         child: Padding(
-          padding: const EdgeInsets.all(7),
-          child: isBusy
+          padding: const EdgeInsets.all(8),
+          child: busy
               ? const SizedBox(
-                  width: 15,
-                  height: 15,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation(Colors.red),
                   ),
                 )
-              : Icon(
+              : const Icon(
                   Icons.delete_outline_rounded,
-                  color: Colors.red.shade400,
+                  color: Colors.red,
                   size: 18,
                 ),
         ),
@@ -369,33 +487,46 @@ class _DeleteIconButton extends StatelessWidget {
   }
 }
 
-class _ModernArrowButton extends StatelessWidget {
+class _InfoChip extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final String label;
+  final bool emphasized;
 
-  const _ModernArrowButton({
+  const _InfoChip({
     required this.icon,
-    required this.onTap,
+    required this.label,
+    this.emphasized = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 4,
-      shadowColor: Colors.black26,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          child: Icon(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: emphasized ? const Color(0xFFFFF3E0) : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: emphasized
+            ? Border.all(color: const Color(0xFFFFB74D))
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
             icon,
-            color: Colors.black87,
-            size: 24,
+            size: 15,
+            color: emphasized ? const Color(0xFFE65100) : Colors.grey.shade600,
           ),
-        ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: emphasized ? const Color(0xFFE65100) : Colors.grey.shade700,
+            ),
+          ),
+        ],
       ),
     );
   }
