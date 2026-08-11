@@ -995,7 +995,16 @@ appBar: AppBar(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : selectedTypeId == 'promociones'
-                ? PromocionesPorVeterinariaList(grupos: _promocionesAgrupadas)
+                ? PromocionesPorVeterinariaList(
+                    grupos: _promocionesAgrupadas,
+                    onGroupEmpty: (vetId) {
+                      setState(() {
+                        _promocionesAgrupadas.removeWhere(
+                          (g) => g.veterinariaId == vetId,
+                        );
+                      });
+                    },
+                  )
                 : PostsFeed(
                     controller: _scrollController,
                     posts: filteredPosts,

@@ -561,4 +561,20 @@ class PromocionesService {
       return false;
     }
   }
+
+  static Future<bool> eliminarPromocion(String promocionId) async {
+    try {
+      final response = await AuthService.deleteWithToken(
+        '/api/veterinarias/promociones/$promocionId/eliminar/',
+        {},
+      );
+
+      if (response.statusCode != 200) return false;
+
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      return jsonResponse['ok'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
 }

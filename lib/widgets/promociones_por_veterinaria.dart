@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/service/auth_service.dart';
 import 'package:mobile_app/service/posts_service.dart';
 import 'promocion_card.dart';
 
+const _kBrandStart = Color(0xFF9B4DCC);
+const _kBrandEnd = Color(0xFFE0528D);
+
 class PromocionesPorVeterinariaWidget extends StatefulWidget {
   final PromocionesPorVeterinaria grupo;
+  final VoidCallback? onEmpty;
 
   const PromocionesPorVeterinariaWidget({
     super.key,
     required this.grupo,
+    this.onEmpty,
   });
 
   @override
@@ -18,10 +24,11 @@ class PromocionesPorVeterinariaWidget extends StatefulWidget {
 class _PromocionesPorVeterinariaWidgetState
     extends State<PromocionesPorVeterinariaWidget> {
   late final PageController _pageController;
-  final Map<int, GlobalKey> _cardKeys = {};
+  Map<int, GlobalKey> _cardKeys = {};
 
   double _currentHeight = 420;
   int _currentIndex = 0;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -31,13 +38,17 @@ class _PromocionesPorVeterinariaWidgetState
       viewportFraction: 0.90,
     );
 
-    for (int i = 0; i < widget.grupo.promociones.length; i++) {
-      _cardKeys[i] = GlobalKey();
-    }
+    _rebuildKeys();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateHeight(0);
     });
+  }
+
+  void _rebuildKeys() {
+    _cardKeys = {
+      for (int i = 0; i < widget.grupo.promociones.length; i++) i: GlobalKey(),
+    };
   }
 
   void _updateHeight(int index) {
@@ -71,6 +82,78 @@ class _PromocionesPorVeterinariaWidgetState
     }
   }
 
+  Future<void> _confirmAndDelete() async {
+    final promociones = widget.grupo.promociones;
+    if (_isDeleting || promociones.isEmpty) return;
+    final promo = promociones[_currentIndex];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        title: const Text('Eliminar promoción'),
+        content: Text(
+          '¿Seguro que querés eliminar "${promo.titulo}"? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+
+    final ok = await PromocionesService.eliminarPromocion(promo.id);
+
+    if (!mounted) return;
+
+    if (!ok) {
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo eliminar la promoción')),
+      );
+      return;
+    }
+
+    setState(() {
+      widget.grupo.promociones.removeAt(_currentIndex);
+      _rebuildKeys();
+      _isDeleting = false;
+
+      if (widget.grupo.promociones.isEmpty) {
+        return;
+      }
+
+      if (_currentIndex >= widget.grupo.promociones.length) {
+        _currentIndex = widget.grupo.promociones.length - 1;
+      }
+    });
+
+    if (widget.grupo.promociones.isEmpty) {
+      widget.onEmpty?.call();
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
+      _updateHeight(_currentIndex);
+    });
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -81,6 +164,10 @@ class _PromocionesPorVeterinariaWidgetState
   Widget build(BuildContext context) {
     final promociones = widget.grupo.promociones;
 
+    if (promociones.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
@@ -88,12 +175,13 @@ class _PromocionesPorVeterinariaWidgetState
       padding: const EdgeInsets.only(top: 14, bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -102,37 +190,39 @@ class _PromocionesPorVeterinariaWidgetState
         children: [
           // HEADER
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Colors.purple, Colors.pink],
+                  padding: const EdgeInsets.all(9),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_kBrandStart, _kBrandEnd],
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   child: const Icon(
                     Icons.local_offer_rounded,
                     color: Colors.white,
-                    size: 18,
+                    size: 17,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     'Promociones disponibles',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
+                    horizontal: 9,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
@@ -146,6 +236,11 @@ class _PromocionesPorVeterinariaWidgetState
                       fontSize: 12,
                     ),
                   ),
+                ),
+                const SizedBox(width: 6),
+                _DeleteIconButton(
+                  isBusy: _isDeleting,
+                  onTap: _confirmAndDelete,
                 ),
               ],
             ),
@@ -222,7 +317,7 @@ class _PromocionesPorVeterinariaWidgetState
                   height: 7,
                   decoration: BoxDecoration(
                     color: _currentIndex == index
-                        ? Colors.purple
+                        ? _kBrandStart
                         : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -230,6 +325,45 @@ class _PromocionesPorVeterinariaWidgetState
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _DeleteIconButton extends StatelessWidget {
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  const _DeleteIconButton({
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.red.shade50,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: isBusy ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: isBusy
+              ? const SizedBox(
+                  width: 15,
+                  height: 15,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.red),
+                  ),
+                )
+              : Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red.shade400,
+                  size: 18,
+                ),
+        ),
       ),
     );
   }
@@ -248,7 +382,8 @@ class _ModernArrowButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      elevation: 6,
+      elevation: 4,
+      shadowColor: Colors.black26,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
