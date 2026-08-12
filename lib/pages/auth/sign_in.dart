@@ -15,51 +15,9 @@ class PageAuthSignIn extends StatefulWidget {
 }
 
 class _PageAuthSignInState extends State<PageAuthSignIn> {
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
   bool _acceptTerms = false;
-  bool _obscurePassword = true;
 
   bool _loading = false;
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  /// 🔐 Login tradicional
-  Future<void> _login() async {
-    FocusScope.of(context).unfocus();
-
-    setState(() => _loading = true);
-
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (username.isEmpty || password.isEmpty) {
-      _showError('Por favor completa todos los campos');
-      return;
-    }
-
-    try {
-      final success = await AuthService.login(username, password);
-
-      if (success) {
-        _goHome();
-      } else {
-        _showError('Usuario o contraseña incorrectos');
-      }
-    } on AccountPendingException catch (e) {
-      _showAccountPendingDialog(e.message);
-    } catch (e) {
-      final message = e.toString().replaceFirst('Exception: ', '');
-      _showError(message.isNotEmpty ? message : 'Error al iniciar sesión');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
 
   /// 🔵 Login con Google
 Future<void> _loginWithGoogle() async {
@@ -299,8 +257,19 @@ Future<void> _loginWithApple() async {
                     ),
                   ),
 
+                  Text(
+                    '§',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
                   // CARD LOGIN
-                  // reemplazá TODO el Container del login por esto:
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -310,133 +279,14 @@ Future<void> _loginWithApple() async {
                     ),
                     child: Column(
                       children: [
-                        /// ================= ACCESO COMERCIO =================
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.12),
-                            ),
+                        const Text(
+                          'Iniciá sesión para continuar',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Acceso Comercio",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const SizedBox(height: 14),
-
-                              TextField(
-                                controller: _usernameController,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'Usuario o Email',
-                                  hintStyle: TextStyle(color: Colors.white70),
-                                  prefixIcon: const Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white24,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                             TextField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'Contraseña',
-                                  hintStyle: const TextStyle(color: Colors.white70),
-                                  prefixIcon: const Icon(
-                                    Icons.lock,
-                                    color: Colors.white,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: Colors.white,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white24,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: ElevatedButton(
-                                  onPressed: (_loading || !_acceptTerms)
-                                    ? null
-                                    : _login,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.purple,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  child: _loading
-                                      ? const CircularProgressIndicator()
-                                      : const Text(
-                                          "Ingresar",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        /// ================= SEPARADOR =================
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: Colors.white24)),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Text(
-                                "o continuar con",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: Colors.white24)),
-                          ],
                         ),
 
                         const SizedBox(height: 18),
@@ -500,9 +350,39 @@ CheckboxListTile(
   ),
 ),
 
+                        const SizedBox(height: 10),
+
+                        if (!_acceptTerms)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Colors.white.withOpacity(0.85),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Aceptá los Términos y Condiciones para poder continuar',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.85),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         /// ================= GOOGLE LOGIN =================
                           if (Platform.isAndroid)
-                            SizedBox(
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _acceptTerms ? 1.0 : 0.5,
+                              child: SizedBox(
                               width: double.infinity,
                               height: 56,
                               child: OutlinedButton.icon(
@@ -518,7 +398,7 @@ CheckboxListTile(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                               onPressed: (!_acceptTerms || _loading)
+                               onPressed: _loading
                                 ? null
                                 : _loginWithGoogle,
                                 style: OutlinedButton.styleFrom(
@@ -531,9 +411,13 @@ CheckboxListTile(
                                 ),
                               ),
                             ),
+                            ),
 
                           if (Platform.isIOS)
-                            SizedBox(
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _acceptTerms ? 1.0 : 0.5,
+                              child: SizedBox(
                               width: double.infinity,
                               height: 56,
                               child: OutlinedButton.icon(
@@ -549,7 +433,7 @@ CheckboxListTile(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                onPressed: (!_acceptTerms || _loading)
+                                onPressed: _loading
                                     ? null
                                     : _loginWithApple,
                                 style: OutlinedButton.styleFrom(
@@ -561,6 +445,7 @@ CheckboxListTile(
                                   ),
                                 ),
                               ),
+                            ),
                             ),
                       ],
                     ),

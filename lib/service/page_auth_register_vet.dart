@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:mobile_app/service/auth_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobile_app/pages/auth/terms_page.dart';
 import 'package:mobile_app/pages/auth/privacy_page.dart';
 
@@ -20,9 +22,6 @@ class PageAuthRegisterVet extends StatefulWidget {
 class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
   bool _acceptTerms = false;
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _nombreController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _direccionController = TextEditingController();
@@ -30,7 +29,13 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
 
   File? _imagen;
   bool _loading = false;
+  bool _googleLoading = false;
   String _tipoNegocio = 'veterinaria';
+
+  // 🔵 cuenta de Google con la que se va a registrar el comercio
+  String? _googleIdToken;
+  String? _googleEmail;
+  String? _googleName;
 
   // 📍 ubicación
   double? _lat;
@@ -45,13 +50,47 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
     _nombreController.dispose();
     _telefonoController.dispose();
     _direccionController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  /// 🔵 Iniciar sesión con Google para vincular el comercio
+  Future<void> _signInWithGoogle() async {
+    setState(() => _googleLoading = true);
+
+    try {
+      final idToken = await AuthService.getGoogleIdToken();
+
+      if (idToken == null) {
+        if (!mounted) return;
+        _showError('No se pudo obtener la cuenta de Google');
+        return;
+      }
+
+      // Decodificamos el JWT solo para mostrar el email/nombre en pantalla
+      String? email;
+      String? name;
+      try {
+        final parts = idToken.split('.');
+        final payload = jsonDecode(
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+        );
+        email = payload['email'];
+        name = payload['name'];
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _googleIdToken = idToken;
+        _googleEmail = email;
+        _googleName = name;
+      });
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
   }
 
   /// 📸 Elegir imagen
@@ -164,6 +203,11 @@ Future<void> _getCurrentLocation() async {
   /// ✅ Registrar veterinaria
   Future<void> _submit() async {
 
+      if (_googleIdToken == null) {
+    _showError('Primero iniciá sesión con Google');
+    return;
+  }
+
       if (!_acceptTerms) {
     _showError(
       'Debes aceptar los Términos y Condiciones para continuar',
@@ -173,20 +217,15 @@ Future<void> _getCurrentLocation() async {
 
   if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _loading = true);
-    if (!_formKey.currentState!.validate()) return;
-
     setState(() => _loading = true);
 
     try {
-      final success = await AuthService.registerVeterinaria(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final success = await AuthService.registerVeterinariaConGoogle(
+        idToken: _googleIdToken!,
         nombreComercial: _nombreController.text.trim(),
         tipoNegocio: _tipoNegocio,
         telefono: _telefonoController.text.trim(),
         direccion: _direccionController.text.trim(),
-        imagen: _imagen,
         ubicacionLabel: _label,
         lat: _lat,
         lng: _lng,
@@ -225,7 +264,7 @@ Future<void> _getCurrentLocation() async {
               ],
             ),
             content: const Text(
-              'Tu cuenta fue registrada correctamente. Revisá tu email para verificar la cuenta y después iniciá sesión.',
+              'Tu comercio fue registrado correctamente. Te avisaremos por email en cuanto un administrador active tu cuenta.',
               style: TextStyle(fontSize: 14, height: 1.4),
             ),
             actions: [
@@ -252,7 +291,13 @@ Future<void> _getCurrentLocation() async {
         GoRouter.of(context).push('/auth/sign_in');
       }
     } catch (e) {
-      _showError(e.toString());
+      final message = e.toString().replaceFirst('Exception: ', '');
+
+      if (message.toLowerCase().contains('ya existe')) {
+        await _showAccountExistsDialog(message);
+      } else {
+        _showError(message);
+      }
     } finally {
   if (mounted) {
     setState(() => _loading = false);
@@ -263,6 +308,61 @@ Future<void> _getCurrentLocation() async {
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _showAccountExistsDialog(String message) async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF9B4DCC).withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.info_outline_rounded,
+                color: Color(0xFF9B4DCC),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Cuenta ya registrada',
+                style: TextStyle(fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B4DCC),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Entendido'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
     Widget _tipoNegocioSelector() {
@@ -327,6 +427,77 @@ Future<void> _getCurrentLocation() async {
             icon: Icons.storefront_outlined,
           ),
         ],
+      );
+    }
+
+    Widget _googleAccountCard() {
+      if (_googleIdToken != null) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF9B4DCC).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF9B4DCC).withOpacity(0.25)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF9B4DCC)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _googleName?.isNotEmpty == true
+                          ? _googleName!
+                          : 'Cuenta de Google vinculada',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (_googleEmail != null)
+                      Text(
+                        _googleEmail!,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: _signInWithGoogle,
+                child: const Text('Cambiar'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: OutlinedButton.icon(
+          icon: _googleLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const FaIcon(FontAwesomeIcons.google, size: 18),
+          label: const Text(
+            'Continuar con Google',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: _googleLoading ? null : _signInWithGoogle,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.black87,
+            side: BorderSide(color: Colors.grey.shade300),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
       );
     }
 
@@ -530,63 +701,46 @@ Future<void> _getCurrentLocation() async {
                     ),
                     child: Column(
                       children: [
-                        _styledInput(
-                          _emailController,
-                          'Email',
-                          Icons.email_outlined,
-                          darkMode: true,
-                          validator: _required,
-                        ),
-                        const SizedBox(height: 10),
+                        _googleAccountCard(),
 
-                        _styledInput(
-                          _passwordController,
-                          'Contraseña',
-                          Icons.lock_outline,
-                          obscure: _obscurePassword,
-                          isPassword: true,
-                          darkMode: true,
-                          validator: (v) =>
-                              v != null && v.length >= 6
-                                  ? null
-                                  : 'Mínimo 6 caracteres',
-                        ),
-                        const SizedBox(height: 10),
+                        if (_googleIdToken != null) ...[
+                          const SizedBox(height: 14),
 
-                        _styledInput(
-                          _nombreController,
-                          'Nombre comercial',
-                          Icons.storefront_outlined,
-                          darkMode: true,
-                          validator: _required,
-                        ),
-                        const SizedBox(height: 10),
+                          _styledInput(
+                            _nombreController,
+                            'Nombre comercial',
+                            Icons.storefront_outlined,
+                            darkMode: true,
+                            validator: _required,
+                          ),
+                          const SizedBox(height: 10),
 
-                        _tipoNegocioSelector(),
-                        const SizedBox(height: 10),
+                          _tipoNegocioSelector(),
+                          const SizedBox(height: 10),
 
-                        _styledInput(
-                          _telefonoController,
-                          'Teléfono',
-                          Icons.phone_outlined,
-                          darkMode: true,
-                        ),
-                        const SizedBox(height: 10),
+                          _styledInput(
+                            _telefonoController,
+                            'Teléfono',
+                            Icons.phone_outlined,
+                            darkMode: true,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 10),
 
-                        _styledInput(
-                          _direccionController,
-                          'Dirección',
-                          Icons.location_city_outlined,
-                          darkMode: true,
-                        ),
+                          _styledInput(
+                            _direccionController,
+                            'Dirección',
+                            Icons.location_city_outlined,
+                            darkMode: true,
+                          ),
 
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                        _locationInput(),
+                          _locationInput(),
 
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                        _imagePickerCard(),
+                          _imagePickerCard(),
 
 const SizedBox(height: 10),
 
@@ -667,6 +821,7 @@ CheckboxListTile(
                                   ),
                           ),
                         ),
+                        ],
                       ],
                     ),
                   ),
@@ -687,11 +842,13 @@ Widget _styledInput(
   bool obscure = false,
   bool isPassword = false,
   bool darkMode = false,
+  TextInputType? keyboardType,
   String? Function(String?)? validator,
 }) {
   return TextFormField(
     controller: controller,
     obscureText: obscure,
+    keyboardType: keyboardType,
     validator: validator,
     style: TextStyle(
       color: darkMode ? Colors.black87 : Colors.white,
@@ -705,23 +862,7 @@ Widget _styledInput(
         icon,
         color: darkMode ? Colors.grey[700] : Colors.white,
       ),
-      suffixIcon: isPassword
-          ? IconButton(
-              icon: Icon(
-                obscure
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: darkMode ? Colors.grey[700] : Colors.white,
-              ),
-             onPressed: () {
-  if (!mounted) return;
-
-  setState(() {
-    _obscurePassword = !_obscurePassword;
-  });
-},
-            )
-          : null,
+      suffixIcon: null,
       filled: true,
       fillColor:
           darkMode ? Colors.grey.shade100 : Colors.white.withOpacity(.10),

@@ -233,6 +233,76 @@ class AuthService {
   }
 
   /* ==========================================================
+     OBTENER ID TOKEN DE GOOGLE (sin loguear)
+     Se usa para registrar una veterinaria/comercio nueva.
+     ========================================================== */
+  static Future<String?> getGoogleIdToken() async {
+    try {
+      // 🔁 Fuerza el selector de cuentas en vez de reusar una sesión cacheada.
+      await _googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        debugPrint('Google sign-in cancelado');
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      return googleAuth.idToken;
+    } catch (e) {
+      debugPrint('getGoogleIdToken error: $e');
+      return null;
+    }
+  }
+
+  /* ==========================================================
+     REGISTRAR VETERINARIA/COMERCIO CON GOOGLE
+     ========================================================== */
+  static Future<bool> registerVeterinariaConGoogle({
+    required String idToken,
+    required String nombreComercial,
+    String tipoNegocio = 'veterinaria',
+    String? telefono,
+    String? direccion,
+    String? ubicacionLabel,
+    double? lat,
+    double? lng,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/auth/register-vet-google/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_token': idToken,
+        'nombre_comercial': nombreComercial,
+        'tipo_negocio': tipoNegocio,
+        'telefono': telefono ?? '',
+        'direccion': direccion ?? '',
+        'ubicacion_label': ubicacionLabel ?? '',
+        'ubicacion_lat': lat,
+        'ubicacion_lng': lng,
+      }),
+    );
+
+    debugPrint(
+      'Register vet google response: ${response.statusCode} ${response.body}',
+    );
+
+    if (response.statusCode == 201) {
+      return true;
+    }
+
+    String message = 'Error al registrar el comercio';
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map && data['message'] != null) message = data['message'];
+    } catch (_) {}
+
+    throw Exception(message);
+  }
+
+  /* ==========================================================
      LOGIN CON APPLE
      ========================================================== */
   static Future<dynamic> loginWithApple() async {
