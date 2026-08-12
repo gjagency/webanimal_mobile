@@ -42,10 +42,10 @@ class _ModernPostCardState extends State<ModernPostCard> {
 
   // ================= TIEMPO =================
   String _getTimeAgo() {
-    final diff = DateTime.now().difference(widget.post.datetime);
-    if (diff.inDays > 0) return 'hace ${diff.inDays}d';
-    if (diff.inHours > 0) return 'hace ${diff.inHours}h';
-    return 'hace ${diff.inMinutes}m';
+    final d = widget.post.datetime;
+    return '${d.day.toString().padLeft(2, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.year}';
   }
 
   Future<void> _openWhatsapp(String phone) async {

@@ -51,8 +51,11 @@ class _PageAuthSignInState extends State<PageAuthSignIn> {
       } else {
         _showError('Usuario o contraseña incorrectos');
       }
+    } on AccountPendingException catch (e) {
+      _showAccountPendingDialog(e.message);
     } catch (e) {
-      _showError('Error al iniciar sesión');
+      final message = e.toString().replaceFirst('Exception: ', '');
+      _showError(message.isNotEmpty ? message : 'Error al iniciar sesión');
     } finally {
       setState(() => _loading = false);
     }
@@ -78,6 +81,8 @@ Future<void> _loginWithGoogle() async {
     } else {
       _showError('No se pudo iniciar sesión con Google');
     }
+  } on AccountPendingException catch (e) {
+    _showAccountPendingDialog(e.message);
   } catch (e) {
     _showError('Error con Google Sign-In');
     debugPrint('Google login error: $e');
@@ -105,6 +110,8 @@ Future<void> _loginWithApple() async {
     } else {
       _showError('No se pudo iniciar sesión con Apple');
     }
+  } on AccountPendingException catch (e) {
+    _showAccountPendingDialog(e.message);
   } catch (e) {
     _showError('Error con Apple Sign-In');
     debugPrint('Apple login error: $e');
@@ -124,6 +131,62 @@ Future<void> _loginWithApple() async {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showAccountPendingDialog(String message) {
+    if (!mounted) return;
+    setState(() => _loading = false);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF9B4DCC).withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.hourglass_top_rounded,
+                color: Color(0xFF9B4DCC),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Cuenta en proceso de alta',
+                style: TextStyle(fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B4DCC),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Entendido'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

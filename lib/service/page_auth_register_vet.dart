@@ -30,6 +30,7 @@ class _PageAuthRegisterVetState extends State<PageAuthRegisterVet> {
 
   File? _imagen;
   bool _loading = false;
+  String _tipoNegocio = 'veterinaria';
 
   // 📍 ubicación
   double? _lat;
@@ -182,6 +183,7 @@ Future<void> _getCurrentLocation() async {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         nombreComercial: _nombreController.text.trim(),
+        tipoNegocio: _tipoNegocio,
         telefono: _telefonoController.text.trim(),
         direccion: _direccionController.text.trim(),
         imagen: _imagen,
@@ -193,13 +195,60 @@ Future<void> _getCurrentLocation() async {
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Veterinaria registrada. Revisá tu email para verificar la cuenta',
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF9B4DCC).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF9B4DCC),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '¡Registro exitoso!',
+                    style: TextStyle(fontSize: 17),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Tu cuenta fue registrada correctamente. Revisá tu email para verificar la cuenta y después iniciá sesión.',
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9B4DCC),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Continuar'),
+                ),
+              ),
+            ],
           ),
         );
+
+        if (!mounted) return;
         GoRouter.of(context).push('/auth/sign_in');
       }
     } catch (e) {
@@ -215,6 +264,71 @@ Future<void> _getCurrentLocation() async {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
+
+    Widget _tipoNegocioSelector() {
+      Widget option({
+        required String value,
+        required String label,
+        required IconData icon,
+      }) {
+        final selected = _tipoNegocio == value;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _tipoNegocio = value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0xFF9B4DCC)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected
+                      ? const Color(0xFF9B4DCC)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    color: selected ? Colors.white : Colors.grey[700],
+                    size: 22,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? Colors.white : Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      return Row(
+        children: [
+          option(
+            value: 'veterinaria',
+            label: 'Veterinaria',
+            icon: Icons.local_hospital_outlined,
+          ),
+          const SizedBox(width: 10),
+          option(
+            value: 'comercio',
+            label: 'Comercio',
+            icon: Icons.storefront_outlined,
+          ),
+        ],
+      );
+    }
 
     Widget _imagePickerCard() {
       return GestureDetector(
@@ -446,6 +560,9 @@ Future<void> _getCurrentLocation() async {
                           darkMode: true,
                           validator: _required,
                         ),
+                        const SizedBox(height: 10),
+
+                        _tipoNegocioSelector(),
                         const SizedBox(height: 10),
 
                         _styledInput(

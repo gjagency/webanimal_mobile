@@ -9,9 +9,13 @@ import 'package:mobile_app/service/reports_service.dart';
 import 'package:mobile_app/utils/share_post_helper.dart';
 import 'package:mobile_app/widgets/avatar.dart';
 import 'package:mobile_app/widgets/report_popup.dart';
+import 'package:mobile_app/widgets/promocion_card.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:typed_data';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
+
+const _kVetPromoStart = Color(0xFF9B4DCC);
+const _kVetPromoEnd = Color(0xFFE0528D);
 
 class UserPostsPage extends StatefulWidget {
   final String userId;
@@ -21,7 +25,8 @@ class UserPostsPage extends StatefulWidget {
   State<UserPostsPage> createState() => _UserPostsPageState();
 }
 
-class _UserPostsPageState extends State<UserPostsPage> {
+class _UserPostsPageState extends State<UserPostsPage>
+    with SingleTickerProviderStateMixin {
   List<Post> _posts = [];
   Map<String, dynamic>? _profile;
   List<PostMedia> _medias = [];
@@ -31,11 +36,68 @@ class _UserPostsPageState extends State<UserPostsPage> {
   String avatarUrl = '';
   bool loadingProfile = true;
 
+  late final TabController _tabController;
+  List<Promocion> _vetPromociones = [];
+  bool _loadingPromos = false;
+  bool _promosLoaded = false;
+  int _selectedPromoIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _load();
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    setState(() {});
+    if (_tabController.index == 1 && !_promosLoaded) {
+      _loadPromocionesVeterinaria();
+    }
+  }
+
+  Future<void> _loadPromocionesVeterinaria() async {
+    if (_loadingPromos) return;
+
+    setState(() => _loadingPromos = true);
+
+    try {
+      final grupos = await AuthService.getOfertasPromociones();
+
+      final grupo = grupos.firstWhere(
+        (g) => g['user_id']?.toString() == widget.userId.toString(),
+        orElse: () => const {},
+      );
+
+      final promosJson = (grupo['promociones'] as List?) ?? [];
+
+      if (!mounted) return;
+
+      setState(() {
+        _vetPromociones = promosJson
+            .map((e) => Promocion.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _loadingPromos = false;
+        _promosLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Error cargando promociones del perfil: $e');
+      if (!mounted) return;
+      setState(() {
+        _loadingPromos = false;
+        _promosLoaded = true;
+      });
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -306,9 +368,33 @@ class _UserPostsPageState extends State<UserPostsPage> {
               ),
             ),
 
+            /// ================= TABS (SOLO VETERINARIAS) =================
+            if (isVet)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _TabBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.black87,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: const Color(0xFF9B4DCC),
+                    indicatorWeight: 2.5,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Publicaciones'),
+                      Tab(text: 'Promociones'),
+                    ],
+                  ),
+                ),
+              ),
+
             /// ================= GRID POSTS =================
-            SliverGrid(
-              delegate: SliverChildBuilderDelegate((context, index) {
+            if (!isVet || _tabController.index == 0)
+              SliverGrid(
+                delegate: SliverChildBuilderDelegate((context, index) {
                 final post = _posts[index];
 
                 final media = post.medias.isNotEmpty ? post.medias.first : null;
@@ -431,10 +517,90 @@ class _UserPostsPageState extends State<UserPostsPage> {
                 );
               }, childCount: _posts.length),
 
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+              ),
+
+            /// ================= PROMOCIONES DE LA VETERINARIA =================
+            if (isVet && _tabController.index == 1)
+              _promocionesSliver(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _promocionesSliver() {
+    if (_loadingPromos) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (_vetPromociones.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.local_offer_outlined,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No hay promociones activas',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final index = _selectedPromoIndex.clamp(0, _vetPromociones.length - 1);
+    final selected = _vetPromociones[index];
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 88,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _vetPromociones.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, i) {
+                  final promo = _vetPromociones[i];
+                  return _VetPromoBubble(
+                    promo: promo,
+                    isSelected: i == index,
+                    onTap: () => setState(() => _selectedPromoIndex = i),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: _VetPromoDetailPanel(
+                key: ValueKey(selected.id),
+                promocion: selected,
               ),
             ),
           ],
@@ -722,6 +888,278 @@ class _UserPostsPageState extends State<UserPostsPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _TabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: tabBar);
+  }
+
+  @override
+  bool shouldRebuild(covariant _TabBarDelegate oldDelegate) {
+    return tabBar != oldDelegate.tabBar;
+  }
+}
+
+class _VetPromoBubble extends StatelessWidget {
+  final Promocion promo;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _VetPromoBubble({
+    required this.promo,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = getFullImageUrl(promo.imagen);
+    final hasImage = promo.imagen != null && imageUrl.isNotEmpty;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [_kVetPromoStart, _kVetPromoEnd],
+                      )
+                    : null,
+                color: isSelected ? null : Colors.grey.shade200,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+                child: ClipOval(
+                  child: hasImage
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
+                      : _placeholder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              promo.titulo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.black87 : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.grey.shade100,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.local_offer_rounded,
+        color: Colors.grey.shade400,
+        size: 22,
+      ),
+    );
+  }
+}
+
+class _VetPromoDetailPanel extends StatelessWidget {
+  final Promocion promocion;
+
+  const _VetPromoDetailPanel({super.key, required this.promocion});
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = getFullImageUrl(promocion.imagen);
+    final hasImage = promocion.imagen != null && imageUrl.isNotEmpty;
+    final hasPrice =
+        promocion.precio != null && promocion.precio.toString().isNotEmpty;
+    final hasDesc = promocion.descripcion.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF9FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasImage)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: 180,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.grey.shade200,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.broken_image_rounded,
+                    color: Colors.grey.shade400,
+                    size: 36,
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  promocion.nombreComercio.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: _kVetPromoStart,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  promocion.titulo,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (hasDesc) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    promocion.descripcion,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _VetInfoChip(
+                      icon: Icons.calendar_month_rounded,
+                      label:
+                          '${_fmtDate(promocion.fechadesde)} - ${_fmtDate(promocion.fechahasta)}',
+                    ),
+                    if (hasPrice)
+                      _VetInfoChip(
+                        icon: Icons.sell_rounded,
+                        label: '\$ ${promocion.precio}',
+                        emphasized: true,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtDate(String? date) {
+    if (date == null || date.isEmpty) return '--';
+    try {
+      final parsed = DateTime.parse(date);
+      return '${parsed.day.toString().padLeft(2, '0')}-'
+          '${parsed.month.toString().padLeft(2, '0')}-'
+          '${parsed.year}';
+    } catch (_) {
+      return date;
+    }
+  }
+}
+
+class _VetInfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool emphasized;
+
+  const _VetInfoChip({
+    required this.icon,
+    required this.label,
+    this.emphasized = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: emphasized ? const Color(0xFFFFF3E0) : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: emphasized
+            ? Border.all(color: const Color(0xFFFFB74D))
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: emphasized ? const Color(0xFFE65100) : Colors.grey.shade600,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: emphasized ? const Color(0xFFE65100) : Colors.grey.shade700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

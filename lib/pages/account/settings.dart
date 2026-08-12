@@ -80,6 +80,34 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     }
   }
 
+  /// 🏷️ Título de la sección según el tipo de negocio registrado
+  String _negociosSectionTitle() {
+    if (veterinarias.isEmpty) {
+      return AuthService.esVeterinaria ? 'Veterinaria' : '';
+    }
+    final esComercio = veterinarias.every(
+      (v) => v.tipoNegocio == 'comercio',
+    );
+    final esVeterinaria = veterinarias.every(
+      (v) => v.tipoNegocio == 'veterinaria',
+    );
+    if (esComercio) return 'Comercio';
+    if (esVeterinaria) return 'Veterinaria';
+    return 'Mis negocios';
+  }
+
+  /// 🏥🏬 Ícono según el tipo de negocio
+  IconData _negocioIcon(MiVeterinaria vet) {
+    return vet.tipoNegocio == 'comercio'
+        ? Icons.storefront_outlined
+        : Icons.local_hospital;
+  }
+
+  /// 🏥🏬 Etiqueta según el tipo de negocio
+  String _negocioLabel(MiVeterinaria vet) {
+    return vet.tipoNegocio == 'comercio' ? 'Comercio' : 'Veterinaria';
+  }
+
   /// Función para cerrar sesión
   Future<void> _logout() async {
     await AuthService.logout();
@@ -165,7 +193,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                   ),
                 ]),
                 SizedBox(height: 16),
-                _buildSection(AuthService.esVeterinaria ? 'Veterinaria' : '', [
+                _buildSection(_negociosSectionTitle(), [
                   if (loadingVets)
                     Padding(
                       padding: EdgeInsets.all(16),
@@ -194,7 +222,7 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
-                                  Icons.local_hospital,
+                                  _negocioIcon(vet),
                                   color: vet.verified
                                       ? Colors.blue
                                       : Colors.purple,
@@ -227,6 +255,14 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                                         ],
                                       ],
                                     ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      _negocioLabel(vet),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -255,16 +291,6 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
                     title: 'Acerca de',
                     subtitle: 'Versión 1.0.0',
                     onTap: () {},
-                  ),
-                  _buildSettingItem(
-                    icon: Icons.description,
-                    title: 'Términos y condiciones',
-                    onTap: _showTermsAndConditions,
-                  ),
-                  _buildSettingItem(
-                    icon: Icons.privacy_tip,
-                    title: 'Política de privacidad',
-                    onTap: _showPrivacyPolicy,
                   ),
                 ]),
                 SizedBox(height: 16),
@@ -966,223 +992,4 @@ class _PageAccountSettingsState extends State<PageAccountSettings> {
     );
   }
 
-  void _showPrivacyPolicy() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                Text(
-                  'Política de privacidad',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                Text(_privacyText, style: TextStyle(fontSize: 14, height: 1.5)),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static const String _privacyText = '''
-🔐 POLÍTICA DE PRIVACIDAD
-1. Introducción
-
-Esta Política de Privacidad describe cómo recopilamos, usamos y protegemos la información personal de los usuarios que utilizan esta aplicación.
-
-Al usar la app, aceptás las prácticas descritas en esta política.
-
-2. Información que recopilamos
-
-Podemos recopilar la siguiente información:
-
-Datos de registro: nombre, nombre de usuario, email, foto de perfil.
-
-Información de uso de la app.
-
-Datos técnicos básicos (por ejemplo, tipo de dispositivo o sistema operativo).
-
-No recopilamos información sensible sin tu consentimiento explícito.
-
-3. Uso de la información
-
-La información recopilada se utiliza para:
-
-Proveer y mejorar el funcionamiento de la aplicación.
-
-Personalizar la experiencia del usuario.
-
-Gestionar la autenticación y seguridad de la cuenta.
-
-Comunicarnos con el usuario cuando sea necesario.
-
-4. Almacenamiento y seguridad
-
-Los datos se almacenan de forma segura.
-
-Implementamos medidas técnicas y organizativas para proteger la información.
-
-Aun así, ningún sistema es 100% seguro y no podemos garantizar seguridad absoluta.
-
-5. Compartir información con terceros
-
-No compartimos datos personales con terceros, salvo cuando sea necesario para:
-
-Cumplir obligaciones legales.
-
-Proteger derechos, seguridad o integridad de la aplicación.
-
-6. Derechos del usuario
-
-El usuario puede:
-
-Acceder a sus datos personales.
-
-Modificar o actualizar su información.
-
-Solicitar la eliminación de su cuenta y datos asociados.
-
-Estas acciones pueden realizarse desde la app o contactándonos.
-
-7. Eliminación de datos
-
-Al eliminar una cuenta:
-
-Los datos personales serán eliminados o anonimizados.
-
-Algunos datos pueden conservarse si la ley lo exige.
-
-8. Cambios en la política
-
-Nos reservamos el derecho de actualizar esta Política de Privacidad.
-Los cambios serán informados dentro de la aplicación.
-
-9. Contacto
-
-Para cualquier consulta relacionada con esta Política de Privacidad, podés escribirnos a:
-
-📧 webanimalok@gmail.com
-''';
-
-  void _showTermsAndConditions() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                Text(
-                  'Términos y condiciones',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                Text(_termsText, style: TextStyle(fontSize: 14, height: 1.5)),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static const String _termsText = '''
-1. Aceptación de los términos
-
-Al registrarte o utilizar esta aplicación, aceptás estos Términos y Condiciones.
-Si no estás de acuerdo con alguno de ellos, no deberías utilizar la app.
-
-2. Uso de la aplicación
-
-El usuario se compromete a:
-
-Usar la aplicación de forma legal y responsable.
-
-No publicar contenido falso, ofensivo o ilegal.
-
-No utilizar la app para actividades fraudulentas o dañinas.
-
-La app se reserva el derecho de suspender o eliminar cuentas que incumplan estas normas.
-
-3. Registro y cuenta
-
-El usuario es responsable de mantener la confidencialidad de su cuenta.
-
-La información proporcionada debe ser veraz y actualizada.
-
-La app no se responsabiliza por accesos no autorizados causados por el uso indebido de las credenciales.
-
-4. Contenido del usuario
-
-El contenido publicado es responsabilidad exclusiva del usuario.
-
-Al publicar contenido, el usuario autoriza a la app a mostrarlo dentro de la plataforma.
-
-La app puede eliminar contenido que viole estos términos.
-
-5. Privacidad
-
-El uso de la aplicación también se rige por nuestra Política de Privacidad, donde se detalla cómo se recopilan y protegen los datos personales.
-
-6. Limitación de responsabilidad
-
-La aplicación se ofrece “tal cual está”.
-No garantizamos que el servicio sea ininterrumpido o libre de errores.
-
-La app no será responsable por daños directos o indirectos derivados del uso de la plataforma.
-
-7. Modificaciones
-
-Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento.
-Los cambios serán informados dentro de la aplicación.
-
-8. Terminación de la cuenta
-
-El usuario puede eliminar su cuenta en cualquier momento.
-La app puede suspender o eliminar cuentas que incumplan estos términos.
-
-9. Contacto
-
-Para cualquier consulta relacionada con estos términos, podés contactarnos en:
-
-📧 webanimalok@gmail.com
-''';
 }

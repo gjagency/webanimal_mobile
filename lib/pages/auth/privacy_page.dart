@@ -15,27 +15,58 @@ class PrivacyPage extends StatelessWidget {
           '''
 POLÍTICA DE PRIVACIDAD
 
-Web Animal recopila información necesaria para el funcionamiento de la aplicación.
+Esta Política de Privacidad describe cómo Web Animal recopila, usa y protege la información personal de los usuarios que utilizan la aplicación. Al usarla, aceptás las prácticas descritas acá.
 
-Datos recopilados:
+1. Información que recopilamos
 
-• Correo electrónico.
-• Nombre de usuario.
-• Fotografías publicadas.
-• Ubicación aproximada cuando el usuario lo autoriza.
+• Correo electrónico y nombre de usuario.
+• Foto de perfil y fotografías que publicás.
+• Ubicación aproximada, cuando la autorizás (para mostrarte publicaciones y veterinarias cercanas).
+• Datos técnicos básicos del dispositivo (por ejemplo, tipo de dispositivo o sistema operativo).
 
-La información se utiliza para:
+No recopilamos información sensible sin tu consentimiento explícito.
 
-• Mostrar publicaciones cercanas.
+2. Uso de la información
+
+La información recopilada se utiliza para:
+
+• Mostrar publicaciones y veterinarias cercanas.
 • Permitir la interacción entre usuarios.
-• Mejorar la experiencia dentro de la aplicación.
-• Garantizar la seguridad de la plataforma.
+• Personalizar y mejorar tu experiencia dentro de la app.
+• Gestionar la autenticación y seguridad de la cuenta.
+• Comunicarnos con vos cuando sea necesario.
 
-Web Animal no vende información personal a terceros.
+3. Almacenamiento y seguridad
 
-Los usuarios pueden solicitar la eliminación de su cuenta y datos asociados.
+Los datos y las imágenes se almacenan de forma segura, incluyendo a través de proveedores de infraestructura externos. Implementamos medidas técnicas y organizativas para proteger tu información, aunque ningún sistema es 100% seguro y no podemos garantizar seguridad absoluta.
 
-Última actualización: Junio 2026.
+4. Compartir información con terceros
+
+Web Animal no vende información personal a terceros. Podemos compartir datos únicamente cuando sea necesario para:
+
+• Cumplir obligaciones legales.
+• Proteger derechos, seguridad o integridad de la aplicación.
+• Operar con proveedores de almacenamiento e infraestructura necesarios para el funcionamiento de la app (por ejemplo, alojamiento de imágenes).
+
+5. Derechos del usuario
+
+Podés acceder a tus datos personales, modificarlos o actualizarlos, y solicitar la eliminación de tu cuenta y datos asociados desde la app o contactándonos.
+
+6. Eliminación de datos
+
+Al eliminar tu cuenta, tus datos personales serán eliminados o anonimizados. Algunos datos pueden conservarse si la ley lo exige.
+
+7. Cambios en esta política
+
+Nos reservamos el derecho de actualizar esta Política de Privacidad. Los cambios serán informados dentro de la aplicación.
+
+8. Contacto
+
+Para cualquier consulta relacionada con esta Política de Privacidad, podés escribirnos a:
+
+📧 webanimalok@gmail.com
+
+Última actualización: Agosto 2026.
           ''',
           style: TextStyle(
             fontSize: 15,

@@ -7,6 +7,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+/// Se lanza cuando el login es correcto pero la cuenta todavía
+/// no fue activada por un admin (ej: veterinaria/comercio en alta).
+class AccountPendingException implements Exception {
+  final String message;
+  AccountPendingException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 /// Servicio de autenticación
 class AuthService {
   static const _accessTokenKey = 'access_token';
@@ -62,31 +72,45 @@ class AuthService {
      LOGIN USUARIO / PASSWORD (JWT)
      ========================================================== */
   static Future<bool> login(String username, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/api/auth/login/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
-      );
+    final response = await http.post(
+      Uri.parse('${Config.baseUrl}/api/auth/login/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username, 'password': password}),
+    );
 
-      debugPrint('Login response: ${response.statusCode} ${response.body}');
+    debugPrint('Login response: ${response.statusCode} ${response.body}');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        final access = data['access'];
-        final refresh = data['refresh'];
+      final access = data['access'];
+      final refresh = data['refresh'];
 
-        if (access != null && refresh != null) {
-          await _saveTokens(access, refresh);
-          return true;
-        }
+      if (access != null && refresh != null) {
+        await _saveTokens(access, refresh);
+        return true;
       }
-      return false;
-    } catch (e) {
-      debugPrint('Login exception: ${e.toString()}');
+
       return false;
     }
+
+    // 🔒 Cuenta correcta pero todavía no activada por un admin,
+    // u otro error específico enviado por el backend.
+    String message = 'Usuario o contraseña incorrectos';
+    String? code;
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        if (data['message'] != null) message = data['message'];
+        code = data['code'];
+      }
+    } catch (_) {}
+
+    if (code == 'account_pending') {
+      throw AccountPendingException(message);
+    }
+
+    throw Exception(message);
   }
 
   /* ==========================================================
@@ -142,6 +166,10 @@ class AuthService {
      ========================================================== */
   static Future<bool> loginWithGoogle() async {
     try {
+      // 🔁 Fuerza que se muestre el selector de cuentas siempre,
+      // en vez de reusar en silencio la última sesión de Google cacheada.
+      await _googleSignIn.signOut();
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -177,8 +205,27 @@ class AuthService {
           await _saveTokens(access, refresh);
           return true;
         }
+
+        return false;
       }
+
+      String message = 'No se pudo iniciar sesión con Google';
+      String? code;
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map) {
+          if (data['message'] != null) message = data['message'];
+          code = data['code'];
+        }
+      } catch (_) {}
+
+      if (code == 'account_pending') {
+        throw AccountPendingException(message);
+      }
+
       return false;
+    } on AccountPendingException {
+      rethrow;
     } catch (e) {
       debugPrint('Google login exception: $e');
       return false;
@@ -226,8 +273,27 @@ class AuthService {
           await _saveTokens(access, refresh);
           return true;
         }
+
+        return false;
       }
+
+      String message = 'No se pudo iniciar sesión con Apple';
+      String? code;
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map) {
+          if (data['message'] != null) message = data['message'];
+          code = data['code'];
+        }
+      } catch (_) {}
+
+      if (code == 'account_pending') {
+        throw AccountPendingException(message);
+      }
+
       return false;
+    } on AccountPendingException {
+      rethrow;
     } catch (e) {
       debugPrint('Apple login exception: $e');
       return false;
@@ -360,6 +426,7 @@ class AuthService {
     required String email,
     required String password,
     required String nombreComercial,
+    String tipoNegocio = 'veterinaria',
     String? telefono,
     String? direccion,
     File? imagen,
@@ -374,6 +441,7 @@ class AuthService {
       request.fields['email'] = email;
       request.fields['password'] = password;
       request.fields['nombre_comercial'] = nombreComercial;
+      request.fields['tipo_negocio'] = tipoNegocio;
       request.fields['telefono'] = telefono ?? '';
       request.fields['direccion'] = direccion ?? '';
       request.fields['ubicacion_label'] = ubicacionLabel ?? '';
@@ -460,6 +528,27 @@ class AuthService {
       }
     } catch (e) {
       debugPrint('Excepción en getMisPromociones: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getOfertasPromociones() async {
+    try {
+      final response = await getWithToken(
+        '/api/veterinarias/promociones/ofertas/',
+      );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        debugPrint(
+          'Error al obtener ofertas de promociones: ${response.statusCode} ${response.body}',
+        );
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Excepción en getOfertasPromociones: $e');
       return [];
     }
   }

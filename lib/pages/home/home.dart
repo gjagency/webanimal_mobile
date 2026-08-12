@@ -1632,7 +1632,7 @@ class _CrearPromocionSheetState extends State<CrearPromocionSheet> {
                                   fechaDesde == null
                                       ? 'Desde'
                                       : DateFormat(
-                                          'dd/MM/yyyy',
+                                          'dd-MM-yyyy',
                                         ).format(fechaDesde!),
                                 ),
                               ),
@@ -1646,7 +1646,7 @@ class _CrearPromocionSheetState extends State<CrearPromocionSheet> {
                                   fechaHasta == null
                                       ? 'Hasta'
                                       : DateFormat(
-                                          'dd/MM/yyyy',
+                                          'dd-MM-yyyy',
                                         ).format(fechaHasta!),
                                 ),
                               ),

@@ -77,7 +77,7 @@ class _PagePetSpaceState extends State<PagePetSpace>
         _lat!,
         _lng!,
       );
-      if (address != null) {
+      if (address != null && mounted) {
         setState(() => _locationLabel = address.city);
       }
     } catch (_) {}
@@ -90,10 +90,12 @@ class _PagePetSpaceState extends State<PagePetSpace>
     try {
       result = await PetSpacesService.getPetSpaces(lat: _lat, lng: _lng);
     } finally {
-      setState(() {
-        _loading = false;
-        _negocios = result;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _negocios = result;
+        });
+      }
     }
   }
 
@@ -481,6 +483,30 @@ class _NegocioMapSheet extends StatelessWidget {
                       const SizedBox(height: 2),
                       _CategoriaBadge(categoria: negocio.categoria!),
                     ],
+                    if (negocio.telefono != null &&
+                        negocio.telefono!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_outlined,
+                            size: 13,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              negocio.telefono!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (negocio.direccion != null) ...[
                       const SizedBox(height: 4),
                       Row(
@@ -785,13 +811,23 @@ class _NegocioSection extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () => context.push('/user-posts/${data.userId}'),
-                      child: Text(
-                        data.nombreComercio,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              data.nombreComercio,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (data.categoria != null) ...[
+                            const SizedBox(width: 6),
+                            _CategoriaBadge(categoria: data.categoria!),
+                          ],
+                        ],
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -808,6 +844,35 @@ class _NegocioSection extends StatelessWidget {
                                 size: 11,
                                 color: Colors.grey[500],
                               ),                            ],
+                          ),
+                        ],
+                      ),
+                    if (selectedTab == 1 &&
+                        data.telefono != null &&
+                        data.telefono!.isNotEmpty)
+                      Row(
+                        spacing: 6,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 2,
+                            children: [
+                              Icon(
+                                Icons.phone_outlined,
+                                size: 11,
+                                color: Colors.grey[500],
+                              ),
+                              Flexible(
+                                child: Text(
+                                  'Teléfono: ${data.telefono}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1133,6 +1198,8 @@ class _CategoriaBadge extends StatelessWidget {
     switch (categoria.toLowerCase()) {
       case 'veterinaria':
         return Colors.teal;
+      case 'comercio':
+        return Colors.deepOrange;
       case 'alimentos':
         return Colors.orange;
       case 'tienda':
@@ -1145,6 +1212,19 @@ class _CategoriaBadge extends StatelessWidget {
     }
   }
 
+  String get _label {
+    switch (categoria.toLowerCase()) {
+      case 'veterinaria':
+        return 'Veterinaria';
+      case 'comercio':
+        return 'Comercio';
+      default:
+        return categoria.isEmpty
+            ? categoria
+            : '${categoria[0].toUpperCase()}${categoria.substring(1)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1154,7 +1234,7 @@ class _CategoriaBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        categoria,
+        _label,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
@@ -1261,10 +1341,12 @@ Future<void> _search(String query) async {
         );
       }
     } catch (_) {
-      setState(() {
-        _error = 'No se pudo obtener la ubicación';
-        _searching = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'No se pudo obtener la ubicación';
+          _searching = false;
+        });
+      }
     }
   }
 
@@ -1568,10 +1650,12 @@ Future<void> _search(String query) async {
         );
       }
     } catch (_) {
-      setState(() {
-        _error = 'No se pudo obtener la ubicación';
-        _loadingLocation = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'No se pudo obtener la ubicación';
+          _loadingLocation = false;
+        });
+      }
     }
   }
 

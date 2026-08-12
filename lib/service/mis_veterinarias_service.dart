@@ -25,6 +25,7 @@ class MiVeterinaria {
   final String phone;
   final String? imageUrl;
   final bool verified;
+  final String tipoNegocio;
   final MiVeterinariaLocation location;
 
   MiVeterinaria({
@@ -33,6 +34,7 @@ class MiVeterinaria {
     required this.phone,
     this.imageUrl,
     required this.verified,
+    this.tipoNegocio = 'veterinaria',
     required this.location,
   });
 }
@@ -155,6 +157,7 @@ class MisVeterinariasService {
       phone: json['telefono'] ?? '',
       imageUrl: json['imagen'],
       verified: json['verificada'] ?? false,
+      tipoNegocio: json['tipo_negocio'] ?? 'veterinaria',
       location: MiVeterinariaLocation(
         country: json['pais'] ?? '',
         state: json['estado'] ?? '',

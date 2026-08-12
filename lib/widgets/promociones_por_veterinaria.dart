@@ -440,8 +440,8 @@ class _PromoDetailPanel extends StatelessWidget {
     if (date == null || date.isEmpty) return '--';
     try {
       final parsed = DateTime.parse(date);
-      return '${parsed.day.toString().padLeft(2, '0')}/'
-          '${parsed.month.toString().padLeft(2, '0')}/'
+      return '${parsed.day.toString().padLeft(2, '0')}-'
+          '${parsed.month.toString().padLeft(2, '0')}-'
           '${parsed.year}';
     } catch (_) {
       return date;

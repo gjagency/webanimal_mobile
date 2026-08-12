@@ -8,6 +8,7 @@ class NegocioAnimal {
   final String? avatar;
   final String? categoria;
   final String? descripcion;
+  final String? telefono;
   final String? direccion;
   final double? lat;
   final double? lng;
@@ -20,6 +21,7 @@ class NegocioAnimal {
     this.avatar,
     this.categoria,
     this.descripcion,
+    this.telefono,
     this.direccion,
     this.lat,
     this.lng,
@@ -34,6 +36,7 @@ class NegocioAnimal {
       avatar: json['avatar'],
       categoria: json['categoria'],
       descripcion: json['descripcion'],
+      telefono: json['telefono'],
       direccion: json['direccion'],
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
